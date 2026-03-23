@@ -1,0 +1,13 @@
+---
+description: Token-efficient prompting and implementation rules for phased app development in Cursor/Claude.
+alwaysApply: true
+---
+
+# Token Efficiency Rules
+
+- Implement only one checklist task at a time from `todos/phase-*.md`.
+- Keep output concise: changed files, commands, outcomes.
+- Request patch-style edits instead of broad rewrites.
+- Prefer reading specific files over wide repo scans.
+- Reuse prompt templates from `IMPLEMENTATION_PLAN.md`.
+- Stop after a shippable checkpoint and verify tests.
