@@ -3,6 +3,7 @@ import 'package:hanuman_chalisa/data/models/play_session.dart';
 import 'package:hanuman_chalisa/data/models/daily_stat.dart';
 import 'package:hanuman_chalisa/data/models/user_settings.dart';
 import 'package:hanuman_chalisa/data/models/recording.dart';
+import 'package:hanuman_chalisa/data/models/entitlement.dart';
 
 void main() {
   group('PlaySession', () {
@@ -79,6 +80,62 @@ void main() {
       final restored = Recording.fromMap(rec.toMap());
       expect(restored.filePath, rec.filePath);
       expect(restored.label, rec.label);
+    });
+  });
+
+  group('Entitlement', () {
+    test('free constant is not premium and not active', () {
+      expect(Entitlement.free.isPremium, isFalse);
+      expect(Entitlement.free.isActive, isFalse);
+      expect(Entitlement.free.planType, PlanType.free);
+    });
+
+    test('lifetime entitlement is active with no expiry', () {
+      const e = Entitlement(planType: PlanType.lifetime, isPremium: true);
+      expect(e.isActive, isTrue);
+      expect(e.expiresAt, isNull);
+    });
+
+    test('expired subscription is not active', () {
+      final e = Entitlement(
+        planType: PlanType.monthly,
+        isPremium: true,
+        expiresAt: DateTime(2020, 1, 1), // past
+      );
+      expect(e.isActive, isFalse);
+    });
+
+    test('active subscription is active', () {
+      final e = Entitlement(
+        planType: PlanType.yearly,
+        isPremium: true,
+        expiresAt: DateTime(2099, 12, 31),
+      );
+      expect(e.isActive, isTrue);
+    });
+
+    test('isOnTrial true when trialEndsAt is in the future', () {
+      final e = Entitlement(
+        planType: PlanType.monthly,
+        isPremium: true,
+        trialEndsAt: DateTime(2099, 12, 31),
+      );
+      expect(e.isOnTrial, isTrue);
+    });
+
+    test('toMap / fromMap roundtrip', () {
+      final e = Entitlement(
+        id: 1,
+        planType: PlanType.yearly,
+        isPremium: true,
+        trialEndsAt: DateTime(2099, 6, 1),
+        expiresAt: DateTime(2099, 12, 31),
+      );
+      final restored = Entitlement.fromMap(e.toMap());
+      expect(restored.planType, PlanType.yearly);
+      expect(restored.isPremium, isTrue);
+      expect(restored.trialEndsAt, e.trialEndsAt);
+      expect(restored.expiresAt, e.expiresAt);
     });
   });
 }

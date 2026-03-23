@@ -4,10 +4,14 @@ import 'package:just_audio/just_audio.dart';
 import '../../main.dart';
 import '../../core/audio_handler.dart';
 import '../../core/completion_detector.dart';
+import '../../core/paywall_trigger.dart';
 import '../../data/models/play_session.dart';
 import '../../data/models/daily_stat.dart';
 import '../../data/repositories/play_session_repository.dart';
 import '../../data/repositories/daily_stat_repository.dart';
+import '../../data/repositories/user_settings_repository.dart';
+import '../paywall/paywall_screen.dart';
+import '../../data/repositories/entitlement_repository.dart';
 
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
@@ -21,6 +25,7 @@ class _PlayScreenState extends State<PlayScreen> {
 
   final _playSessionRepo = SqlitePlaySessionRepository();
   final _dailyStatRepo = SqliteDailyStatRepository();
+  final _settingsRepo = SqliteUserSettingsRepository();
 
   late final CompletionDetector _completionDetector;
   StreamSubscription<Duration>? _positionSub;
@@ -29,6 +34,9 @@ class _PlayScreenState extends State<PlayScreen> {
   bool _loaded = false;
   bool _showLyrics = false;
   int _todayCount = 0;
+
+  /// Set after a completion event; consumed on the next pause/stop.
+  bool _paywallPending = false;
 
   @override
   void initState() {
@@ -99,6 +107,50 @@ class _PlayScreenState extends State<PlayScreen> {
     await _dailyStatRepo.upsert(updated);
 
     if (mounted) setState(() => _todayCount = updated.completionCount);
+
+    // Flag for paywall check — fires when audio next stops/pauses.
+    _paywallPending = true;
+  }
+
+  Future<void> _maybeShowPaywall() async {
+    if (!_paywallPending) return;
+    _paywallPending = false;
+
+    final settings = await _settingsRepo.get();
+    final total = await _dailyStatRepo.totalCompletions();
+    final isPremium = entitlementNotifier.value.isActive;
+
+    if (!PaywallTrigger.shouldShow(
+      isPremium: isPremium,
+      isPlaying: audioHandler?.playing ?? false,
+      dailyCompletions: _todayCount,
+      totalCompletions: total,
+      lastShownAt: settings.lastPaywallShownAt,
+    )) {
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Determine variant: milestone moments → milestone, otherwise benefits.
+    final isMilestone = kMilestoneCompletions.contains(total);
+    final variant =
+        isMilestone ? PaywallVariant.milestone : PaywallVariant.benefits;
+
+    final purchased = await showPaywall(
+      context,
+      variant: variant,
+      completionCount: total,
+    );
+
+    if (purchased) {
+      entitlementNotifier.value = await SqliteEntitlementRepository().get();
+    }
+
+    // Update last shown timestamp regardless of outcome.
+    await _settingsRepo.save(
+      settings.copyWith(lastPaywallShownAt: DateTime.now()),
+    );
   }
 
   Future<void> _onPlay() async {
@@ -174,6 +226,11 @@ class _PlayScreenState extends State<PlayScreen> {
       stream: handler.playerStateStream,
       builder: (context, snapshot) {
         final isPlaying = snapshot.data?.playing ?? false;
+        // Check paywall when audio stops after a completed session.
+        if (!isPlaying && _paywallPending) {
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _maybeShowPaywall());
+        }
 
         return Scaffold(
           appBar: AppBar(

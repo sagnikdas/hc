@@ -39,6 +39,10 @@ dependencies:
   audio_session: ^0.1.25
   record: ^5.1.2
   path_provider: ^2.1.5
+  purchases_flutter: ^9.15.1
+  flutter_local_notifications: ^21.0.0
+  timezone: ^0.11.0
+  share_plus: ^12.0.1
 
 dev_dependencies:
   flutter_test:

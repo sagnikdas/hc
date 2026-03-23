@@ -5,12 +5,17 @@ class UserSettings {
   final String? reminderTime; // 'HH:MM'
   final String selectedVoice;
 
+  /// Last time a proactive paywall impression was shown.
+  /// Used by [PaywallTrigger] to enforce the 1-per-day hard cap.
+  final DateTime? lastPaywallShownAt;
+
   const UserSettings({
     this.id,
     this.themeMode = 'system',
     this.reminderEnabled = false,
     this.reminderTime,
     this.selectedVoice = 'default',
+    this.lastPaywallShownAt,
   });
 
   Map<String, dynamic> toMap() => {
@@ -19,6 +24,7 @@ class UserSettings {
         'reminder_enabled': reminderEnabled ? 1 : 0,
         'reminder_time': reminderTime,
         'selected_voice': selectedVoice,
+        'last_paywall_shown_at': lastPaywallShownAt?.toIso8601String(),
       };
 
   factory UserSettings.fromMap(Map<String, dynamic> map) => UserSettings(
@@ -27,6 +33,9 @@ class UserSettings {
         reminderEnabled: (map['reminder_enabled'] as int) == 1,
         reminderTime: map['reminder_time'] as String?,
         selectedVoice: map['selected_voice'] as String,
+        lastPaywallShownAt: map['last_paywall_shown_at'] != null
+            ? DateTime.parse(map['last_paywall_shown_at'] as String)
+            : null,
       );
 
   UserSettings copyWith({
@@ -35,6 +44,7 @@ class UserSettings {
     bool? reminderEnabled,
     String? reminderTime,
     String? selectedVoice,
+    DateTime? lastPaywallShownAt,
   }) =>
       UserSettings(
         id: id ?? this.id,
@@ -42,5 +52,6 @@ class UserSettings {
         reminderEnabled: reminderEnabled ?? this.reminderEnabled,
         reminderTime: reminderTime ?? this.reminderTime,
         selectedVoice: selectedVoice ?? this.selectedVoice,
+        lastPaywallShownAt: lastPaywallShownAt ?? this.lastPaywallShownAt,
       );
 }

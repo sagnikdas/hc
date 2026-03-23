@@ -10,8 +10,16 @@ class NoOpAnalyticsService implements AnalyticsService {
   Future<void> logEvent(String name, {Map<String, dynamic>? params}) async {}
 }
 
-// Standard event names
+// Playback event names
 const kEventPlayStarted = 'play_started';
 const kEventPlayCompleted = 'play_completed';
 const kEventPlayAbandoned = 'play_abandoned';
 const kEventStreakMilestone = 'streak_milestone';
+
+// Paywall event names
+const kEventPaywallViewed = 'paywall_viewed';
+const kEventPaywallClosed = 'paywall_closed';
+const kEventTrialStarted = 'trial_started';
+const kEventSubscriptionStarted = 'subscription_started';
+const kEventSubscriptionCancelled = 'subscription_cancelled';
+const kEventPremiumFeatureTapped = 'premium_feature_tapped';

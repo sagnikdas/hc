@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/streak_calculator.dart';
 import '../../data/models/daily_stat.dart';
 import '../../data/repositories/daily_stat_repository.dart';
+import '../../main.dart';
+import '../paywall/paywall_screen.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -65,7 +67,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
             const SizedBox(height: 12),
             _Heatmap(stats: _stats),
             const SizedBox(height: 24),
-            _WeeklySummary(stats: _stats, today: today),
+            _WeeklySummary(
+              stats: _stats,
+              today: today,
+              totalCompletions: totalCompletions,
+            ),
           ],
         ),
       ),
@@ -199,10 +205,16 @@ class _Heatmap extends StatelessWidget {
 class _WeeklySummary extends StatelessWidget {
   final List<DailyStat> stats;
   final DateTime today;
-  const _WeeklySummary({required this.stats, required this.today});
+  final int totalCompletions;
+  const _WeeklySummary({
+    required this.stats,
+    required this.today,
+    required this.totalCompletions,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
     final weekStats = stats.where((s) {
       final d = DateTime.parse(s.date);
@@ -216,18 +228,49 @@ class _WeeklySummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('This Week',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text('This Week', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
             '$weekCompletions completions · $activeDays active days',
             style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          // Weekly reflection paywall CTA — shown only to free users.
+          ValueListenableBuilder(
+            valueListenable: entitlementNotifier,
+            builder: (context, entitlement, _) {
+              if (entitlement.isActive) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  Text(
+                    'आपने इस हफ्ते $weekCompletions पाठ किए — '
+                    'Premium के साथ और गहरी साधना करें।',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => showPaywall(
+                      context,
+                      variant: PaywallVariant.milestone,
+                      completionCount: totalCompletions,
+                    ),
+                    icon: const Icon(Icons.workspace_premium, size: 18),
+                    label: const Text('Unlock Premium Insights'),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

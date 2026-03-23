@@ -4,11 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Flutter devotional mobile app for the Hanuman Chalisa (a Hindu prayer). The app is **offline-first** — the core prayer experience must work without any backend. This is a pre-development greenfield project; the Flutter project has not been initialized yet.
+This is a Flutter devotional mobile app for the Hanuman Chalisa (a Hindu prayer). The app is **offline-first** — the core prayer experience must work without any backend. **Phases 0 and 1 are complete** (see git log). Currently working toward Phase 2.
 
 ## Commands
-
-Once the Flutter project is initialized (`flutter create`), use these commands:
 
 ```bash
 flutter pub get          # Install dependencies
@@ -18,6 +16,8 @@ flutter test <file>      # Run a single test file
 flutter build apk --debug
 flutter run -d <device>
 ```
+
+Test dependencies: `mocktail` (mocking), `sqflite_common_ffi` (in-memory SQLite for unit tests).
 
 ## Phased Implementation
 
@@ -32,22 +32,32 @@ Work is organized into four phases defined in `IMPLEMENTATION_PLAN.md`, with per
 
 Commit format: `feat(phase-X): complete <phase-name> shippable milestone`
 
-## Planned Architecture
+## Architecture
 
 ```
 lib/
-  core/                  # Theme (saffron accent, light/dark), constants, utils
+  core/                  # theme, audio_handler, completion_detector,
+                         # streak_calculator, lyrics_service, recording_service,
+                         # analytics
   features/
-    play/                # Audio playback UI
-    progress/            # Streak, heatmap, daily stats
-    profile/             # Settings, account
+    play/                # PlayScreen — main player UI
+    progress/            # ProgressScreen — streak, heatmap, daily stats
+    profile/             # ProfileScreen — settings, account
   data/
-    local/               # SQLite via sqflite
+    local/               # database_helper.dart (SQLite via sqflite)
     models/              # PlaySession, DailyStat, UserSettings, Recording
     repositories/        # Repository interfaces + implementations
+assets/
+  audio/                 # Preloaded Hanuman Chalisa audio
+  lyrics/                # Timestamped lyrics JSON
+  images/                # Idol illustrations
 ```
 
-**Key tech**: `just_audio` + `audio_service` (background playback), `sqflite` (local DB), Supabase (Phase 3 only), RevenueCat (Phase 2 IAP), PostHog or Firebase Analytics.
+**Global singletons in `main.dart`**: `audioHandlerNotifier` (`ValueNotifier<HanumanAudioHandler?>`) and `lyricsService`. Both are initialized asynchronously *after* `runApp` to keep launch fast.
+
+**Audio**: `HanumanAudioHandler` wraps `just_audio` directly with `audio_session` for OS focus management. The `audio_service` package is in `pubspec.yaml` but the background/lock-screen layer is **not yet wired** — it is a Phase 1 remaining task.
+
+**Key tech**: `just_audio` + `audio_session`, `sqflite` (local DB), `record` (user recording), Supabase (Phase 3 only), RevenueCat (Phase 2 IAP), PostHog or Firebase Analytics.
 
 ## Critical Product Constraints
 

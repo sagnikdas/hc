@@ -3,7 +3,7 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static const _dbName = 'hanuman_chalisa.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 4;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -77,6 +77,33 @@ class DatabaseHelper {
           label TEXT
         )
       ''');
+    },
+    2: (db) async {
+      await db.execute('''
+        CREATE TABLE entitlements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plan_type TEXT NOT NULL DEFAULT 'free',
+          is_premium INTEGER NOT NULL DEFAULT 0,
+          trial_ends_at TEXT,
+          expires_at TEXT
+        )
+      ''');
+    },
+    3: (db) async {
+      await db.execute('''
+        CREATE TABLE referral_info (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          referral_code TEXT NOT NULL UNIQUE,
+          invite_sent_count INTEGER NOT NULL DEFAULT 0,
+          confirmed_invite_count INTEGER NOT NULL DEFAULT 0,
+          reward_ends_at TEXT
+        )
+      ''');
+    },
+    4: (db) async {
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN last_paywall_shown_at TEXT',
+      );
     },
   };
 

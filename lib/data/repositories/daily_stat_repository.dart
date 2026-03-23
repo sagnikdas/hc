@@ -6,6 +6,9 @@ abstract interface class DailyStatRepository {
   Future<DailyStat?> getByDate(String date); // 'YYYY-MM-DD'
   Future<void> upsert(DailyStat stat);
   Future<List<DailyStat>> getRange(String fromDate, String toDate);
+
+  /// Sum of all completion_count rows — used by [PaywallTrigger] for milestones.
+  Future<int> totalCompletions();
 }
 
 class SqliteDailyStatRepository implements DailyStatRepository {
@@ -42,5 +45,13 @@ class SqliteDailyStatRepository implements DailyStatRepository {
       orderBy: 'date ASC',
     );
     return rows.map(DailyStat.fromMap).toList();
+  }
+
+  @override
+  Future<int> totalCompletions() async {
+    final database = await _db.database;
+    final result = await database
+        .rawQuery('SELECT SUM(completion_count) as total FROM daily_stats');
+    return (result.first['total'] as int?) ?? 0;
   }
 }
