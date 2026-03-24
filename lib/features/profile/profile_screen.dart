@@ -117,6 +117,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _toggleFriendsOnlyVisibility(bool value) async {
+    final userId = SupabaseAuthService.instance.userId;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Still signing in — please wait a moment and try again.')),
+        );
+      }
+      return;
+    }
+    final updated = (_profile ?? UserProfile(id: userId))
+        .copyWith(friendsOnlyVisibility: value);
+    try {
+      await _profileRepo.save(updated);
+      if (mounted) setState(() => _profile = updated);
+    } catch (e) {
+      debugPrint('toggleFriendsOnlyVisibility failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update visibility setting.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -159,6 +184,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     subtitle: const Text('Your name appears in the global top 10'),
                     value: _profile?.leaderboardOptIn ?? true,
                     onChanged: _toggleLeaderboard,
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.group_outlined),
+                    title: const Text('Friends-only visibility'),
+                    subtitle: const Text(
+                        'Hide from global leaderboard until friends feed is enabled'),
+                    value: _profile?.friendsOnlyVisibility ?? false,
+                    onChanged: _toggleFriendsOnlyVisibility,
                   ),
                   const Divider(),
                 ],

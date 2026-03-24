@@ -4,18 +4,18 @@ Use this only when you start Phase 3.
 
 ## 0) Accounts and Tools
 
-- [ ] Create Supabase account: <https://supabase.com>
-- [ ] Install Supabase CLI:
+- [x] Create Supabase account: <https://supabase.com>
+- [x] Install Supabase CLI:
   - macOS: `brew install supabase/tap/supabase`
-- [ ] Verify: `supabase --version`
+- [x] Verify: `supabase --version`
 
 ## 1) Create Project
 
-- [ ] Click "New project".
-- [ ] Project name: `hanuman-chalisa-app`.
+- [x] Click "New project".
+- [x] Project name: `hanuman-chalisa-app`.
 - [ ] Save DB password safely.
-- [ ] Choose region closest to users.
-- [ ] Wait until project ready.
+- [x] Choose region closest to users.
+- [x] Wait until project ready.
 
 ## 2) Get Keys and URLs
 
@@ -83,7 +83,7 @@ using (auth.uid() = user_id);
 
 Dashboard -> Authentication -> Providers:
 
-- [ ] Enable Email OTP (simple start).
+- [x] Enable Email OTP (simple start).
 - [ ] Optionally enable Phone OTP later.
 - [ ] Disable unused providers initially.
 
@@ -97,21 +97,21 @@ Initialize locally:
 
 Function responsibilities:
 
-- [ ] Verify JWT.
-- [ ] Validate completion payload.
-- [ ] Enforce idempotency via `session_id`.
-- [ ] Insert into `listen_events`.
+- [x] Verify JWT.
+- [x] Validate completion payload.
+- [x] Enforce idempotency via `session_id`.
+- [x] Insert into `listen_events`.
 
 Deploy:
 
-- [ ] `supabase functions deploy ingest-listen --no-verify-jwt=false`
+- [x] `supabase functions deploy ingest-listen --no-verify-jwt=false`
 
 ## 7) Mobile App Environment Setup
 
 Keep env values in secure config:
 
-- [ ] `SUPABASE_URL`
-- [ ] `SUPABASE_ANON_KEY`
+- [x] `SUPABASE_URL`
+- [x] `SUPABASE_ANON_KEY`
 - [ ] `INGEST_FUNCTION_URL`
 
 Never store:
