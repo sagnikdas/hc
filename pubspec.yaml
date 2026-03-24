@@ -40,6 +40,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -56,3 +57,12 @@ flutter:
     - assets/audio/
     - assets/lyrics/
     - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/hanumanji_icon.png"
+  adaptive_icon_background: "#FF6B00"
+  adaptive_icon_foreground: "assets/images/hanumanji_icon.png"
+  web:
+    generate: false
