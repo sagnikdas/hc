@@ -1,3 +1,5 @@
+import 'date_utils.dart';
+
 /// Pure streak calculation from a sorted list of active dates ('YYYY-MM-DD').
 class StreakCalculator {
   /// Current streak: consecutive days ending today (or yesterday if today has no entry).
@@ -45,8 +47,5 @@ class StreakCalculator {
   static List<String> _sorted(List<String> dates) =>
       [...dates]..sort();
 
-  static String _fmt(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
+  static String _fmt(DateTime d) => dateToDbString(d);
 }

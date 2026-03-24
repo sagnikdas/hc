@@ -29,17 +29,19 @@ class LyricsService {
   List<LyricsLine> get lines => _lines ?? [];
 
   /// Returns the index of the line to highlight at [position].
-  /// Timestamps in the JSON are matched directly — no scaling.
+  /// Uses binary search — O(log n) instead of O(n).
   int currentLineIndex(Duration position) {
     final lines = _lines;
     if (lines == null || lines.isEmpty) return 0;
     final secs = position.inSeconds;
-    int idx = 0;
-    for (int i = 0; i < lines.length; i++) {
-      if (lines[i].startSeconds <= secs) {
-        idx = i;
+    int lo = 0, hi = lines.length - 1, idx = 0;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (lines[mid].startSeconds <= secs) {
+        idx = mid;
+        lo = mid + 1;
       } else {
-        break;
+        hi = mid - 1;
       }
     }
     return idx;

@@ -43,7 +43,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('समुदाय से जुड़ें')),
+      appBar: AppBar(title: const Text('Community')),
       body: _info == null
           ? const Center(child: CircularProgressIndicator())
           : _buildBody(context, colors, _info!),
@@ -77,7 +77,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         Icon(Icons.people, size: 64, color: colors.primary),
         const SizedBox(height: 16),
         Text(
-          'अपने प्रियजनों को बुलाएं',
+          'Invite Your Loved Ones',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -85,7 +85,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          '3 दोस्तों को आमंत्रित करें और 14 दिन के लिए\nप्रीमियम वॉइस अनलॉक करें।',
+          'Invite 3 friends and unlock\nPremium Voice for 14 days.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -106,7 +106,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       child: Column(
         children: [
           Text(
-            'आपका कोड',
+            'Your Code',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: colors.onPrimaryContainer,
                 ),
@@ -123,7 +123,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
           if (info.inviteSentCount > 0) ...[
             const SizedBox(height: 8),
             Text(
-              '${info.inviteSentCount} बार शेयर किया',
+              'Shared ${info.inviteSentCount} time${info.inviteSentCount == 1 ? '' : 's'}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onPrimaryContainer,
                   ),
@@ -143,7 +143,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     if (info.hasActiveReward) {
       final days = info.rewardEndsAt!.difference(DateTime.now()).inDays + 1;
       return _RewardBanner(
-        message: '🎉 प्रीमियम वॉइस अनलॉक! $days दिन बाकी।',
+        message: '🎉 Premium Voice unlocked! $days day${days == 1 ? '' : 's'} remaining.',
         colors: colors,
       );
     }
@@ -154,7 +154,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('सफल आमंत्रण',
+            Text('Successful Invites',
                 style: Theme.of(context).textTheme.labelLarge),
             Text('$confirmed / $threshold',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -176,8 +176,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
         const SizedBox(height: 8),
         Text(
           confirmed < threshold
-              ? '${threshold - confirmed} और दोस्तों को बुलाएं — रिवॉर्ड पाएं!'
-              : 'रिवॉर्ड मिलने वाला है!',
+              ? 'Invite ${threshold - confirmed} more friend${threshold - confirmed == 1 ? '' : 's'} to unlock your reward!'
+              : 'Reward on its way!',
           style: Theme.of(context)
               .textTheme
               .bodySmall
@@ -197,7 +197,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.share),
-      label: const Text('WhatsApp / शेयर करें'),
+      label: const Text('Share via WhatsApp'),
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
         textStyle: Theme.of(context)
@@ -210,7 +210,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   Widget _buildShareHint(BuildContext context, ColorScheme colors) {
     return Text(
-      'शेयर करने पर एक तैयार संदेश और आपका कोड भेजा जाएगा।',
+      'Sharing sends a ready-made message with your referral code.',
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: colors.onSurfaceVariant,
           ),

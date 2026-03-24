@@ -216,20 +216,20 @@ class LocalReminderService implements ReminderService {
 
   String _title(int weekday, {required bool isMorning}) {
     if (_isHighIntent(weekday)) {
-      final day = weekday == DateTime.tuesday ? 'मंगलवार' : 'शनिवार';
-      return '🙏 $day विशेष — हनुमान चालीसा';
+      final day = weekday == DateTime.tuesday ? 'Tuesday' : 'Saturday';
+      return '🙏 $day Special — Hanuman Chalisa';
     }
     return isMorning
-        ? '🌅 सुप्रभात — हनुमान चालीसा'
-        : '🌙 शुभ संध्या — हनुमान चालीसा';
+        ? '🌅 Good Morning — Hanuman Chalisa'
+        : '🌙 Good Evening — Hanuman Chalisa';
   }
 
   String _body(int weekday, {required bool isMorning}) {
     if (_isHighIntent(weekday)) {
-      return 'आज के पावन दिन एक पाठ अवश्य करें। जय बजरंगबली! 🙏';
+      return 'A blessed day to recite the Chalisa. Jai Bajrangbali! 🙏';
     }
     return isMorning
-        ? 'दिन की शुरुआत हनुमान चालीसा के पाठ से करें।'
-        : 'आज का पाठ पूरा करें और स्ट्रीक बनाए रखें।';
+        ? 'Start your day with the Hanuman Chalisa.'
+        : 'Complete today\'s recitation and keep your streak alive.';
   }
 }

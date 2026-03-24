@@ -52,6 +52,6 @@ class SqliteDailyStatRepository implements DailyStatRepository {
     final database = await _db.database;
     final result = await database
         .rawQuery('SELECT SUM(completion_count) as total FROM daily_stats');
-    return (result.first['total'] as int?) ?? 0;
+    return (result.first['total'] as num?)?.toInt() ?? 0;
   }
 }

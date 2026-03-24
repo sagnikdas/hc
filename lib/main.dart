@@ -1,11 +1,19 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
+import 'core/app_config.dart';
 import 'core/audio_handler.dart';
 import 'core/lyrics_service.dart';
 import 'core/purchase_service.dart';
 import 'core/reminder_service.dart';
 import 'core/referral_service.dart';
+import 'core/auth_service.dart';
+import 'core/event_sync_service.dart';
+import 'core/cloud_backup_service.dart';
+import 'core/remote_config_service.dart';
+import 'data/models/cloud_stats.dart';
 import 'data/models/entitlement.dart';
 import 'data/repositories/entitlement_repository.dart';
 import 'features/play/play_screen.dart';
@@ -21,6 +29,9 @@ final lyricsService = LyricsService();
 /// Current entitlement — updated after any purchase or restore.
 final entitlementNotifier = ValueNotifier<Entitlement>(Entitlement.free);
 
+/// Cloud backup stats pulled on startup. Null until first successful pull.
+final cloudStatsNotifier = ValueNotifier<CloudStats?>(null);
+
 /// Swap [NoOpPurchaseService] for [RevenueCatPurchaseService] before shipping.
 /// Set the real API key via a --dart-define or environment config.
 final PurchaseService purchaseService = NoOpPurchaseService();
@@ -32,11 +43,33 @@ final referralService = ReferralService();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (AppConfig.isSupabaseConfigured) {
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
+    );
+  } else {
+    debugPrint('Supabase not configured — cloud features disabled');
+  }
+
   runApp(const HanumanChalisaApp());
-  _initServices();
+  unawaited(_initServices());
 }
 
 Future<void> _initServices() async {
+  // Ensure a Supabase session exists before any cloud feature runs.
+  // Fire-and-forget — failure is non-fatal and app works fully offline.
+  unawaited(SupabaseAuthService.instance.ensureSignedIn().then((_) async {
+    // Fetch remote feature flags and cloud backup in parallel.
+    await Future.wait([
+      RemoteConfigService.instance.fetch(),
+      CloudBackupService.instance.pullAndMerge().then((merged) {
+        if (merged != null) cloudStatsNotifier.value = merged;
+      }),
+    ]);
+  }));
+
   // Restore saved entitlement immediately so the UI has correct state.
   try {
     final saved = await SqliteEntitlementRepository().get();
@@ -100,8 +133,27 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(EventSyncService.instance.syncPending());
+    }
+  }
 
   static const _screens = [
     PlayScreen(),

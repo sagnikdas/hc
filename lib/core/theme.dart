@@ -13,6 +13,7 @@ final lightTheme = ThemeData(
     backgroundColor: _saffron,
     foregroundColor: Colors.white,
     elevation: 0,
+    centerTitle: true,
   ),
 );
 
@@ -26,5 +27,6 @@ final darkTheme = ThemeData(
     backgroundColor: _deepSaffron,
     foregroundColor: Colors.white,
     elevation: 0,
+    centerTitle: true,
   ),
 );

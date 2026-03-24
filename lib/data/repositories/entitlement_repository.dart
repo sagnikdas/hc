@@ -25,17 +25,9 @@ class SqliteEntitlementRepository implements EntitlementRepository {
   @override
   Future<void> save(Entitlement entitlement) async {
     final database = await _db.database;
-    final existing = await database.query('entitlements', limit: 1);
-    if (existing.isEmpty) {
-      await database.insert('entitlements', entitlement.toMap());
-    } else {
-      final id = existing.first['id'] as int;
-      await database.update(
-        'entitlements',
-        entitlement.toMap(),
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-    }
+    await database.transaction((txn) async {
+      await txn.delete('entitlements');
+      await txn.insert('entitlements', entitlement.toMap());
+    });
   }
 }

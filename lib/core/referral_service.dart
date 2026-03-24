@@ -30,8 +30,8 @@ class ReferralService {
     final info = await getOrCreate();
     final link = '$kInviteBaseUrl?ref=${info.referralCode}';
     final message =
-        'हनुमान चालीसा का पाठ करें रोज़ — एक सुंदर ऐप जो आपकी साधना को ट्रैक करता है। 🙏\n'
-        'मेरे कोड से जुड़ें: ${info.referralCode}\n$link';
+        'Recite the Hanuman Chalisa every day — a beautiful app that tracks your devotion. 🙏\n'
+        'Join with my code: ${info.referralCode}\n$link';
 
     await SharePlus.instance.share(ShareParams(text: message));
 
@@ -44,8 +44,8 @@ class ReferralService {
     final info = await getOrCreate();
     final link = '$kInviteBaseUrl?ref=${info.referralCode}';
     final message =
-        '🔥 $streakDays दिन की स्ट्रीक! मैं रोज़ हनुमान चालीसा का पाठ कर रहा हूँ। 🙏\n'
-        'आप भी शुरू करें: $link';
+        '🔥 $streakDays day streak! I recite the Hanuman Chalisa every day. 🙏\n'
+        'Start yours: $link';
 
     await SharePlus.instance.share(ShareParams(text: message));
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../main.dart';
 import '../../core/audio_handler.dart';
+import '../../core/date_utils.dart';
 import '../../core/completion_detector.dart';
 import '../../core/paywall_trigger.dart';
 import '../../data/models/play_session.dart';
@@ -12,6 +13,8 @@ import '../../data/repositories/daily_stat_repository.dart';
 import '../../data/repositories/user_settings_repository.dart';
 import '../paywall/paywall_screen.dart';
 import '../../data/repositories/entitlement_repository.dart';
+import '../../core/event_sync_service.dart';
+import '../../core/cloud_backup_service.dart';
 
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
@@ -64,8 +67,17 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   Future<void> _loadAudio() async {
-    await audioHandler!.loadVoice(_audioAsset);
-    if (mounted) setState(() => _loaded = true);
+    try {
+      await audioHandler!.loadVoice(_audioAsset);
+      if (mounted) setState(() => _loaded = true);
+    } catch (e) {
+      debugPrint('Audio load failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load audio. Please restart the app.')),
+        );
+      }
+    }
   }
 
   Future<void> _loadTodayCount() async {
@@ -75,14 +87,16 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   void _onPosition(Duration pos) {
-    final total = audioHandler!.duration;
-    _completionDetector.update(pos, total);
+    final handler = audioHandler;
+    if (handler == null) return;
+    _completionDetector.update(pos, handler.duration);
     if (mounted) setState(() {});
   }
 
   Future<void> _onCompleted() async {
     final now = DateTime.now();
     final today = _todayStr();
+    String? syncSessionId;
 
     if (_activeSessionId != null) {
       final existing = await _playSessionRepo.getById(_activeSessionId!);
@@ -92,9 +106,16 @@ class _PlayScreenState extends State<PlayScreen> {
           durationSeconds: audioHandler!.duration.inSeconds,
           completed: true,
         ));
+        syncSessionId = existing.startedAt.toUtc().toIso8601String();
       }
       _activeSessionId = null;
     }
+
+    // Queue the completion event for cloud sync (fire-and-forget).
+    unawaited(EventSyncService.instance.enqueue(
+      syncSessionId ?? now.toUtc().toIso8601String(),
+      now,
+    ));
 
     final stat = await _dailyStatRepo.getByDate(today);
     final updated = DailyStat(
@@ -107,6 +128,9 @@ class _PlayScreenState extends State<PlayScreen> {
     await _dailyStatRepo.upsert(updated);
 
     if (mounted) setState(() => _todayCount = updated.completionCount);
+
+    // Push updated stats to cloud backup (fire-and-forget).
+    unawaited(CloudBackupService.instance.syncStats());
 
     // Flag for paywall check — fires when audio next stops/pauses.
     _paywallPending = true;
@@ -181,12 +205,7 @@ class _PlayScreenState extends State<PlayScreen> {
     await _onPlay();
   }
 
-  String _todayStr() {
-    final now = DateTime.now();
-    return '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
-  }
+  String _todayStr() => dateToDbString(DateTime.now());
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -207,15 +226,55 @@ class _PlayScreenState extends State<PlayScreen> {
       valueListenable: audioHandlerNotifier,
       builder: (context, handler, _) {
         if (handler == null) {
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+          return _buildShell(context, isPlaying: false);
         }
-        return _buildPlayer(context, handler);
+        return _buildPlayerWithStream(context, handler);
       },
     );
   }
 
-  Widget _buildPlayer(BuildContext context, HanumanAudioHandler handler) {
+  /// Builds the player shell immediately, before the handler is ready.
+  Widget _buildShell(BuildContext context, {required bool isPlaying}) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Hanuman Chalisa'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _showLyrics ? Icons.lyrics : Icons.lyrics_outlined,
+              color: Colors.white,
+            ),
+            tooltip: 'Lyrics',
+            onPressed: () => setState(() => _showLyrics = !_showLyrics),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _showLyrics
+                ? _LyricsSheet(position: Duration.zero)
+                : _IdolView(todayCount: _todayCount, colors: colors),
+          ),
+          _PlayerControls(
+            loaded: false,
+            isPlaying: isPlaying,
+            progress: 0.0,
+            position: Duration.zero,
+            total: Duration.zero,
+            onPlay: () {},
+            onPause: () {},
+            onSeek: (_) {},
+            onRestart: () {},
+            formatDuration: _formatDuration,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerWithStream(BuildContext context, HanumanAudioHandler handler) {
     final colors = Theme.of(context).colorScheme;
     final total = handler.duration;
     final pos = handler.position;
@@ -297,14 +356,14 @@ class _IdolView extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            'आज: $todayCount',
+            'Today: $todayCount',
             style: Theme.of(context)
                 .textTheme
                 .headlineMedium
                 ?.copyWith(color: colors.primary, fontWeight: FontWeight.bold),
           ),
           Text(
-            todayCount == 0 ? 'पहली जय करें 🙏' : 'जय हनुमान! 🙏',
+            todayCount == 0 ? 'Begin your first recitation 🙏' : 'Jai Hanuman! 🙏',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
@@ -424,8 +483,9 @@ class _PlayerControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 16;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding),
       decoration: BoxDecoration(
         color: colors.surface,
         boxShadow: [
@@ -456,16 +516,22 @@ class _PlayerControls extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+          // Symmetric row: ghost SizedBox on right balances restart on left
+          // so the play button is perfectly centred.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                icon: const Icon(Icons.replay),
-                tooltip: 'Restart',
-                onPressed: loaded ? onRestart : null,
-                iconSize: 28,
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: IconButton(
+                  icon: const Icon(Icons.replay),
+                  tooltip: 'Restart',
+                  onPressed: loaded ? onRestart : null,
+                  iconSize: 28,
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 24),
               FilledButton(
                 onPressed: loaded ? (isPlaying ? onPause : onPlay) : null,
                 style: FilledButton.styleFrom(
@@ -477,6 +543,8 @@ class _PlayerControls extends StatelessWidget {
                   size: 36,
                 ),
               ),
+              const SizedBox(width: 24),
+              const SizedBox(width: 48, height: 48), // balance ghost
             ],
           ),
         ],

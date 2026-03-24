@@ -3,7 +3,7 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static const _dbName = 'hanuman_chalisa.db';
-  static const _dbVersion = 4;
+  static const _dbVersion = 5;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -104,6 +104,17 @@ class DatabaseHelper {
       await db.execute(
         'ALTER TABLE user_settings ADD COLUMN last_paywall_shown_at TEXT',
       );
+    },
+    5: (db) async {
+      await db.execute('''
+        CREATE TABLE pending_sync_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL UNIQUE,
+          completed_at TEXT NOT NULL,
+          synced INTEGER NOT NULL DEFAULT 0,
+          retry_count INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
     },
   };
 
