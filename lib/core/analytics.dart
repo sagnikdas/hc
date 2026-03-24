@@ -1,3 +1,6 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'app_config.dart';
+
 abstract interface class AnalyticsService {
   Future<void> logEvent(String name, {Map<String, dynamic>? params});
 }
@@ -8,6 +11,28 @@ class NoOpAnalyticsService implements AnalyticsService {
 
   @override
   Future<void> logEvent(String name, {Map<String, dynamic>? params}) async {}
+}
+
+/// Writes analytics events to Supabase for simple conversion dashboards.
+///
+/// Fails silently so analytics never break devotional flow.
+class SupabaseAnalyticsService implements AnalyticsService {
+  const SupabaseAnalyticsService();
+
+  @override
+  Future<void> logEvent(String name, {Map<String, dynamic>? params}) async {
+    if (!AppConfig.isSupabaseConfigured) return;
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      await Supabase.instance.client.from('analytics_events').insert({
+        'event_name': name,
+        'user_id': userId,
+        'event_params': params ?? <String, dynamic>{},
+      });
+    } catch (_) {
+      // Non-fatal: analytics must never interrupt user flow or tests.
+    }
+  }
 }
 
 // Playback event names

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 class LyricsLine {
-  final int startSeconds;
+  final double startSeconds;
   final String text;
   const LyricsLine({required this.startSeconds, required this.text});
 }
@@ -19,8 +19,7 @@ class LyricsService {
     final list = json['lines'] as List<dynamic>;
     _lines = list
         .map((e) => LyricsLine(
-              // Use toInt() to handle both int and double in JSON
-              startSeconds: (e['startSeconds'] as num).toInt(),
+              startSeconds: (e['startSeconds'] as num).toDouble(),
               text: e['text'] as String,
             ))
         .toList();
@@ -33,7 +32,7 @@ class LyricsService {
   int currentLineIndex(Duration position) {
     final lines = _lines;
     if (lines == null || lines.isEmpty) return 0;
-    final secs = position.inSeconds;
+    final secs = position.inMilliseconds / 1000.0;
     int lo = 0, hi = lines.length - 1, idx = 0;
     while (lo <= hi) {
       final mid = (lo + hi) >> 1;

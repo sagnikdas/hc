@@ -7,6 +7,7 @@ import '../../core/analytics.dart';
 import '../../core/purchase_service.dart';
 import '../../data/models/entitlement.dart';
 import '../../data/repositories/entitlement_repository.dart';
+import '../../main.dart';
 
 // ── Variant ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ class PaywallScreen extends StatefulWidget {
 }
 
 class _PaywallScreenState extends State<PaywallScreen> {
-  final _analytics = const NoOpAnalyticsService();
+  final _analytics = analyticsService;
 
   List<Package> _packages = [];
   bool _loadingOfferings = true;

@@ -3,18 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../main.dart';
 import '../../core/audio_handler.dart';
-import '../../core/date_utils.dart';
-import '../../core/completion_detector.dart';
-import '../../core/paywall_trigger.dart';
-import '../../data/models/play_session.dart';
-import '../../data/models/daily_stat.dart';
-import '../../data/repositories/play_session_repository.dart';
-import '../../data/repositories/daily_stat_repository.dart';
-import '../../data/repositories/user_settings_repository.dart';
-import '../paywall/paywall_screen.dart';
-import '../../data/repositories/entitlement_repository.dart';
-import '../../core/event_sync_service.dart';
-import '../../core/cloud_backup_service.dart';
 
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
@@ -25,27 +13,14 @@ class PlayScreen extends StatefulWidget {
 
 class _PlayScreenState extends State<PlayScreen> {
   static const _audioAsset = 'assets/audio/hc_real.mp3';
-
-  final _playSessionRepo = SqlitePlaySessionRepository();
-  final _dailyStatRepo = SqliteDailyStatRepository();
-  final _settingsRepo = SqliteUserSettingsRepository();
-
-  late final CompletionDetector _completionDetector;
   StreamSubscription<Duration>? _positionSub;
 
-  int? _activeSessionId;
   bool _loaded = false;
   bool _showLyrics = false;
-  int _todayCount = 0;
-
-  /// Set after a completion event; consumed on the next pause/stop.
-  bool _paywallPending = false;
 
   @override
   void initState() {
     super.initState();
-    _completionDetector = CompletionDetector(onCompleted: _onCompleted);
-    _loadTodayCount();
     if (audioHandler != null) {
       _initAudio(audioHandler!);
     } else {
@@ -80,113 +55,11 @@ class _PlayScreenState extends State<PlayScreen> {
     }
   }
 
-  Future<void> _loadTodayCount() async {
-    final today = _todayStr();
-    final stat = await _dailyStatRepo.getByDate(today);
-    if (mounted) setState(() => _todayCount = stat?.completionCount ?? 0);
-  }
-
   void _onPosition(Duration pos) {
-    final handler = audioHandler;
-    if (handler == null) return;
-    _completionDetector.update(pos, handler.duration);
     if (mounted) setState(() {});
   }
 
-  Future<void> _onCompleted() async {
-    final now = DateTime.now();
-    final today = _todayStr();
-    String? syncSessionId;
-
-    if (_activeSessionId != null) {
-      final existing = await _playSessionRepo.getById(_activeSessionId!);
-      if (existing != null) {
-        await _playSessionRepo.update(existing.copyWith(
-          completedAt: now,
-          durationSeconds: audioHandler!.duration.inSeconds,
-          completed: true,
-        ));
-        syncSessionId = existing.startedAt.toUtc().toIso8601String();
-      }
-      _activeSessionId = null;
-    }
-
-    // Queue the completion event for cloud sync (fire-and-forget).
-    unawaited(EventSyncService.instance.enqueue(
-      syncSessionId ?? now.toUtc().toIso8601String(),
-      now,
-    ));
-
-    final stat = await _dailyStatRepo.getByDate(today);
-    final updated = DailyStat(
-      id: stat?.id,
-      date: today,
-      completionCount: (stat?.completionCount ?? 0) + 1,
-      totalPlaySeconds:
-          (stat?.totalPlaySeconds ?? 0) + audioHandler!.duration.inSeconds,
-    );
-    await _dailyStatRepo.upsert(updated);
-
-    if (mounted) setState(() => _todayCount = updated.completionCount);
-
-    // Push updated stats to cloud backup (fire-and-forget).
-    unawaited(CloudBackupService.instance.syncStats());
-
-    // Flag for paywall check — fires when audio next stops/pauses.
-    _paywallPending = true;
-  }
-
-  Future<void> _maybeShowPaywall() async {
-    if (!_paywallPending) return;
-    _paywallPending = false;
-
-    final settings = await _settingsRepo.get();
-    final total = await _dailyStatRepo.totalCompletions();
-    final isPremium = entitlementNotifier.value.isActive;
-
-    if (!PaywallTrigger.shouldShow(
-      isPremium: isPremium,
-      isPlaying: audioHandler?.playing ?? false,
-      dailyCompletions: _todayCount,
-      totalCompletions: total,
-      lastShownAt: settings.lastPaywallShownAt,
-    )) {
-      return;
-    }
-
-    if (!mounted) return;
-
-    // Determine variant: milestone moments → milestone, otherwise benefits.
-    final isMilestone = kMilestoneCompletions.contains(total);
-    final variant =
-        isMilestone ? PaywallVariant.milestone : PaywallVariant.benefits;
-
-    final purchased = await showPaywall(
-      context,
-      variant: variant,
-      completionCount: total,
-    );
-
-    if (purchased) {
-      entitlementNotifier.value = await SqliteEntitlementRepository().get();
-    }
-
-    // Update last shown timestamp regardless of outcome.
-    await _settingsRepo.save(
-      settings.copyWith(lastPaywallShownAt: DateTime.now()),
-    );
-  }
-
   Future<void> _onPlay() async {
-    if (_activeSessionId == null && !_completionDetector.isCompleted) {
-      _completionDetector.reset();
-      final id = await _playSessionRepo.insert(PlaySession(
-        startedAt: DateTime.now(),
-        durationSeconds: 0,
-        completed: false,
-      ));
-      _activeSessionId = id;
-    }
     await audioHandler!.play();
   }
 
@@ -199,13 +72,9 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   Future<void> _onRestart() async {
-    _completionDetector.reset();
-    _activeSessionId = null;
     await audioHandler!.seek(Duration.zero);
     await _onPlay();
   }
-
-  String _todayStr() => dateToDbString(DateTime.now());
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -255,7 +124,7 @@ class _PlayScreenState extends State<PlayScreen> {
           Expanded(
             child: _showLyrics
                 ? _LyricsSheet(position: Duration.zero)
-                : _IdolView(todayCount: _todayCount, colors: colors),
+                : _IdolView(colors: colors),
           ),
           _PlayerControls(
             loaded: false,
@@ -285,11 +154,6 @@ class _PlayScreenState extends State<PlayScreen> {
       stream: handler.playerStateStream,
       builder: (context, snapshot) {
         final isPlaying = snapshot.data?.playing ?? false;
-        // Check paywall when audio stops after a completed session.
-        if (!isPlaying && _paywallPending) {
-          WidgetsBinding.instance
-              .addPostFrameCallback((_) => _maybeShowPaywall());
-        }
 
         return Scaffold(
           appBar: AppBar(
@@ -310,7 +174,7 @@ class _PlayScreenState extends State<PlayScreen> {
               Expanded(
                 child: _showLyrics
                     ? _LyricsSheet(position: pos)
-                    : _IdolView(todayCount: _todayCount, colors: colors),
+                    : _IdolView(colors: colors),
               ),
               _PlayerControls(
                 loaded: _loaded,
@@ -335,9 +199,8 @@ class _PlayScreenState extends State<PlayScreen> {
 // ── Idol / counter view ────────────────────────────────────────────────────────
 
 class _IdolView extends StatelessWidget {
-  final int todayCount;
   final ColorScheme colors;
-  const _IdolView({required this.todayCount, required this.colors});
+  const _IdolView({required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -356,16 +219,13 @@ class _IdolView extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            'Today: $todayCount',
+            'Hanuman Chalisa',
             style: Theme.of(context)
                 .textTheme
                 .headlineMedium
                 ?.copyWith(color: colors.primary, fontWeight: FontWeight.bold),
           ),
-          Text(
-            todayCount == 0 ? 'Begin your first recitation 🙏' : 'Jai Hanuman! 🙏',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
+          Text('Jai Hanuman 🙏', style: Theme.of(context).textTheme.bodyLarge),
         ],
       ),
     );

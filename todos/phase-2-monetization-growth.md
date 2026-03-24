@@ -62,7 +62,7 @@ Introduce monetization and growth loops without degrading trust or devotion flow
 
 - [x] Purchase flow fails gracefully (core app still works).
 - [x] Entitlement sync race conditions handled.
-- [ ] Conversion analytics visible in dashboard.
+- [x] Conversion analytics visible in dashboard.
 
 ## Release Checklist (Phase Ship)
 
