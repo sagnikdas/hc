@@ -1,11 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../main.dart';
 import '../../core/audio_handler.dart';
+import '../../data/repositories/app_repository.dart';
+import '../../data/models/play_session.dart';
 
 class PlayScreen extends StatefulWidget {
-  const PlayScreen({super.key});
+  final int? initialTarget;
+  final String? initialVoice;
+  const PlayScreen({super.key, this.initialTarget, this.initialVoice});
 
   @override
   State<PlayScreen> createState() => _PlayScreenState();
@@ -13,13 +20,16 @@ class PlayScreen extends StatefulWidget {
 
 class _PlayScreenState extends State<PlayScreen> {
   static const _audioAsset = 'assets/audio/hc_real.mp3';
-  static const _presets = [11, 18, 21, 41, 51, 108, 0]; // 0 = ∞
+  static const _quickCounts = [1, 11, 21, 108];
 
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<PlayerState>? _playerStateSub;
 
   bool _loaded = false;
-  bool _showLyrics = false;
+  bool _continuousPlay = false;
+  bool _hapticEnabled = true;
+  double _volume = 1.0;
+  bool _showVolume = false;
 
   // ── Loop / completion state ───────────────────────────────────────────────
   int _completedCount = 0;
@@ -30,11 +40,26 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialTarget != null) {
+      _targetCount = widget.initialTarget!;
+    }
+    _loadSettings();
     if (audioHandler != null) {
       _initAudio(audioHandler!);
     } else {
       audioHandlerNotifier.addListener(_onHandlerReady);
     }
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await AppRepository.instance.getSettings();
+    if (!mounted) return;
+    setState(() {
+      if (widget.initialTarget == null) _targetCount = settings.targetCount;
+      _continuousPlay = settings.continuousPlay;
+      _hapticEnabled = settings.hapticEnabled;
+      _volume = audioHandler?.volume ?? 1.0;
+    });
   }
 
   void _onHandlerReady() {
@@ -53,7 +78,8 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Future<void> _loadAudio() async {
     try {
-      await audioHandler!.loadVoice(_audioAsset);
+      final asset = widget.initialVoice ?? _audioAsset;
+      await audioHandler!.loadVoice(asset);
       if (mounted) setState(() => _loaded = true);
     } catch (e) {
       debugPrint('Audio load failed: $e');
@@ -65,7 +91,8 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   void _onPlayerState(PlayerState state) {
-    if (state.processingState == ProcessingState.completed && !_completionHandled) {
+    if (state.processingState == ProcessingState.completed &&
+        !_completionHandled) {
       _completionHandled = true;
       _handleCompletion();
     }
@@ -73,24 +100,43 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Future<void> _handleCompletion() async {
     if (!mounted) return;
-
     final counted = !_seekForwardThisRound;
-    if (counted) setState(() => _completedCount++);
+    if (counted) {
+      setState(() => _completedCount++);
+      _saveSession();
+      if (_hapticEnabled) HapticFeedback.mediumImpact();
+    }
     _seekForwardThisRound = false;
 
     final done = _targetCount > 0 && _completedCount >= _targetCount;
-    if (!done) {
-      // Loop: restart without interrupting the devotion
+    if (done) {
+      if (_hapticEnabled) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        HapticFeedback.heavyImpact();
+      }
+    } else {
       await audioHandler!.seek(Duration.zero);
-      await audioHandler!.play();
+      if (_continuousPlay) {
+        await audioHandler!.play();
+      }
+      // If continuousPlay is false, stay paused — user taps play for next round
       if (mounted) setState(() => _completionHandled = false);
     }
+  }
+
+  void _saveSession() {
+    final now = DateTime.now();
+    final dateStr = AppRepository.dateStr(now);
+    AppRepository.instance.insertSession(PlaySession(
+      date: dateStr,
+      count: 1,
+      completedAt: now.millisecondsSinceEpoch,
+    ));
   }
 
   Future<void> _onPlay() => audioHandler!.play();
   Future<void> _onPause() => audioHandler!.pause();
 
-  /// Seek from slider — detects forward seeks that invalidate the round.
   Future<void> _onSeek(double value) async {
     final handler = audioHandler!;
     final targetMs = (value * handler.duration.inMilliseconds).round();
@@ -100,7 +146,6 @@ class _PlayScreenState extends State<PlayScreen> {
     await handler.seek(Duration(milliseconds: targetMs));
   }
 
-  /// Manual restart — starts a fresh round, no invalidation.
   Future<void> _onRestart() async {
     setState(() {
       _seekForwardThisRound = false;
@@ -110,6 +155,17 @@ class _PlayScreenState extends State<PlayScreen> {
     await audioHandler!.play();
   }
 
+  // Skip current round (don't count), start next
+  Future<void> _onSkipNext() async {
+    if (!_loaded) return;
+    final handler = audioHandler!;
+    setState(() => _seekForwardThisRound = true);
+    final nearEnd =
+        Duration(milliseconds: handler.duration.inMilliseconds - 300);
+    await handler.seek(nearEnd);
+    if (!handler.playing) await handler.play();
+  }
+
   void _setTarget(int target) => setState(() {
         _targetCount = target;
         _completedCount = 0;
@@ -117,31 +173,9 @@ class _PlayScreenState extends State<PlayScreen> {
         _completionHandled = false;
       });
 
-  void _showCustomDialog() {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Set count'),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'e.g. 27'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              final v = int.tryParse(ctrl.text);
-              if (v != null && v > 0) _setTarget(v);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Set'),
-          ),
-        ],
-      ),
-    );
+  void _onVolumeChanged(double v) {
+    setState(() => _volume = v);
+    audioHandler?.setVolume(v);
   }
 
   String _fmt(Duration d) {
@@ -158,15 +192,16 @@ class _PlayScreenState extends State<PlayScreen> {
     super.dispose();
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<HanumanAudioHandler?>(
       valueListenable: audioHandlerNotifier,
       builder: (context, handler, _) {
         if (handler == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            backgroundColor: Color(0xFF131313),
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         return _buildPlayer(context, handler);
       },
@@ -174,7 +209,7 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   Widget _buildPlayer(BuildContext context, HanumanAudioHandler handler) {
-    final colors = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final total = handler.duration;
     final pos = handler.position;
     final progress = total.inMilliseconds > 0
@@ -186,271 +221,368 @@ class _PlayScreenState extends State<PlayScreen> {
       builder: (context, snap) {
         final isPlaying = snap.data?.playing ?? false;
         return Scaffold(
-          backgroundColor: colors.surface,
-          body: SafeArea(
-            child: Column(
-              children: [
-                _buildTitleBar(context, colors),
-                Expanded(
-                  child: _showLyrics
-                      ? _LyricsSheet(position: pos)
-                      : _buildCenter(context, colors),
+          backgroundColor: const Color(0xFF131313),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Sacred background — image + gradient overlay
+              Opacity(
+                opacity: 0.20,
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.matrix([
+                    0.2126, 0.7152, 0.0722, 0, 0,
+                    0.2126, 0.7152, 0.0722, 0, 0,
+                    0.2126, 0.7152, 0.0722, 0, 0,
+                    0,      0,      0,      1, 0,
+                  ]),
+                  child: Image.asset(
+                    'assets/images/hanuman_player_bg.png',
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (context, error, stack) =>
+                        const SizedBox.shrink(),
+                  ),
                 ),
-                _buildControls(context, colors, isPlaying, progress, pos, total),
-              ],
-            ),
+              ),
+              // Gradient overlay: dark at bottom and top
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF131313).withValues(alpha: 0.5),
+                      Colors.transparent,
+                      const Color(0xFF131313),
+                    ],
+                    stops: const [0.0, 0.3, 1.0],
+                  ),
+                ),
+              ),
+              // Pulsing Om
+              Center(
+                child: Text(
+                  'ॐ',
+                  style: GoogleFonts.notoSerif(
+                    fontSize: 160,
+                    color: cs.secondary.withValues(alpha: 0.10),
+                  ),
+                ),
+              ),
+              // Content
+              SafeArea(
+                child: Column(
+                  children: [
+                    _buildTopBar(context, cs),
+                    Expanded(child: _LyricsPanel(position: pos, cs: cs)),
+                    _buildPlayerSection(
+                        context, cs, isPlaying, progress, pos, total),
+                  ],
+                ),
+              ),
+              // Volume overlay
+              if (_showVolume) _buildVolumeOverlay(cs),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildTitleBar(BuildContext context, ColorScheme colors) {
+  Widget _buildTopBar(BuildContext context, ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 8, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Hanuman Chalisa',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                ),
-          ),
           IconButton(
-            icon: Icon(
-              _showLyrics ? Icons.lyrics : Icons.lyrics_outlined,
-              size: 20,
-              color: colors.onSurfaceVariant,
+            icon: Icon(Icons.arrow_back_rounded, color: cs.primary, size: 22),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          Text('Hanuman Chalisa',
+              style: GoogleFonts.notoSerif(fontSize: 19, color: cs.primary)),
+          IconButton(
+            icon: Icon(Icons.share_outlined, color: cs.primary, size: 20),
+            onPressed: () => SharePlus.instance.share(
+              ShareParams(
+                text:
+                    'जय हनुमान! I\'ve been doing Hanuman Chalisa paath daily. Join me 🙏\n\nSearch \'Hanuman Chalisa\' on the Play Store.',
+              ),
             ),
-            onPressed: () => setState(() => _showLyrics = !_showLyrics),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCenter(BuildContext context, ColorScheme colors) {
-    final done = _targetCount > 0 && _completedCount >= _targetCount;
-    final targetLabel = _targetCount == 0 ? '∞' : '$_targetCount';
-    final isCustom = !_presets.contains(_targetCount);
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Deity icon
-        Container(
-          width: 148,
-          height: 148,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colors.primaryContainer.withValues(alpha: 0.35),
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/idol_placeholder.png',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Icon(Icons.self_improvement, size: 72, color: colors.primary),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 36),
-
-        // Counter
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              '$_completedCount',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: done ? colors.primary : colors.onSurface,
-                    fontWeight: FontWeight.w200,
-                    height: 1,
-                    fontSize: 76,
-                  ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                ' / $targetLabel',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w300,
-                    ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 6),
-
-        // Status label
-        SizedBox(
-          height: 18,
-          child: _seekForwardThisRound
-              ? Text(
-                  'skipped · won\'t count',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.error.withValues(alpha: 0.75),
-                      ),
-                )
-              : done
-                  ? Text(
-                      'जय हनुमान',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colors.primary,
-                          ),
-                    )
-                  : null,
-        ),
-
-        const SizedBox(height: 28),
-
-        // Target selector
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              ..._presets.map((p) {
-                final label = p == 0 ? '∞' : '$p';
-                final selected = !isCustom && p == _targetCount;
-                return _Pill(
-                  label: label,
-                  selected: selected,
-                  onTap: () => _setTarget(p),
-                  colors: colors,
-                );
-              }),
-              _Pill(
-                label: isCustom ? '$_targetCount' : 'custom',
-                selected: isCustom,
-                onTap: _showCustomDialog,
-                colors: colors,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildControls(
+  Widget _buildPlayerSection(
     BuildContext context,
-    ColorScheme colors,
+    ColorScheme cs,
     bool isPlaying,
     double progress,
     Duration pos,
     Duration total,
   ) {
-    final bottom = MediaQuery.of(context).padding.bottom + 20;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 4, 16, bottom),
+    final done = _targetCount > 0 && _completedCount >= _targetCount;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 2,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-            ),
-            child: Slider(
-              value: progress,
-              onChanged: _loaded ? _onSeek : null,
+          // ── Counter display ─────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$_completedCount',
+                  style: GoogleFonts.notoSerif(
+                    fontSize: 42,
+                    color: done ? cs.secondary : cs.primary,
+                    height: 1,
+                  ),
+                ),
+                Text(
+                  ' / $_targetCount',
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+                if (done) ...[
+                  const SizedBox(width: 10),
+                  Text('जय हनुमान',
+                      style: GoogleFonts.notoSerif(
+                          fontSize: 14, color: cs.secondary)),
+                ],
+              ],
             ),
           ),
+
+          // ── Repetition chips ─────────────────────────────────────────
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _quickCounts.map((c) {
+                final isSelected = c == _targetCount;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: GestureDetector(
+                    onTap: () => _setTarget(c),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? cs.primary
+                            : const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                    color: cs.primary.withValues(alpha: 0.3),
+                                    blurRadius: 18)
+                              ]
+                            : null,
+                      ),
+                      child: Text(
+                        '${c}X',
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.5,
+                          color: isSelected
+                              ? cs.onPrimary
+                              : cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Progress bar ─────────────────────────────────────────────
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 2,
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 4),
+              overlayShape:
+                  const RoundSliderOverlayShape(overlayRadius: 12),
+              activeTrackColor: cs.secondary,
+              inactiveTrackColor: const Color(0xFF353534),
+              thumbColor: cs.secondary,
+              overlayColor: cs.secondary.withValues(alpha: 0.2),
+            ),
+            child: Slider(
+                value: progress,
+                onChanged: _loaded ? _onSeek : null),
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(_fmt(pos),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: colors.onSurfaceVariant)),
+                    style: GoogleFonts.manrope(
+                        fontSize: 10,
+                        color: cs.onSurface.withValues(alpha: 0.5),
+                        letterSpacing: 0.5)),
+                Text(
+                  done
+                      ? 'Complete!'
+                      : 'Chant ${_completedCount + 1} of $_targetCount',
+                  style: GoogleFonts.manrope(
+                      fontSize: 10,
+                      color: cs.secondary,
+                      letterSpacing: 0.5),
+                ),
                 Text(_fmt(total),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: colors.onSurfaceVariant)),
+                    style: GoogleFonts.manrope(
+                        fontSize: 10,
+                        color: cs.onSurface.withValues(alpha: 0.5),
+                        letterSpacing: 0.5)),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 12),
+
+          // ── Controls ─────────────────────────────────────────────────
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(
-                width: 44,
-                child: IconButton(
-                  icon: Icon(Icons.replay, color: colors.onSurfaceVariant),
-                  iconSize: 22,
+              // Restart
+              _ControlButton(
+                icon: Icons.replay_rounded,
+                onTap: _loaded ? _onRestart : null,
+                cs: cs,
+              ),
+              // Prev + Play/Pause + Next
+              Row(children: [
+                IconButton(
+                  icon: Icon(Icons.skip_previous_rounded,
+                      color: cs.onSurface, size: 28),
                   onPressed: _loaded ? _onRestart : null,
                 ),
-              ),
-              const SizedBox(width: 24),
-              FilledButton(
-                onPressed: _loaded ? (isPlaying ? _onPause : _onPlay) : null,
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: const EdgeInsets.all(18),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _loaded
+                      ? (isPlaying ? _onPause : _onPlay)
+                      : null,
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [cs.primary, cs.primaryContainer],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: cs.primaryContainer
+                              .withValues(alpha: 0.4),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      color: cs.onPrimary,
+                      size: 38,
+                    ),
+                  ),
                 ),
-                child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 32),
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: Icon(Icons.skip_next_rounded,
+                      color: cs.onSurface, size: 28),
+                  onPressed: _loaded && !done ? _onSkipNext : null,
+                ),
+              ]),
+              // Volume
+              _ControlButton(
+                icon: _volume == 0
+                    ? Icons.volume_off_rounded
+                    : _volume < 0.5
+                        ? Icons.volume_down_rounded
+                        : Icons.volume_up_rounded,
+                onTap: () => setState(() => _showVolume = !_showVolume),
+                cs: cs,
+                active: _showVolume,
               ),
-              const SizedBox(width: 24),
-              const SizedBox(width: 44), // balance
             ],
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
-}
 
-// ── Pill chip ─────────────────────────────────────────────────────────────────
-
-class _Pill extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final ColorScheme colors;
-
-  const _Pill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.colors,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
+  Widget _buildVolumeOverlay(ColorScheme cs) {
+    return Positioned(
+      bottom: 180,
+      right: 20,
       child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        onTap: () => setState(() => _showVolume = false),
+        behavior: HitTestBehavior.translucent,
+        child: Container(
+          width: 52,
+          height: 180,
           decoration: BoxDecoration(
-            color: selected ? colors.primary : Colors.transparent,
-            border: Border.all(
-              color: selected ? colors.primary : colors.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(20),
+            color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(100),
           ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: selected ? colors.onPrimary : colors.onSurfaceVariant,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            children: [
+              Icon(Icons.volume_up_rounded,
+                  color: cs.primary, size: 18),
+              const SizedBox(height: 8),
+              Expanded(
+                child: RotatedBox(
+                  quarterTurns: 3,
+                  child: SliderTheme(
+                    data: SliderThemeData(
+                      trackHeight: 2,
+                      thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 6),
+                      overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 12),
+                      activeTrackColor: cs.primary,
+                      inactiveTrackColor:
+                          const Color(0xFF353534),
+                      thumbColor: cs.primary,
+                    ),
+                    child: Slider(
+                      value: _volume,
+                      onChanged: _onVolumeChanged,
+                    ),
+                  ),
                 ),
+              ),
+              const SizedBox(height: 8),
+              Icon(Icons.volume_off_rounded,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                  size: 16),
+            ],
           ),
         ),
       ),
@@ -458,18 +590,57 @@ class _Pill extends StatelessWidget {
   }
 }
 
-// ── Lyrics view ───────────────────────────────────────────────────────────────
-
-class _LyricsSheet extends StatefulWidget {
-  final Duration position;
-  const _LyricsSheet({required this.position});
+// ── Control button ─────────────────────────────────────────────────────────────
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final ColorScheme cs;
+  final bool active;
+  const _ControlButton(
+      {required this.icon,
+      required this.onTap,
+      required this.cs,
+      this.active = false});
 
   @override
-  State<_LyricsSheet> createState() => _LyricsSheetState();
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: active
+              ? cs.primary.withValues(alpha: 0.2)
+              : const Color(0xFF1C1B1B),
+        ),
+        child: Icon(
+          icon,
+          color: active
+              ? cs.primary
+              : onTap != null
+                  ? cs.onSurfaceVariant
+                  : cs.onSurfaceVariant.withValues(alpha: 0.3),
+          size: 20,
+        ),
+      ),
+    );
+  }
 }
 
-class _LyricsSheetState extends State<_LyricsSheet> {
-  static const _itemExtent = 52.0;
+// ── Lyrics panel ───────────────────────────────────────────────────────────────
+class _LyricsPanel extends StatefulWidget {
+  final Duration position;
+  final ColorScheme cs;
+  const _LyricsPanel({required this.position, required this.cs});
+
+  @override
+  State<_LyricsPanel> createState() => _LyricsPanelState();
+}
+
+class _LyricsPanelState extends State<_LyricsPanel> {
+  static const _itemExtent = 56.0;
   final _scrollController = ScrollController();
   int _lastIdx = -1;
 
@@ -493,40 +664,59 @@ class _LyricsSheetState extends State<_LyricsSheet> {
   @override
   Widget build(BuildContext context) {
     final lines = lyricsService.lines;
-    if (lines.isEmpty) return const Center(child: Text('Lyrics not loaded'));
+    final cs = widget.cs;
+
+    if (lines.isEmpty) {
+      return Center(
+        child: Text('ॐ',
+            style: GoogleFonts.notoSerif(
+                fontSize: 64,
+                color: cs.secondary.withValues(alpha: 0.4))),
+      );
+    }
 
     final currentIdx = lyricsService.currentLineIndex(widget.position);
-    final colors = Theme.of(context).colorScheme;
 
     if (currentIdx != _lastIdx) {
       _lastIdx = currentIdx;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToIndex(currentIdx));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _scrollToIndex(currentIdx));
     }
 
     return ListView.builder(
       controller: _scrollController,
       itemExtent: _itemExtent,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 32),
       itemCount: lines.length,
       itemBuilder: (ctx, i) {
         final isActive = i == currentIdx;
+        final isNear = (i - currentIdx).abs() == 1;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 250),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          color: isActive
-              ? colors.primaryContainer.withValues(alpha: 0.4)
-              : Colors.transparent,
           child: Text(
             lines[i].text,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  fontSize: isActive ? 17 : 15,
-                  color: isActive ? colors.primary : null,
-                ),
+            style: GoogleFonts.notoSerif(
+              fontSize: isActive ? 22 : (isNear ? 16 : 14),
+              fontWeight:
+                  isActive ? FontWeight.w700 : FontWeight.w400,
+              color: isActive
+                  ? cs.secondary
+                  : isNear
+                      ? cs.onSurface.withValues(alpha: 0.5)
+                      : cs.onSurface.withValues(alpha: 0.2),
+              height: 1.3,
+              shadows: isActive
+                  ? [
+                      Shadow(
+                          color: cs.secondary.withValues(alpha: 0.3),
+                          blurRadius: 12)
+                    ]
+                  : null,
+            ),
           ),
         );
       },

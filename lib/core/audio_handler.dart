@@ -22,6 +22,8 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   Duration get duration => _player.duration ?? Duration.zero;
   Duration get position => _player.position;
   bool get playing => _player.playing;
+  double get volume => _player.volume;
+  Future<void> setVolume(double v) => _player.setVolume(v.clamp(0.0, 1.0));
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
