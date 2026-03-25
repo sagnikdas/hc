@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
@@ -9,11 +10,10 @@ import 'package:just_audio/just_audio.dart';
 /// - Keep playback alive when the app is backgrounded.
 /// - Show a persistent media notification on Android.
 /// - Populate the lockscreen / Control Centre on iOS.
-///
-/// The public API (streams + loadVoice/play/pause/seek) is unchanged so
-/// play_screen.dart needs no edits.
 class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   final _player = AudioPlayer();
+  StreamSubscription? _playbackEventSub;
+  StreamSubscription? _durationSub;
 
   // ── Public API used by PlayScreen ─────────────────────────────────────────
 
@@ -28,11 +28,9 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   // ── Initialisation ────────────────────────────────────────────────────────
 
   Future<void> init() async {
-    // Tell the OS this is a music app — handles audio focus and routing.
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
 
-    // Populate lockscreen / notification with static metadata.
     mediaItem.add(const MediaItem(
       id: 'assets/audio/hc_real.mp3',
       title: 'Hanuman Chalisa',
@@ -43,16 +41,17 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
     ));
 
     // Broadcast every playback event to the system (notification + lockscreen).
-    _player.playbackEventStream.listen(
+    _playbackEventSub = _player.playbackEventStream.listen(
       _broadcastState,
       onError: (Object e, StackTrace st) =>
           debugPrint('HanumanAudioHandler playback error: $e'),
     );
 
     // Keep duration in media item up to date.
-    _player.durationStream.listen((d) {
+    _durationSub = _player.durationStream.listen((d) {
       if (d != null) {
-        mediaItem.add(mediaItem.value?.copyWith(duration: d));
+        final current = mediaItem.value;
+        if (current != null) mediaItem.add(current.copyWith(duration: d));
       }
     });
   }
@@ -82,7 +81,11 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   @override
   Future<void> rewind() => _player.seek(Duration.zero);
 
-  Future<void> dispose() => _player.dispose();
+  Future<void> dispose() async {
+    await _playbackEventSub?.cancel();
+    await _durationSub?.cancel();
+    await _player.dispose();
+  }
 
   // ── Private helpers ───────────────────────────────────────────────────────
 
@@ -116,11 +119,6 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-/// Creates the handler and initialises it.
-///
-/// Attempts to register with [AudioService] for lockscreen / notification
-/// support. If that fails (e.g. platform restrictions), falls back to a
-/// standalone handler so basic playback always works.
 Future<HanumanAudioHandler> initAudioHandler() async {
   try {
     final handler = await AudioService.init<HanumanAudioHandler>(

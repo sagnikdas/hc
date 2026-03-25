@@ -16,7 +16,7 @@ class AppRepository {
   }
 
   Future<int> getTodayCount() async {
-    final today = _dateStr(DateTime.now());
+    final today = dateStr(DateTime.now());
     final db = await DatabaseHelper.instance.database;
     final rows = await db.rawQuery(
       'SELECT SUM(count) as total FROM play_sessions WHERE date = ?',
@@ -28,7 +28,7 @@ class AppRepository {
   /// Returns a map of date strings to counts for the last [days] days.
   Future<Map<String, int>> getCountsForLastDays(int days) async {
     final db = await DatabaseHelper.instance.database;
-    final cutoff = _dateStr(DateTime.now().subtract(Duration(days: days)));
+    final cutoff = dateStr(DateTime.now().subtract(Duration(days: days)));
     final rows = await db.rawQuery(
       'SELECT date, SUM(count) as total FROM play_sessions WHERE date >= ? GROUP BY date',
       [cutoff],
@@ -127,8 +127,6 @@ class AppRepository {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-
-  static String _dateStr(DateTime d) => dateStr(d);
 
   static String dateStr(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

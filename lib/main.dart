@@ -5,7 +5,7 @@ import 'core/theme.dart';
 import 'core/audio_handler.dart';
 import 'core/lyrics_service.dart';
 import 'core/app_secrets.dart';
-import 'features/auth/auth_gate.dart';
+import 'core/main_shell.dart';
 
 final audioHandlerNotifier = ValueNotifier<HanumanAudioHandler?>(null);
 HanumanAudioHandler? get audioHandler => audioHandlerNotifier.value;
@@ -41,10 +41,10 @@ class HanumanChalisaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Hanuman Chalisa',
-      theme: lightTheme,
+      theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
-      home: const AuthGate(),
+      home: const MainShell(),
     );
   }
 }

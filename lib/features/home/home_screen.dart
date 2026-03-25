@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../play/play_screen.dart';
+import '../../core/transitions.dart';
 import '../../data/repositories/app_repository.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openPlay({String? assetPath}) {
     Navigator.of(context)
-        .push(_slideUpRoute(PlayScreen(initialVoice: assetPath)))
+        .push(slideUpRoute(PlayScreen(initialVoice: assetPath)))
         .then((_) => _loadStats());
   }
 
@@ -406,18 +407,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-Route<T> _slideUpRoute<T>(Widget page) {
-  return PageRouteBuilder<T>(
-    pageBuilder: (context, animation, secondary) => page,
-    transitionDuration: const Duration(milliseconds: 380),
-    reverseTransitionDuration: const Duration(milliseconds: 280),
-    transitionsBuilder: (context, animation, secondary, child) {
-      final tween = Tween(begin: const Offset(0, 1), end: Offset.zero)
-          .chain(CurveTween(curve: Curves.easeOutCubic));
-      return SlideTransition(position: animation.drive(tween), child: child);
-    },
-  );
-}
 
 class _StatCard extends StatelessWidget {
   final IconData icon;

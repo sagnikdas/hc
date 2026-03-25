@@ -19,10 +19,12 @@ class PlayScreen extends StatefulWidget {
 }
 
 class _PlayScreenState extends State<PlayScreen> {
-  static const _audioAsset = 'assets/audio/hc_real.mp3';
+  static const _defaultAudioAsset = 'assets/audio/hc_real.mp3';
   static const _quickCounts = [1, 11, 21, 108];
 
-  StreamSubscription<Duration>? _positionSub;
+  // Guard: _initAudio must only wire up once even if handler becomes ready
+  // after initState fires the listener path.
+  bool _audioInitialized = false;
   StreamSubscription<PlayerState>? _playerStateSub;
 
   bool _loaded = false;
@@ -31,7 +33,6 @@ class _PlayScreenState extends State<PlayScreen> {
   double _volume = 1.0;
   bool _showVolume = false;
 
-  // ── Loop / completion state ───────────────────────────────────────────────
   int _completedCount = 0;
   int _targetCount = 11;
   bool _seekForwardThisRound = false;
@@ -40,12 +41,11 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialTarget != null) {
-      _targetCount = widget.initialTarget!;
-    }
+    if (widget.initialTarget != null) _targetCount = widget.initialTarget!;
     _loadSettings();
-    if (audioHandler != null) {
-      _initAudio(audioHandler!);
+    final handler = audioHandler;
+    if (handler != null) {
+      _initAudio(handler);
     } else {
       audioHandlerNotifier.addListener(_onHandlerReady);
     }
@@ -58,7 +58,9 @@ class _PlayScreenState extends State<PlayScreen> {
       if (widget.initialTarget == null) _targetCount = settings.targetCount;
       _continuousPlay = settings.continuousPlay;
       _hapticEnabled = settings.hapticEnabled;
-      _volume = audioHandler?.volume ?? 1.0;
+      // Only read volume from handler if it's already available.
+      final h = audioHandler;
+      if (h != null) _volume = h.volume;
     });
   }
 
@@ -71,23 +73,20 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   void _initAudio(HanumanAudioHandler handler) {
+    if (_audioInitialized) return;
+    _audioInitialized = true;
     _loadAudio();
-    _positionSub = handler.positionStream.listen(_onPosition);
     _playerStateSub = handler.playerStateStream.listen(_onPlayerState);
   }
 
   Future<void> _loadAudio() async {
     try {
-      final asset = widget.initialVoice ?? _audioAsset;
+      final asset = widget.initialVoice ?? _defaultAudioAsset;
       await audioHandler!.loadVoice(asset);
       if (mounted) setState(() => _loaded = true);
     } catch (e) {
       debugPrint('Audio load failed: $e');
     }
-  }
-
-  void _onPosition(Duration _) {
-    if (mounted) setState(() {});
   }
 
   void _onPlayerState(PlayerState state) {
@@ -103,7 +102,7 @@ class _PlayScreenState extends State<PlayScreen> {
     final counted = !_seekForwardThisRound;
     if (counted) {
       setState(() => _completedCount++);
-      _saveSession();
+      await _saveSession();
       if (_hapticEnabled) HapticFeedback.mediumImpact();
     }
     _seekForwardThisRound = false;
@@ -116,19 +115,15 @@ class _PlayScreenState extends State<PlayScreen> {
       }
     } else {
       await audioHandler!.seek(Duration.zero);
-      if (_continuousPlay) {
-        await audioHandler!.play();
-      }
-      // If continuousPlay is false, stay paused — user taps play for next round
+      if (_continuousPlay) await audioHandler!.play();
       if (mounted) setState(() => _completionHandled = false);
     }
   }
 
-  void _saveSession() {
+  Future<void> _saveSession() async {
     final now = DateTime.now();
-    final dateStr = AppRepository.dateStr(now);
-    AppRepository.instance.insertSession(PlaySession(
-      date: dateStr,
+    await AppRepository.instance.insertSession(PlaySession(
+      date: AppRepository.dateStr(now),
       count: 1,
       completedAt: now.millisecondsSinceEpoch,
     ));
@@ -155,7 +150,6 @@ class _PlayScreenState extends State<PlayScreen> {
     await audioHandler!.play();
   }
 
-  // Skip current round (don't count), start next
   Future<void> _onSkipNext() async {
     if (!_loaded) return;
     final handler = audioHandler!;
@@ -187,7 +181,6 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void dispose() {
     audioHandlerNotifier.removeListener(_onHandlerReady);
-    _positionSub?.cancel();
     _playerStateSub?.cancel();
     super.dispose();
   }
@@ -196,7 +189,7 @@ class _PlayScreenState extends State<PlayScreen> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<HanumanAudioHandler?>(
       valueListenable: audioHandlerNotifier,
-      builder: (context, handler, _) {
+      builder: (context, handler, child) {
         if (handler == null) {
           return const Scaffold(
             backgroundColor: Color(0xFF131313),
@@ -210,12 +203,10 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Widget _buildPlayer(BuildContext context, HanumanAudioHandler handler) {
     final cs = Theme.of(context).colorScheme;
-    final total = handler.duration;
-    final pos = handler.position;
-    final progress = total.inMilliseconds > 0
-        ? (pos.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
 
+    // StreamBuilder only covers play/pause state changes — low frequency.
+    // Position-driven rebuilds are isolated inside _LyricsPanel and
+    // the StreamBuilder<Duration> in _buildProgressBar.
     return StreamBuilder<PlayerState>(
       stream: handler.playerStateStream,
       builder: (context, snap) {
@@ -225,63 +216,24 @@ class _PlayScreenState extends State<PlayScreen> {
           body: Stack(
             fit: StackFit.expand,
             children: [
-              // Sacred background — image + gradient overlay
-              Opacity(
-                opacity: 0.20,
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.matrix([
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0,      0,      0,      1, 0,
-                  ]),
-                  child: Image.asset(
-                    'assets/images/hanuman_player_bg.png',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (context, error, stack) =>
-                        const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-              // Gradient overlay: dark at bottom and top
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFF131313).withValues(alpha: 0.5),
-                      Colors.transparent,
-                      const Color(0xFF131313),
-                    ],
-                    stops: const [0.0, 0.3, 1.0],
-                  ),
-                ),
-              ),
-              // Pulsing Om
-              Center(
-                child: Text(
-                  'ॐ',
-                  style: GoogleFonts.notoSerif(
-                    fontSize: 160,
-                    color: cs.secondary.withValues(alpha: 0.10),
-                  ),
-                ),
-              ),
-              // Content
+              // ── Static background — never rebuilds during playback ──────
+              _BackgroundLayer(cs: cs),
+              // ── Content ───────────────────────────────────────────────
               SafeArea(
                 child: Column(
                   children: [
                     _buildTopBar(context, cs),
-                    Expanded(child: _LyricsPanel(position: pos, cs: cs)),
-                    _buildPlayerSection(
-                        context, cs, isPlaying, progress, pos, total),
+                    // Lyrics panel manages its own position subscription.
+                    Expanded(
+                      child: _LyricsPanel(
+                        positionStream: handler.positionStream,
+                        cs: cs,
+                      ),
+                    ),
+                    _buildPlayerSection(context, cs, isPlaying, handler),
                   ],
                 ),
               ),
-              // Volume overlay
               if (_showVolume) _buildVolumeOverlay(cs),
             ],
           ),
@@ -320,9 +272,7 @@ class _PlayScreenState extends State<PlayScreen> {
     BuildContext context,
     ColorScheme cs,
     bool isPlaying,
-    double progress,
-    Duration pos,
-    Duration total,
+    HanumanAudioHandler handler,
   ) {
     final done = _targetCount > 0 && _completedCount >= _targetCount;
 
@@ -331,7 +281,7 @@ class _PlayScreenState extends State<PlayScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Counter display ─────────────────────────────────────────
+          // ── Counter — only updates on completion (~11 times per session) ──
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
@@ -365,7 +315,7 @@ class _PlayScreenState extends State<PlayScreen> {
             ),
           ),
 
-          // ── Repetition chips ─────────────────────────────────────────
+          // ── Chips — only updates when user taps ───────────────────────
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -413,64 +363,77 @@ class _PlayScreenState extends State<PlayScreen> {
 
           const SizedBox(height: 14),
 
-          // ── Progress bar ─────────────────────────────────────────────
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 2,
-              thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 4),
-              overlayShape:
-                  const RoundSliderOverlayShape(overlayRadius: 12),
-              activeTrackColor: cs.secondary,
-              inactiveTrackColor: const Color(0xFF353534),
-              thumbColor: cs.secondary,
-              overlayColor: cs.secondary.withValues(alpha: 0.2),
-            ),
-            child: Slider(
-                value: progress,
-                onChanged: _loaded ? _onSeek : null),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(_fmt(pos),
-                    style: GoogleFonts.manrope(
-                        fontSize: 10,
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                        letterSpacing: 0.5)),
-                Text(
-                  done
-                      ? 'Complete!'
-                      : 'Chant ${_completedCount + 1} of $_targetCount',
-                  style: GoogleFonts.manrope(
-                      fontSize: 10,
-                      color: cs.secondary,
-                      letterSpacing: 0.5),
-                ),
-                Text(_fmt(total),
-                    style: GoogleFonts.manrope(
-                        fontSize: 10,
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                        letterSpacing: 0.5)),
-              ],
-            ),
+          // ── Progress bar + time — isolated StreamBuilder, ~1fps ───────
+          StreamBuilder<Duration>(
+            stream: handler.positionStream,
+            builder: (context, posSnap) {
+              final pos = posSnap.data ?? Duration.zero;
+              final total = handler.duration;
+              final progress = total.inMilliseconds > 0
+                  ? (pos.inMilliseconds / total.inMilliseconds)
+                      .clamp(0.0, 1.0)
+                  : 0.0;
+              return Column(
+                children: [
+                  SliderTheme(
+                    data: SliderThemeData(
+                      trackHeight: 2,
+                      thumbShape:
+                          const RoundSliderThumbShape(enabledThumbRadius: 4),
+                      overlayShape:
+                          const RoundSliderOverlayShape(overlayRadius: 12),
+                      activeTrackColor: cs.secondary,
+                      inactiveTrackColor: const Color(0xFF353534),
+                      thumbColor: cs.secondary,
+                      overlayColor: cs.secondary.withValues(alpha: 0.2),
+                    ),
+                    child: Slider(
+                        value: progress,
+                        onChanged: _loaded ? _onSeek : null),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_fmt(pos),
+                            style: GoogleFonts.manrope(
+                                fontSize: 10,
+                                color: cs.onSurface.withValues(alpha: 0.5),
+                                letterSpacing: 0.5)),
+                        Text(
+                          done
+                              ? 'Complete!'
+                              : 'Chant ${_completedCount + 1} of $_targetCount',
+                          style: GoogleFonts.manrope(
+                              fontSize: 10,
+                              color: cs.secondary,
+                              letterSpacing: 0.5),
+                        ),
+                        Text(_fmt(total),
+                            style: GoogleFonts.manrope(
+                                fontSize: 10,
+                                color: cs.onSurface.withValues(alpha: 0.5),
+                                letterSpacing: 0.5)),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 12),
 
-          // ── Controls ─────────────────────────────────────────────────
+          // ── Controls — updates only when isPlaying changes ────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Restart
               _ControlButton(
                 icon: Icons.replay_rounded,
                 onTap: _loaded ? _onRestart : null,
                 cs: cs,
               ),
-              // Prev + Play/Pause + Next
               Row(children: [
                 IconButton(
                   icon: Icon(Icons.skip_previous_rounded,
@@ -494,8 +457,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: cs.primaryContainer
-                              .withValues(alpha: 0.4),
+                          color: cs.primaryContainer.withValues(alpha: 0.4),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -517,7 +479,6 @@ class _PlayScreenState extends State<PlayScreen> {
                   onPressed: _loaded && !done ? _onSkipNext : null,
                 ),
               ]),
-              // Volume
               _ControlButton(
                 icon: _volume == 0
                     ? Icons.volume_off_rounded
@@ -553,8 +514,7 @@ class _PlayScreenState extends State<PlayScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
             children: [
-              Icon(Icons.volume_up_rounded,
-                  color: cs.primary, size: 18),
+              Icon(Icons.volume_up_rounded, color: cs.primary, size: 18),
               const SizedBox(height: 8),
               Expanded(
                 child: RotatedBox(
@@ -567,8 +527,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape: const RoundSliderOverlayShape(
                           overlayRadius: 12),
                       activeTrackColor: cs.primary,
-                      inactiveTrackColor:
-                          const Color(0xFF353534),
+                      inactiveTrackColor: const Color(0xFF353534),
                       thumbColor: cs.primary,
                     ),
                     child: Slider(
@@ -590,17 +549,73 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 }
 
+// ── Static background — extracted so it never participates in rebuilds ─────────
+class _BackgroundLayer extends StatelessWidget {
+  final ColorScheme cs;
+  const _BackgroundLayer({required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Opacity(
+          opacity: 0.20,
+          child: ColorFiltered(
+            colorFilter: const ColorFilter.matrix([
+              0.2126, 0.7152, 0.0722, 0, 0,
+              0.2126, 0.7152, 0.0722, 0, 0,
+              0.2126, 0.7152, 0.0722, 0, 0,
+              0,      0,      0,      1, 0,
+            ]),
+            child: Image.asset(
+              'assets/images/hanuman_player_bg.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) =>
+                  const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF131313).withValues(alpha: 0.5),
+                Colors.transparent,
+                const Color(0xFF131313),
+              ],
+              stops: const [0.0, 0.3, 1.0],
+            ),
+          ),
+        ),
+        Center(
+          child: Text(
+            'ॐ',
+            style: GoogleFonts.notoSerif(
+              fontSize: 160,
+              color: cs.secondary.withValues(alpha: 0.10),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Control button ─────────────────────────────────────────────────────────────
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
   final ColorScheme cs;
   final bool active;
-  const _ControlButton(
-      {required this.icon,
-      required this.onTap,
-      required this.cs,
-      this.active = false});
+  const _ControlButton({
+    required this.icon,
+    required this.onTap,
+    required this.cs,
+    this.active = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -629,11 +644,13 @@ class _ControlButton extends StatelessWidget {
   }
 }
 
-// ── Lyrics panel ───────────────────────────────────────────────────────────────
+// ── Lyrics panel — self-manages its own position subscription ──────────────────
+// Only rebuilds when the active lyric line changes (~once every 10-30 seconds),
+// not on every position tick.
 class _LyricsPanel extends StatefulWidget {
-  final Duration position;
+  final Stream<Duration> positionStream;
   final ColorScheme cs;
-  const _LyricsPanel({required this.position, required this.cs});
+  const _LyricsPanel({required this.positionStream, required this.cs});
 
   @override
   State<_LyricsPanel> createState() => _LyricsPanelState();
@@ -642,12 +659,37 @@ class _LyricsPanel extends StatefulWidget {
 class _LyricsPanelState extends State<_LyricsPanel> {
   static const _itemExtent = 56.0;
   final _scrollController = ScrollController();
-  int _lastIdx = -1;
+  StreamSubscription<Duration>? _positionSub;
+  int _currentIdx = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _positionSub = widget.positionStream.listen(_onPosition);
+  }
+
+  @override
+  void didUpdateWidget(_LyricsPanel old) {
+    super.didUpdateWidget(old);
+    if (old.positionStream != widget.positionStream) {
+      _positionSub?.cancel();
+      _positionSub = widget.positionStream.listen(_onPosition);
+    }
+  }
 
   @override
   void dispose() {
+    _positionSub?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onPosition(Duration pos) {
+    final idx = lyricsService.currentLineIndex(pos);
+    if (idx == _currentIdx) return; // no line change — skip rebuild entirely
+    setState(() => _currentIdx = idx);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToIndex(_currentIdx));
   }
 
   void _scrollToIndex(int idx) {
@@ -675,22 +717,14 @@ class _LyricsPanelState extends State<_LyricsPanel> {
       );
     }
 
-    final currentIdx = lyricsService.currentLineIndex(widget.position);
-
-    if (currentIdx != _lastIdx) {
-      _lastIdx = currentIdx;
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _scrollToIndex(currentIdx));
-    }
-
     return ListView.builder(
       controller: _scrollController,
       itemExtent: _itemExtent,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 32),
       itemCount: lines.length,
       itemBuilder: (ctx, i) {
-        final isActive = i == currentIdx;
-        final isNear = (i - currentIdx).abs() == 1;
+        final isActive = i == _currentIdx;
+        final isNear = (i - _currentIdx).abs() == 1;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           alignment: Alignment.center,
@@ -701,8 +735,7 @@ class _LyricsPanelState extends State<_LyricsPanel> {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.notoSerif(
               fontSize: isActive ? 22 : (isNear ? 16 : 14),
-              fontWeight:
-                  isActive ? FontWeight.w700 : FontWeight.w400,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
               color: isActive
                   ? cs.secondary
                   : isNear

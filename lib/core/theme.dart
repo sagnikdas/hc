@@ -77,5 +77,3 @@ final darkTheme = ThemeData(
   ),
 );
 
-// App is dark-only per the Sacred Manuscript design system
-final lightTheme = darkTheme;

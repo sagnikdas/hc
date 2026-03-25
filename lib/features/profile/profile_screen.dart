@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../play/play_screen.dart';
+import '../../core/transitions.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/user_settings.dart';
 
@@ -279,7 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       child: GestureDetector(
-        onTap: () => Navigator.of(context).push(_slideUpRoute(
+        onTap: () => Navigator.of(context).push(slideUpRoute(
           PlayScreen(initialTarget: _selectedCount),
         )),
         child: Container(
@@ -320,18 +321,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-Route<T> _slideUpRoute<T>(Widget page) {
-  return PageRouteBuilder<T>(
-    pageBuilder: (context, animation, secondary) => page,
-    transitionDuration: const Duration(milliseconds: 380),
-    reverseTransitionDuration: const Duration(milliseconds: 280),
-    transitionsBuilder: (context, animation, secondary, child) {
-      final tween = Tween(begin: const Offset(0, 1), end: Offset.zero)
-          .chain(CurveTween(curve: Curves.easeOutCubic));
-      return SlideTransition(position: animation.drive(tween), child: child);
-    },
-  );
-}
 
 class _ToggleRow extends StatelessWidget {
   final IconData icon;

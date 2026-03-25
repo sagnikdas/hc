@@ -2,16 +2,13 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static DatabaseHelper? _instance;
-  static Database? _db;
-
+  static final DatabaseHelper instance = DatabaseHelper._();
   DatabaseHelper._();
-  static DatabaseHelper get instance => _instance ??= DatabaseHelper._();
 
-  Future<Database> get database async {
-    _db ??= await _open();
-    return _db!;
-  }
+  // late final ensures _open() is called exactly once even under concurrent access.
+  late final Future<Database> _db = _open();
+
+  Future<Database> get database => _db;
 
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
