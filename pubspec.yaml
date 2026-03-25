@@ -41,12 +41,16 @@ dependencies:
   google_fonts: ^6.2.1
   sqflite: ^2.3.3
   path: ^1.9.0
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
+  mocktail: ^1.0.4
+  sqflite_common_ffi: ^2.3.4+1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

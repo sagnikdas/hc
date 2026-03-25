@@ -4,8 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
 import 'core/audio_handler.dart';
 import 'core/lyrics_service.dart';
+import 'core/notification_service.dart';
 import 'core/app_secrets.dart';
-import 'core/main_shell.dart';
+import 'features/auth/auth_gate.dart';
 
 final audioHandlerNotifier = ValueNotifier<HanumanAudioHandler?>(null);
 HanumanAudioHandler? get audioHandler => audioHandlerNotifier.value;
@@ -20,6 +21,13 @@ Future<void> main() async {
 }
 
 Future<void> _initServices() async {
+  // Init notifications (timezone data, plugin registration).
+  try {
+    await NotificationService.init();
+  } catch (e) {
+    debugPrint('NotificationService init failed: $e');
+  }
+
   try {
     audioHandlerNotifier.value = await initAudioHandler();
   } catch (e) {
@@ -44,7 +52,7 @@ class HanumanChalisaApp extends StatelessWidget {
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
-      home: const MainShell(),
+      home: const AuthGate(),
     );
   }
 }

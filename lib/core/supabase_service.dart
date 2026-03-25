@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_secrets.dart';
+import '../data/models/play_session.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -17,18 +19,47 @@ class SupabaseService {
       supabase.auth.onAuthStateChange;
 
   static Future<void> signInWithGoogle() async {
+    if (!_isGoogleWebClientIdConfigured) {
+      throw StateError(
+        'Google Sign-In: set kGoogleWebClientId in lib/core/app_secrets.dart to '
+        'your OAuth "Web application" client ID (the same Client ID as in '
+        'Supabase → Authentication → Providers → Google). '
+        'See docs/SUPABASE_AND_GOOGLE_SSO_SETUP.md section 5.1.',
+      );
+    }
+
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) return; // user cancelled
 
     final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
-    if (idToken == null) throw Exception('Google id_token is null');
+    if (idToken == null) {
+      throw StateError(
+        'Google did not return an id_token. Use the Web application OAuth '
+        'client ID (not Android/iOS) for kGoogleWebClientId, and ensure that '
+        'Android SHA-1 / iOS URL scheme match Google Cloud Console.',
+      );
+    }
 
-    await supabase.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: googleAuth.accessToken,
-    );
+    try {
+      await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: googleAuth.accessToken,
+      );
+    } on AuthException catch (e) {
+      debugPrint('Supabase signInWithIdToken: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// True when [kGoogleWebClientId] looks like a real Web client ID, not the template.
+  static bool get _isGoogleWebClientIdConfigured {
+    final id = kGoogleWebClientId.trim();
+    if (id.contains('YOUR_WEB')) return false;
+    return RegExp(
+      r'^[0-9]+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$',
+    ).hasMatch(id);
   }
 
   static Future<void> signOut() async {
@@ -50,19 +81,23 @@ class SupabaseService {
     required String email,
     required String phone,
     required DateTime dateOfBirth,
+    String? referralCode,
   }) async {
     final uid = currentUser?.id;
     if (uid == null) return;
 
     final age = _calcAge(dateOfBirth);
-    await supabase.from('profiles').upsert({
+    final data = <String, dynamic>{
       'id': uid,
       'name': name,
       'email': email,
       'phone': phone,
       'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
       'age': age,
-    });
+    };
+    if (referralCode != null) data['referral_code'] = referralCode;
+
+    await supabase.from('profiles').upsert(data);
   }
 
   static int _calcAge(DateTime dob) {
@@ -73,5 +108,77 @@ class SupabaseService {
       age--;
     }
     return age;
+  }
+
+  // ── Completions sync ──────────────────────────────────────────────────────
+  //
+  // Required Supabase schema (run in Supabase SQL editor):
+  //
+  //   CREATE TABLE IF NOT EXISTS completions (
+  //     id          BIGSERIAL PRIMARY KEY,
+  //     user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  //     completed_at TIMESTAMPTZ NOT NULL,
+  //     session_date DATE NOT NULL,
+  //     count       INTEGER NOT NULL DEFAULT 1,
+  //     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  //   );
+  //   CREATE INDEX idx_completions_user_id ON completions(user_id);
+  //   CREATE INDEX idx_completions_completed_at ON completions(completed_at);
+  //   ALTER TABLE completions ENABLE ROW LEVEL SECURITY;
+  //   CREATE POLICY "Users insert own completions"
+  //     ON completions FOR INSERT WITH CHECK (auth.uid() = user_id);
+  //   CREATE POLICY "Anyone can read completions"
+  //     ON completions FOR SELECT USING (true);
+
+  /// Syncs a local session to Supabase. No-op if user is not signed in.
+  /// Designed to be called fire-and-forget via unawaited().
+  static Future<void> syncCompletion(PlaySession session) async {
+    final uid = currentUser?.id;
+    if (uid == null) return;
+    await supabase.from('completions').insert({
+      'user_id': uid,
+      'completed_at': DateTime.fromMillisecondsSinceEpoch(session.completedAt)
+          .toUtc()
+          .toIso8601String(),
+      'session_date': session.date,
+      'count': session.count,
+    });
+  }
+
+  // ── Leaderboard ───────────────────────────────────────────────────────────
+  //
+  // Required Supabase RPC (run in SQL editor):
+  //
+  //   CREATE OR REPLACE FUNCTION get_leaderboard(p_weekly BOOLEAN)
+  //   RETURNS TABLE (
+  //     rank         BIGINT,
+  //     user_id      UUID,
+  //     display_name TEXT,
+  //     total_count  BIGINT
+  //   ) LANGUAGE SQL STABLE AS $$
+  //     SELECT
+  //       RANK() OVER (ORDER BY SUM(c.count) DESC) AS rank,
+  //       c.user_id,
+  //       COALESCE(p.name, 'Devotee') AS display_name,
+  //       SUM(c.count) AS total_count
+  //     FROM completions c
+  //     LEFT JOIN profiles p ON p.id = c.user_id
+  //     WHERE CASE WHEN p_weekly
+  //       THEN c.completed_at >= NOW() - INTERVAL '7 days'
+  //       ELSE true END
+  //     GROUP BY c.user_id, p.name
+  //     ORDER BY total_count DESC
+  //     LIMIT 10;
+  //   $$;
+  //   GRANT EXECUTE ON FUNCTION get_leaderboard TO anon, authenticated;
+
+  /// Returns top-10 leaderboard entries.
+  /// Each entry: {rank, user_id, display_name, total_count}
+  static Future<List<Map<String, dynamic>>> fetchLeaderboard({
+    required bool weekly,
+  }) async {
+    final data = await supabase
+        .rpc('get_leaderboard', params: {'p_weekly': weekly}) as List<dynamic>;
+    return data.cast<Map<String, dynamic>>();
   }
 }

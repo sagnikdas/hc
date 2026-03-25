@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/supabase_service.dart';
 
@@ -16,8 +17,15 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       await SupabaseService.signInWithGoogle();
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Sign-in failed. Please try again.');
+    } catch (e, st) {
+      debugPrint('Google sign-in error: $e\n$st');
+      if (mounted) {
+        setState(() => _error = kDebugMode
+            ? '$e'
+            : (e is StateError)
+                ? '$e'
+                : 'Sign-in failed. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

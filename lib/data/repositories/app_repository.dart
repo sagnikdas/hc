@@ -1,18 +1,33 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../local/database_helper.dart';
 import '../models/play_session.dart';
 import '../models/user_settings.dart';
+import '../../core/supabase_service.dart';
 
 class AppRepository {
   static AppRepository? _instance;
   static AppRepository get instance => _instance ??= AppRepository._();
   AppRepository._();
 
+  /// Reset the singleton for unit tests. Must be called after
+  /// [DatabaseHelper.resetForTest].
+  @visibleForTesting
+  static void resetForTest() {
+    _instance = AppRepository._();
+  }
+
   // ── Sessions ──────────────────────────────────────────────────────────────
 
   Future<void> insertSession(PlaySession session) async {
     final db = await DatabaseHelper.instance.database;
     await db.insert('play_sessions', session.toMap());
+    // Fire-and-forget sync to Supabase (no-op if offline or signed out).
+    unawaited(
+      SupabaseService.syncCompletion(session).catchError((_) {}),
+    );
   }
 
   Future<int> getTodayCount() async {
@@ -124,6 +139,35 @@ class AppRepository {
       settings.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  // ── Onboarding ────────────────────────────────────────────────────────────
+
+  Future<bool> isOnboardingShown() async {
+    final s = await getSettings();
+    return s.onboardingShown;
+  }
+
+  Future<void> markOnboardingShown() async {
+    final s = await getSettings();
+    await saveSettings(s.copyWith(onboardingShown: true));
+  }
+
+  // ── Referral ──────────────────────────────────────────────────────────────
+
+  Future<String> getOrCreateReferralCode() async {
+    final s = await getSettings();
+    if (s.referralCode != null) return s.referralCode!;
+    final code = _generateCode();
+    await saveSettings(s.copyWith(referralCode: code));
+    return code;
+  }
+
+  static String _generateCode() {
+    // Excludes visually ambiguous characters (I, O, 0, 1).
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final rnd = Random.secure();
+    return List.generate(6, (_) => chars[rnd.nextInt(chars.length)]).join();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

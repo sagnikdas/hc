@@ -60,7 +60,7 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
         phone: _phoneCtrl.text.trim(),
         dateOfBirth: _dob!,
       );
-      // AuthGate rebuilds via auth stream — navigation is automatic.
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

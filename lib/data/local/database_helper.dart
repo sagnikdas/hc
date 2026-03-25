@@ -1,19 +1,36 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._();
+  static DatabaseHelper _instance = DatabaseHelper._();
+  static DatabaseHelper get instance => _instance;
   DatabaseHelper._();
 
-  // late final ensures _open() is called exactly once even under concurrent access.
+  // Overridden to a temp path in unit tests via [resetForTest].
+  static String? _testPath;
+
+  /// Call before each test to get a fresh, isolated database.
+  @visibleForTesting
+  static void resetForTest(String path) {
+    _testPath = path;
+    _instance = DatabaseHelper._();
+  }
+
+  // late final ensures _open() is called exactly once per instance.
   late final Future<Database> _db = _open();
 
   Future<Database> get database => _db;
 
   Future<Database> _open() async {
-    final dir = await getDatabasesPath();
-    final path = join(dir, 'hanuman_chalisa.db');
-    return openDatabase(path, version: 1, onCreate: _onCreate);
+    final path = _testPath ??
+        join(await getDatabasesPath(), 'hanuman_chalisa.db');
+    return openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -30,7 +47,9 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY,
         target_count INTEGER NOT NULL DEFAULT 11,
         haptic_enabled INTEGER NOT NULL DEFAULT 1,
-        continuous_play INTEGER NOT NULL DEFAULT 0
+        continuous_play INTEGER NOT NULL DEFAULT 0,
+        referral_code TEXT,
+        onboarding_shown INTEGER NOT NULL DEFAULT 0
       )
     ''');
     await db.insert('user_settings', {
@@ -38,6 +57,19 @@ class DatabaseHelper {
       'target_count': 11,
       'haptic_enabled': 1,
       'continuous_play': 0,
+      'referral_code': null,
+      'onboarding_shown': 0,
     });
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN referral_code TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN onboarding_shown INTEGER NOT NULL DEFAULT 0',
+      );
+    }
   }
 }
