@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../play/play_screen.dart';
 import '../auth/profile_form_screen.dart';
 import '../../core/transitions.dart';
+import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/user_settings.dart';
@@ -192,7 +193,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildRepetitionGrid(context, cs),
                       const SizedBox(height: 20),
                       _buildToggles(context, cs),
-                      const SizedBox(height: 80),
+                      // Spacer matches CTA container height: sp(20+58+24) + safe area.
+                      SizedBox(height: MediaQuery.of(context).padding.bottom + context.sp(120)),
                     ],
                   ),
                 ),
@@ -213,24 +215,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildHeader(BuildContext context, ColorScheme cs) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          24, MediaQuery.of(context).padding.top + 14, 24, 14),
+          context.sp(24), MediaQuery.of(context).padding.top + context.sp(14), context.sp(24), context.sp(14)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(Icons.tune_rounded, color: cs.primary, size: 22),
-              const SizedBox(width: 14),
+              Icon(Icons.tune_rounded, color: cs.primary, size: context.sp(22)),
+              SizedBox(width: context.sp(14)),
               Text(
                 'Sankalp Settings',
                 style: GoogleFonts.notoSerif(
-                    fontSize: 20,
+                    fontSize: context.sp(20),
                     color: cs.primary,
                     fontStyle: FontStyle.italic),
               ),
             ],
           ),
-          Icon(Icons.auto_awesome_rounded, color: cs.secondary, size: 20),
+          Icon(Icons.auto_awesome_rounded, color: cs.secondary, size: context.sp(20)),
         ],
       ),
     );
@@ -250,10 +252,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final avatarUrl = user.userMetadata?['avatar_url'] as String?;
 
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(context.sp(16)),
         decoration: BoxDecoration(
           color: const Color(0xFF1C1B1B),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(context.sp(16)),
           border: Border.all(
               color: cs.primary.withValues(alpha: 0.15), width: 1),
         ),
@@ -261,7 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             // Avatar
             CircleAvatar(
-              radius: 26,
+              radius: context.sp(26),
               backgroundColor: cs.primaryContainer,
               backgroundImage:
                   avatarUrl != null ? NetworkImage(avatarUrl) : null,
@@ -269,24 +271,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : 'D',
                       style: GoogleFonts.notoSerif(
-                          fontSize: 20, color: cs.onPrimaryContainer),
+                          fontSize: context.sp(20), color: cs.onPrimaryContainer),
                     )
                   : null,
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: context.sp(14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name,
                       style: GoogleFonts.manrope(
-                          fontSize: 14,
+                          fontSize: context.sp(14),
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface)),
                   if (email.isNotEmpty)
                     Text(email,
                         style: GoogleFonts.manrope(
-                            fontSize: 11, color: cs.onSurfaceVariant)),
+                            fontSize: context.sp(11), color: cs.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -300,14 +302,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _loadProfile();
               },
               child: Icon(Icons.edit_rounded,
-                  color: cs.primary.withValues(alpha: 0.7), size: 18),
+                  color: cs.primary.withValues(alpha: 0.7), size: context.sp(18)),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: context.sp(12)),
             // Sign out
             GestureDetector(
               onTap: _signOut,
               child: Icon(Icons.logout_rounded,
-                  color: cs.onSurfaceVariant, size: 18),
+                  color: cs.onSurfaceVariant, size: context.sp(18)),
             ),
           ],
         ),
@@ -316,61 +318,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Signed-out card
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(context.sp(16)),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1B1B),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.sp(16)),
         border: Border.all(
             color: cs.outlineVariant.withValues(alpha: 0.2), width: 1),
       ),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: context.sp(52),
+            height: context.sp(52),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: cs.primaryContainer.withValues(alpha: 0.3),
             ),
             child: Icon(Icons.person_rounded,
-                color: cs.primary, size: 28),
+                color: cs.primary, size: context.sp(28)),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: context.sp(14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Sign in to sync your paath',
                     style: GoogleFonts.manrope(
-                        fontSize: 13,
+                        fontSize: context.sp(13),
                         fontWeight: FontWeight.w500,
                         color: cs.onSurface)),
                 Text('Leaderboard & cloud backup',
                     style: GoogleFonts.manrope(
-                        fontSize: 11, color: cs.onSurfaceVariant)),
+                        fontSize: context.sp(11), color: cs.onSurfaceVariant)),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: context.sp(10)),
           _authLoading
               ? SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: context.sp(20),
+                  height: context.sp(20),
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: cs.primary),
                 )
               : GestureDetector(
                   onTap: _signIn,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: context.sp(14), vertical: context.sp(8)),
                     decoration: BoxDecoration(
                       color: cs.primary,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(context.sp(10)),
                     ),
                     child: Text('Sign in',
                         style: GoogleFonts.manrope(
-                            fontSize: 12,
+                            fontSize: context.sp(12),
                             fontWeight: FontWeight.w600,
                             color: cs.onPrimary)),
                   ),
@@ -384,80 +386,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildInviteSection(BuildContext context, ColorScheme cs) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(context.sp(16)),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1B1B),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.sp(16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.people_rounded, color: cs.secondary, size: 18),
-              const SizedBox(width: 10),
+              Icon(Icons.people_rounded, color: cs.secondary, size: context.sp(18)),
+              SizedBox(width: context.sp(10)),
               Text(
                 'Invite Devotees',
                 style: GoogleFonts.manrope(
-                    fontSize: 13,
+                    fontSize: context.sp(13),
                     fontWeight: FontWeight.w600,
                     color: cs.onSurface),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: context.sp(12)),
           if (_referralCode != null) ...[
             Row(
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: context.sp(14), vertical: context.sp(10)),
                     decoration: BoxDecoration(
                       color: cs.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(context.sp(10)),
                       border: Border.all(
                           color: cs.primary.withValues(alpha: 0.2)),
                     ),
                     child: Text(
                       _referralCode!,
                       style: GoogleFonts.notoSerif(
-                        fontSize: 20,
+                        fontSize: context.sp(18),
                         fontWeight: FontWeight.w700,
                         color: cs.primary,
-                        letterSpacing: 4,
+                        letterSpacing: context.sp(3),
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: context.sp(10)),
                 GestureDetector(
                   onTap: _shareInvite,
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(context.sp(12)),
                     decoration: BoxDecoration(
                       color: cs.primary,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(context.sp(10)),
                     ),
                     child: Icon(Icons.share_rounded,
-                        color: cs.onPrimary, size: 20),
+                        color: cs.onPrimary, size: context.sp(20)),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: context.sp(8)),
             Text(
               'Share this code with friends to invite them',
               style: GoogleFonts.manrope(
-                  fontSize: 11, color: cs.onSurfaceVariant),
+                  fontSize: context.sp(11), color: cs.onSurfaceVariant),
             ),
           ] else
-            const Center(
+            Center(
               child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
+                  height: context.sp(20),
+                  width: context.sp(20),
+                  child: const CircularProgressIndicator(strokeWidth: 2)),
             ),
         ],
       ),
@@ -472,26 +474,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(
           'DEVOTIONAL INTENT',
           style: GoogleFonts.manrope(
-            fontSize: 10,
+            fontSize: context.sp(10),
             color: cs.secondary,
             letterSpacing: 2.5,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: context.sp(10)),
         Text(
           'Set Your Path',
           style: GoogleFonts.notoSerif(
-              fontSize: 30,
+              fontSize: context.sp(30),
               color: cs.onSurface,
               fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: context.sp(10)),
         Text(
           'Select the number of sacred recitations\nto complete your spiritual cycle today.',
           textAlign: TextAlign.center,
           style: GoogleFonts.manrope(
-            fontSize: 13,
+            fontSize: context.sp(13),
             color: cs.onSurfaceVariant,
             fontWeight: FontWeight.w300,
             height: 1.65,
@@ -506,8 +508,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
+      mainAxisSpacing: context.sp(10),
+      crossAxisSpacing: context.sp(10),
       childAspectRatio: 1.0,
       children: _presets.map((p) {
         final isSelected = p.count == _selectedCount;
@@ -522,7 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: isSelected
                   ? const Color(0xFF2A2A2A)
                   : const Color(0xFF1C1B1B),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(context.sp(16)),
               border: Border.all(
                 color: isSelected
                     ? cs.primary.withValues(alpha: 0.4)
@@ -546,7 +548,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         '${p.count}',
                         style: GoogleFonts.notoSerif(
-                          fontSize: 26,
+                          fontSize: context.sp(26),
                           color:
                               isSelected ? cs.primary : cs.secondary,
                         ),
@@ -554,7 +556,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         p.label.toUpperCase(),
                         style: GoogleFonts.manrope(
-                          fontSize: 8,
+                          fontSize: context.sp(8),
                           color: isSelected
                               ? cs.primary
                               : cs.onSurfaceVariant,
@@ -566,14 +568,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 if (isSelected)
                   Positioned(
-                    top: 6,
-                    right: 6,
+                    top: context.sp(6),
+                    right: context.sp(6),
                     child: Container(
-                      padding: const EdgeInsets.all(2),
+                      padding: EdgeInsets.all(context.sp(2)),
                       decoration: BoxDecoration(
                           color: cs.primary, shape: BoxShape.circle),
                       child: Icon(Icons.check_rounded,
-                          size: 10, color: cs.onPrimary),
+                          size: context.sp(10), color: cs.onPrimary),
                     ),
                   ),
               ],
@@ -615,9 +617,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildCTAButton(BuildContext context, ColorScheme cs) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.fromLTRB(
-        24, 20, 24, MediaQuery.of(context).padding.bottom + 100,
+        context.sp(24), context.sp(20), context.sp(24), safeBottom + context.sp(24),
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -631,9 +634,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           PlayScreen(initialTarget: _selectedCount),
         )),
         child: Container(
-          height: 58,
+          height: context.sp(58),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(context.sp(14)),
             gradient: LinearGradient(
               colors: [cs.primary, cs.primaryContainer],
               begin: Alignment.topLeft,
@@ -653,14 +656,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 'Begin Recitation',
                 style: GoogleFonts.notoSerif(
-                  fontSize: 17,
+                  fontSize: context.sp(17),
                   fontWeight: FontWeight.w700,
                   color: cs.onPrimary,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: context.sp(10)),
               Icon(Icons.arrow_forward_rounded,
-                  color: cs.onPrimary, size: 20),
+                  color: cs.onPrimary, size: context.sp(20)),
             ],
           ),
         ),
@@ -689,33 +692,33 @@ class _ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
       decoration: BoxDecoration(
         color: const Color(0xFF0E0E0E),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.sp(16)),
       ),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: context.sp(38),
+            height: context.sp(38),
             decoration: const BoxDecoration(
                 shape: BoxShape.circle, color: Color(0xFF2A2A2A)),
-            child: Icon(icon, color: cs.secondary, size: 18),
+            child: Icon(icon, color: cs.secondary, size: context.sp(18)),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: context.sp(12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
                     style: GoogleFonts.manrope(
-                        fontSize: 13,
+                        fontSize: context.sp(13),
                         fontWeight: FontWeight.w500,
                         color: cs.onSurface)),
                 Text(subtitle,
                     style: GoogleFonts.manrope(
-                        fontSize: 10, color: cs.onSurfaceVariant)),
+                        fontSize: context.sp(10), color: cs.onSurfaceVariant)),
               ],
             ),
           ),

@@ -3,6 +3,7 @@ import '../features/home/home_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/leaderboard/leaderboard_screen.dart';
 import '../features/profile/profile_screen.dart';
+import 'responsive.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -13,22 +14,26 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  int _homeRefreshSignal = 0;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    const screens = [
-      HomeScreen(),
-      ProgressScreen(),
-      LeaderboardScreen(),
-      ProfileScreen(),
+    final screens = [
+      HomeScreen(refreshSignal: _homeRefreshSignal),
+      const ProgressScreen(),
+      const LeaderboardScreen(),
+      const ProfileScreen(),
     ];
     return Scaffold(
       backgroundColor: cs.surface,
       body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: _SacredNavBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          if (i == 0 && _currentIndex != 0) _homeRefreshSignal++;
+          setState(() => _currentIndex = i);
+        },
       ),
     );
   }
@@ -52,7 +57,7 @@ class _SacredNavBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(context.sp(28))),
         boxShadow: [
           BoxShadow(
             color: Colors.white.withValues(alpha: 0.04),
@@ -61,7 +66,7 @@ class _SacredNavBar extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(16, 14, 16, 14 + bottom),
+      padding: EdgeInsets.fromLTRB(context.sp(16), context.sp(14), context.sp(16), context.sp(14) + bottom),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(4, (i) {
@@ -70,8 +75,8 @@ class _SacredNavBar extends StatelessWidget {
             onTap: () => onTap(i),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 48,
-              height: 48,
+              width: context.sp(48),
+              height: context.sp(48),
               decoration: BoxDecoration(
                 color: isSelected ? cs.primary : Colors.transparent,
                 shape: BoxShape.circle,
@@ -88,7 +93,7 @@ class _SacredNavBar extends StatelessWidget {
                 color: isSelected
                     ? const Color(0xFF131313)
                     : cs.primary.withValues(alpha: 0.5),
-                size: 22,
+                size: context.sp(22),
               ),
             ),
           );

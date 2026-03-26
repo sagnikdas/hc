@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../play/play_screen.dart';
 import '../../core/transitions.dart';
+import '../../core/responsive.dart';
 import '../../data/repositories/app_repository.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int refreshSignal;
+  const HomeScreen({super.key, this.refreshSignal = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -21,6 +23,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadStats();
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshSignal != oldWidget.refreshSignal) _loadStats();
   }
 
   Future<void> _loadStats() async {
@@ -59,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(context, cs)),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              padding: EdgeInsets.fromLTRB(context.sp(24), context.sp(8), context.sp(24), context.sp(32)),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _buildHeroCard(context, cs),
@@ -68,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   _buildSacredMelodies(context, cs),
                   const SizedBox(height: 20),
-                  _buildHeatmapSection(cs),
+                  _buildHeatmapSection(context, cs),
                 ]),
               ),
             ),
@@ -81,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHeader(BuildContext context, ColorScheme cs) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          24, MediaQuery.of(context).padding.top + 12, 24, 16),
+          context.sp(24), MediaQuery.of(context).padding.top + context.sp(12), context.sp(24), context.sp(16)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -93,13 +101,13 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Icon(Icons.menu_rounded,
-              color: cs.primary.withValues(alpha: 0.6), size: 24),
+              color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
           Text(
             'Hanuman Chalisa',
             style: GoogleFonts.notoSerif(
-                fontSize: 20, color: cs.primary, letterSpacing: -0.3),
+                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: context.sp(24)),
         ],
       ),
     );
@@ -109,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () => _openPlay(),
       child: Container(
-        height: 360,
+        height: context.sp(360),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(32),
           color: const Color(0xFF1C1B1B),
@@ -166,31 +174,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     "TODAY'S SANKALPA",
                     style: GoogleFonts.manrope(
-                      fontSize: 9,
+                      fontSize: context.sp(9),
                       color: cs.secondary,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: context.sp(8)),
                   Text(
                     'Begin your sacred\nrecitation',
                     style: GoogleFonts.notoSerif(
-                        fontSize: 26, color: cs.onSurface, height: 1.2),
+                        fontSize: context.sp(26), color: cs.onSurface, height: 1.2),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: context.sp(6)),
                   Text(
                     'Focus your mind and find peace through\nthe verses of devotion.',
                     style: GoogleFonts.manrope(
-                      fontSize: 12,
+                      fontSize: context.sp(12),
                       color: cs.onSurfaceVariant.withValues(alpha: 0.8),
                       height: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: context.sp(18)),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 13),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: context.sp(24), vertical: context.sp(13)),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(100),
                       gradient: LinearGradient(
@@ -206,15 +214,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.play_arrow_rounded,
-                            color: cs.onPrimary, size: 20),
-                        const SizedBox(width: 8),
+                            color: cs.onPrimary, size: context.sp(20)),
+                        SizedBox(width: context.sp(8)),
                         Text(
                           'START NOW',
                           style: GoogleFonts.manrope(
                             color: cs.onPrimary,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.5,
-                            fontSize: 13,
+                            fontSize: context.sp(13),
                           ),
                         ),
                       ],
@@ -241,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
             cs: cs,
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: context.sp(14)),
         Expanded(
           child: _StatCard(
             icon: Icons.bolt_rounded,
@@ -278,10 +286,10 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Sacred Melodies',
-                style: GoogleFonts.notoSerif(fontSize: 20, color: cs.onSurface)),
+                style: GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.onSurface)),
             Text('ALL',
                 style: GoogleFonts.manrope(
-                    fontSize: 9,
+                    fontSize: context.sp(9),
                     color: cs.primary,
                     letterSpacing: 1.5,
                     fontWeight: FontWeight.w700)),
@@ -289,21 +297,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 14),
         SizedBox(
-          height: 110,
+          height: context.sp(110),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: tracks.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            separatorBuilder: (context, index) => SizedBox(width: context.sp(12)),
             itemBuilder: (context, i) {
               final t = tracks[i];
               return GestureDetector(
                 onTap: () => _openPlay(assetPath: t.asset),
                 child: Container(
-                  width: 180,
-                  padding: const EdgeInsets.all(16),
+                  width: context.sp(180),
+                  padding: EdgeInsets.all(context.sp(16)),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1C1B1B),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(context.sp(20)),
                     border: Border.all(
                       color: cs.outlineVariant.withValues(alpha: 0.08),
                     ),
@@ -312,24 +320,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 36,
-                        height: 36,
+                        width: context.sp(36),
+                        height: context.sp(36),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: cs.primary.withValues(alpha: 0.12),
                         ),
-                        child: Icon(t.icon, color: cs.primary, size: 18),
+                        child: Icon(t.icon, color: cs.primary, size: context.sp(18)),
                       ),
                       const Spacer(),
                       Text(t.title,
                           style: GoogleFonts.notoSerif(
-                              fontSize: 13,
+                              fontSize: context.sp(13),
                               color: cs.onSurface,
                               fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
+                      SizedBox(height: context.sp(2)),
                       Text(t.subtitle,
                           style: GoogleFonts.manrope(
-                              fontSize: 10, color: cs.onSurfaceVariant)),
+                              fontSize: context.sp(10), color: cs.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -341,12 +349,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeatmapSection(ColorScheme cs) {
+  Widget _buildHeatmapSection(BuildContext context, ColorScheme cs) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(context.sp(24)),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1B1B),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(context.sp(28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,35 +367,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text('Spiritual Consistency',
                       style:
-                          GoogleFonts.notoSerif(fontSize: 17, color: cs.onSurface)),
-                  const SizedBox(height: 3),
+                          GoogleFonts.notoSerif(fontSize: context.sp(17), color: cs.onSurface)),
+                  SizedBox(height: context.sp(3)),
                   Text(
                     'JOURNEY OVER THE LAST 12 WEEKS',
                     style: GoogleFonts.manrope(
-                        fontSize: 8,
+                        fontSize: context.sp(8),
                         color: cs.onSurfaceVariant,
                         letterSpacing: 1.2),
                   ),
                 ],
               ),
               Icon(Icons.calendar_today_outlined,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.4), size: 18),
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.4), size: context.sp(18)),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: context.sp(18)),
           _HeatmapGrid(cs: cs, data: _heatmapData),
-          const SizedBox(height: 10),
+          SizedBox(height: context.sp(10)),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text('Less',
                   style: GoogleFonts.manrope(
-                      fontSize: 8, color: cs.onSurfaceVariant)),
-              const SizedBox(width: 6),
+                      fontSize: context.sp(8), color: cs.onSurfaceVariant)),
+              SizedBox(width: context.sp(6)),
               ...[0.0, 0.4, 0.8, 1.0].map((o) => Container(
-                    width: 9,
-                    height: 9,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    width: context.sp(9),
+                    height: context.sp(9),
+                    margin: EdgeInsets.symmetric(horizontal: context.sp(2)),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(2),
                       color: o == 0
@@ -395,10 +403,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           : cs.primary.withValues(alpha: o),
                     ),
                   )),
-              const SizedBox(width: 6),
+              SizedBox(width: context.sp(6)),
               Text('More',
                   style: GoogleFonts.manrope(
-                      fontSize: 8, color: cs.onSurfaceVariant)),
+                      fontSize: context.sp(8), color: cs.onSurfaceVariant)),
             ],
           ),
         ],
@@ -426,36 +434,36 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(context.sp(20)),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1B1B),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(context.sp(24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: cs.secondary, size: 20),
-          const SizedBox(height: 10),
+          Icon(icon, color: cs.secondary, size: context.sp(20)),
+          SizedBox(height: context.sp(10)),
           Text(
             label,
             style: GoogleFonts.manrope(
-              fontSize: 9,
+              fontSize: context.sp(9),
               color: cs.onSurfaceVariant,
               letterSpacing: 1.5,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: context.sp(4)),
           RichText(
             text: TextSpan(children: [
               TextSpan(
                 text: value,
-                style: GoogleFonts.notoSerif(fontSize: 26, color: cs.primary),
+                style: GoogleFonts.notoSerif(fontSize: context.sp(26), color: cs.primary),
               ),
               TextSpan(
                 text: ' $unit',
                 style: GoogleFonts.manrope(
-                  fontSize: 11,
+                  fontSize: context.sp(11),
                   color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
               ),
@@ -482,7 +490,7 @@ class _HeatmapGrid extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       const cols = 12;
       const rows = 7;
-      const spacing = 3.0;
+      final spacing = context.sp(3.0);
       final cellSize = (constraints.maxWidth - (cols - 1) * spacing) / cols;
       final gridHeight = rows * cellSize + (rows - 1) * spacing;
 
@@ -490,7 +498,7 @@ class _HeatmapGrid extends StatelessWidget {
         height: gridHeight,
         child: GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cols,
             mainAxisSpacing: spacing,
             crossAxisSpacing: spacing,

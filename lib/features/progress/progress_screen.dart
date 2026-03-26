@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/responsive.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
 
@@ -70,10 +71,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(context, cs)),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              padding: EdgeInsets.fromLTRB(context.sp(24), context.sp(8), context.sp(24), context.sp(32)),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _buildSectionLabel(cs),
+                  _buildSectionLabel(context, cs),
                   const SizedBox(height: 20),
                   _WeeklyCard(
                       total: _weeklyTotal,
@@ -87,7 +88,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       loading: _loading,
                       cs: cs),
                   const SizedBox(height: 28),
-                  _buildMilestones(cs),
+                  _buildMilestones(context, cs),
                   const SizedBox(height: 28),
                   _buildRecentSessions(cs),
                 ]),
@@ -102,50 +103,50 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Widget _buildHeader(BuildContext context, ColorScheme cs) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          24, MediaQuery.of(context).padding.top + 12, 24, 16),
+          context.sp(24), MediaQuery.of(context).padding.top + context.sp(12), context.sp(24), context.sp(16)),
       color: cs.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(children: [
-            Icon(Icons.menu_rounded, color: cs.primary, size: 24),
-            const SizedBox(width: 14),
+            Icon(Icons.menu_rounded, color: cs.primary, size: context.sp(24)),
+            SizedBox(width: context.sp(14)),
             Text('Hanuman Chalisa',
                 style:
-                    GoogleFonts.notoSerif(fontSize: 20, color: cs.primary)),
+                    GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.primary)),
           ]),
           CircleAvatar(
-            radius: 16,
+            radius: context.sp(16),
             backgroundColor: const Color(0xFF2A2A2A),
             child: Icon(Icons.person_outline_rounded,
-                size: 18, color: cs.onSurfaceVariant),
+                size: context.sp(18), color: cs.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionLabel(ColorScheme cs) {
+  Widget _buildSectionLabel(BuildContext context, ColorScheme cs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('SADHANA PROGRESS',
             style: GoogleFonts.manrope(
-                fontSize: 10,
+                fontSize: context.sp(10),
                 color: cs.secondary,
                 letterSpacing: 2,
                 fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        SizedBox(height: context.sp(6)),
         Text('Your Devotional Journey',
             style: GoogleFonts.notoSerif(
-                fontSize: 28,
+                fontSize: context.sp(28),
                 color: cs.onSurface,
                 fontStyle: FontStyle.italic)),
       ],
     );
   }
 
-  Widget _buildMilestones(ColorScheme cs) {
+  Widget _buildMilestones(BuildContext context, ColorScheme cs) {
     final milestones = [
       (
         icon: Icons.workspace_premium_rounded,
@@ -178,31 +179,31 @@ class _ProgressScreenState extends State<ProgressScreen> {
       children: [
         Text('Sadhana Milestones',
             style:
-                GoogleFonts.notoSerif(fontSize: 20, color: cs.onSurface)),
-        const SizedBox(height: 16),
+                GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.onSurface)),
+        SizedBox(height: context.sp(16)),
         SizedBox(
-          height: 130,
+          height: context.sp(130),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: milestones.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
-            itemBuilder: (context, i) {
+            separatorBuilder: (ctx, index) => SizedBox(width: ctx.sp(10)),
+            itemBuilder: (ctx, i) {
               final m = milestones[i];
               return Opacity(
                 opacity: m.unlocked ? 1.0 : 0.45,
                 child: Container(
-                  width: 120,
-                  padding: const EdgeInsets.all(14),
+                  width: ctx.sp(120),
+                  padding: EdgeInsets.all(ctx.sp(14)),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ctx.sp(16)),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: ctx.sp(40),
+                        height: ctx.sp(40),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: m.unlocked
@@ -213,19 +214,19 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             color: m.unlocked
                                 ? cs.secondary
                                 : cs.onSurfaceVariant,
-                            size: 20),
+                            size: ctx.sp(20)),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: ctx.sp(8)),
                       Text(m.label,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.manrope(
-                              fontSize: 10,
+                              fontSize: ctx.sp(10),
                               fontWeight: FontWeight.w700,
                               color: cs.onSurface)),
-                      const SizedBox(height: 2),
+                      SizedBox(height: ctx.sp(2)),
                       Text(m.sub,
                           style: GoogleFonts.manrope(
-                              fontSize: 8,
+                              fontSize: ctx.sp(8),
                               color: cs.onSurfaceVariant,
                               letterSpacing: 0.5)),
                     ],
@@ -257,23 +258,23 @@ class _ProgressScreenState extends State<ProgressScreen> {
         builder: (_, controller) => Column(
           children: [
             const SizedBox(height: 12),
-            Container(
-                width: 40,
-                height: 4,
+            Builder(builder: (ctx) => Container(
+                width: ctx.sp(40),
+                height: ctx.sp(4),
                 decoration: BoxDecoration(
                     color: cs.outlineVariant.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+                    borderRadius: BorderRadius.circular(2)))),
+            Builder(builder: (ctx) => SizedBox(height: ctx.sp(16))),
+            Builder(builder: (ctx) => Padding(
+              padding: EdgeInsets.symmetric(horizontal: ctx.sp(24)),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text('All Sessions',
                     style: GoogleFonts.notoSerif(
-                        fontSize: 22, color: cs.onSurface)),
+                        fontSize: ctx.sp(22), color: cs.onSurface)),
               ),
-            ),
-            const SizedBox(height: 16),
+            )),
+            Builder(builder: (ctx) => SizedBox(height: ctx.sp(16))),
             Expanded(
               child: sessions.isEmpty
                   ? Center(
@@ -318,12 +319,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
           children: [
             Text('Recent Sessions',
                 style: GoogleFonts.notoSerif(
-                    fontSize: 20, color: cs.onSurface)),
+                    fontSize: context.sp(20), color: cs.onSurface)),
             GestureDetector(
               onTap: () => _showAllSessions(context, cs),
               child: Text('VIEW ALL',
                   style: GoogleFonts.manrope(
-                      fontSize: 9,
+                      fontSize: context.sp(9),
                       color: cs.primary,
                       letterSpacing: 1.5,
                       fontWeight: FontWeight.w700)),
@@ -388,100 +389,102 @@ class _WeeklyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxBar =
         bars.isEmpty ? 1 : bars.reduce((a, b) => a > b ? a : b);
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-          color: const Color(0xFF1C1B1B),
-          borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(Icons.auto_graph_rounded, color: cs.secondary, size: 26),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                    color: cs.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4)),
-                child: Text('WEEKLY',
-                    style: GoogleFonts.manrope(
-                        fontSize: 9,
-                        color: cs.primary,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(loading ? '–' : '$total',
-              style:
-                  GoogleFonts.notoSerif(fontSize: 34, color: cs.onSurface)),
-          Text('Recitations this week',
-              style: GoogleFonts.manrope(
-                  fontSize: 11, color: cs.onSurfaceVariant)),
-          const SizedBox(height: 14),
-          Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: List.generate(bars.length, (i) {
-                    final count = bars[i];
-                    final frac = maxBar == 0
-                        ? 0.05
-                        : (count / maxBar).clamp(0.05, 1.0);
-                    final isToday = i == bars.length - 1;
+    return Builder(builder: (context) {
+      final barHeight = context.sp(56);
+      return Container(
+        padding: EdgeInsets.all(context.sp(22)),
+        decoration: BoxDecoration(
+            color: const Color(0xFF1C1B1B),
+            borderRadius: BorderRadius.circular(context.sp(16))),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(Icons.auto_graph_rounded, color: cs.secondary, size: context.sp(26)),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: context.sp(8), vertical: context.sp(4)),
+                  decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4)),
+                  child: Text('WEEKLY',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(9),
+                          color: cs.primary,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+            SizedBox(height: context.sp(10)),
+            Text(loading ? '–' : '$total',
+                style:
+                    GoogleFonts.notoSerif(fontSize: context.sp(34), color: cs.onSurface)),
+            Text('Recitations this week',
+                style: GoogleFonts.manrope(
+                    fontSize: context.sp(11), color: cs.onSurfaceVariant)),
+            SizedBox(height: context.sp(14)),
+            Column(
+              children: [
+                SizedBox(
+                  height: barHeight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(bars.length, (i) {
+                      final count = bars[i];
+                      final frac = maxBar == 0
+                          ? 0.05
+                          : (count / maxBar).clamp(0.05, 1.0);
+                      final isToday = i == bars.length - 1;
+                      return Expanded(
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: context.sp(2)),
+                          height: barHeight * frac,
+                          decoration: BoxDecoration(
+                            color: isToday && count > 0
+                                ? cs.secondary
+                                : count > 0
+                                    ? cs.primary.withValues(alpha: 0.6)
+                                    : const Color(0xFF353534),
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(3)),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                SizedBox(height: context.sp(6)),
+                Row(
+                  children: List.generate(7, (i) {
+                    final now = DateTime.now();
+                    final d = now.subtract(Duration(days: 6 - i));
+                    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                    final label = labels[d.weekday - 1];
+                    final isToday = i == 6;
                     return Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        height: 56 * frac,
-                        decoration: BoxDecoration(
-                          color: isToday && count > 0
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.manrope(
+                          fontSize: context.sp(9),
+                          color: isToday
                               ? cs.secondary
-                              : count > 0
-                                  ? cs.primary.withValues(alpha: 0.6)
-                                  : const Color(0xFF353534),
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(3)),
+                              : cs.onSurfaceVariant.withValues(alpha: 0.5),
+                          fontWeight:
+                              isToday ? FontWeight.w700 : FontWeight.w400,
                         ),
                       ),
                     );
                   }),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: List.generate(7, (i) {
-                  final now = DateTime.now();
-                  final d = now.subtract(Duration(days: 6 - i));
-                  const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                  final label = labels[d.weekday - 1];
-                  final isToday = i == 6;
-                  return Expanded(
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.manrope(
-                        fontSize: 9,
-                        color: isToday
-                            ? cs.secondary
-                            : cs.onSurfaceVariant.withValues(alpha: 0.5),
-                        fontWeight:
-                            isToday ? FontWeight.w700 : FontWeight.w400,
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+              ],
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -503,64 +506,64 @@ class _StreakCard extends StatelessWidget {
     final progress =
         (current / nextMilestone).clamp(0.0, 1.0);
 
-    return Container(
-      padding: const EdgeInsets.all(22),
+    return Builder(builder: (context) => Container(
+      padding: EdgeInsets.all(context.sp(22)),
       decoration: BoxDecoration(
           color: const Color(0xFF1C1B1B),
-          borderRadius: BorderRadius.circular(16)),
+          borderRadius: BorderRadius.circular(context.sp(16))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('CURRENT STREAK',
               style: GoogleFonts.manrope(
-                  fontSize: 9,
+                  fontSize: context.sp(9),
                   color: cs.onSurfaceVariant,
                   letterSpacing: 1.5)),
-          const SizedBox(height: 4),
+          SizedBox(height: context.sp(4)),
           RichText(
             text: TextSpan(children: [
               TextSpan(
                   text: loading ? '– ' : '$current ',
                   style: GoogleFonts.notoSerif(
-                      fontSize: 44, color: cs.secondary)),
+                      fontSize: context.sp(44), color: cs.secondary)),
               TextSpan(
                   text: 'Days',
                   style: GoogleFonts.manrope(
-                      fontSize: 15,
+                      fontSize: context.sp(15),
                       color: cs.onSurfaceVariant,
                       fontStyle: FontStyle.italic)),
             ]),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: context.sp(14)),
           Divider(
               color: cs.outlineVariant.withValues(alpha: 0.2), height: 1),
-          const SizedBox(height: 10),
+          SizedBox(height: context.sp(10)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('NEXT MILESTONE',
                   style: GoogleFonts.manrope(
-                      fontSize: 9,
+                      fontSize: context.sp(9),
                       color: cs.onSurfaceVariant,
                       letterSpacing: 1.2)),
               Text('$nextMilestone Days',
                   style: GoogleFonts.manrope(
-                      fontSize: 11, color: cs.primary)),
+                      fontSize: context.sp(11), color: cs.primary)),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.sp(8)),
           ClipRRect(
             borderRadius: BorderRadius.circular(100),
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: const Color(0xFF353534),
               valueColor: AlwaysStoppedAnimation(cs.secondary),
-              minHeight: 4,
+              minHeight: context.sp(4),
             ),
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -578,43 +581,43 @@ class _SessionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(context.sp(14)),
       decoration: BoxDecoration(
           color: const Color(0xFF1C1B1B),
-          borderRadius: BorderRadius.circular(16)),
+          borderRadius: BorderRadius.circular(context.sp(16))),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: context.sp(38),
+            height: context.sp(38),
             decoration: const BoxDecoration(
                 shape: BoxShape.circle, color: Color(0xFF353534)),
             child:
-                Icon(Icons.history_rounded, color: cs.primary, size: 18),
+                Icon(Icons.history_rounded, color: cs.primary, size: context.sp(18)),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: context.sp(14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
                     style: GoogleFonts.manrope(
-                        fontSize: 13,
+                        fontSize: context.sp(13),
                         fontWeight: FontWeight.w600,
                         color: cs.onSurface)),
                 Text(subtitle,
                     style: GoogleFonts.manrope(
-                        fontSize: 11, color: cs.onSurfaceVariant)),
+                        fontSize: context.sp(11), color: cs.onSurfaceVariant)),
               ],
             ),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('x $count',
                 style: GoogleFonts.notoSerif(
-                    fontSize: 18, color: cs.secondary)),
+                    fontSize: context.sp(18), color: cs.secondary)),
             Text('COUNTS',
                 style: GoogleFonts.manrope(
-                    fontSize: 8,
+                    fontSize: context.sp(8),
                     color: cs.onSurfaceVariant,
                     letterSpacing: 1.2)),
           ]),

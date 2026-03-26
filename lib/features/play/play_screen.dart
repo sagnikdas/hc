@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../main.dart';
 import '../../core/audio_handler.dart';
+import '../../core/responsive.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
 
@@ -83,7 +84,9 @@ class _PlayScreenState extends State<PlayScreen> {
     try {
       final asset = widget.initialVoice ?? _defaultAudioAsset;
       await audioHandler!.loadVoice(asset);
-      if (mounted) setState(() => _loaded = true);
+      if (!mounted) return;
+      setState(() => _loaded = true);
+      await audioHandler!.play();
     } catch (e) {
       debugPrint('Audio load failed: $e');
     }
@@ -234,7 +237,7 @@ class _PlayScreenState extends State<PlayScreen> {
                   ],
                 ),
               ),
-              if (_showVolume) _buildVolumeOverlay(cs),
+              if (_showVolume) _buildVolumeOverlay(context, cs),
             ],
           ),
         );
@@ -244,18 +247,18 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Widget _buildTopBar(BuildContext context, ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: context.sp(20), vertical: context.sp(8)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_rounded, color: cs.primary, size: 22),
+            icon: Icon(Icons.arrow_back_rounded, color: cs.primary, size: context.sp(22)),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           Text('Hanuman Chalisa',
-              style: GoogleFonts.notoSerif(fontSize: 19, color: cs.primary)),
+              style: GoogleFonts.notoSerif(fontSize: context.sp(19), color: cs.primary)),
           IconButton(
-            icon: Icon(Icons.share_outlined, color: cs.primary, size: 20),
+            icon: Icon(Icons.share_outlined, color: cs.primary, size: context.sp(20)),
             onPressed: () => SharePlus.instance.share(
               ShareParams(
                 text:
@@ -277,13 +280,13 @@ class _PlayScreenState extends State<PlayScreen> {
     final done = _targetCount > 0 && _completedCount >= _targetCount;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: EdgeInsets.fromLTRB(context.sp(20), 0, context.sp(20), context.sp(16)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // ── Counter — only updates on completion (~11 times per session) ──
           Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: EdgeInsets.only(bottom: context.sp(10)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -292,7 +295,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 Text(
                   '$_completedCount',
                   style: GoogleFonts.notoSerif(
-                    fontSize: 42,
+                    fontSize: context.sp(42),
                     color: done ? cs.secondary : cs.primary,
                     height: 1,
                   ),
@@ -300,16 +303,16 @@ class _PlayScreenState extends State<PlayScreen> {
                 Text(
                   ' / $_targetCount',
                   style: GoogleFonts.manrope(
-                    fontSize: 16,
+                    fontSize: context.sp(16),
                     color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                     fontWeight: FontWeight.w300,
                   ),
                 ),
                 if (done) ...[
-                  const SizedBox(width: 10),
+                  SizedBox(width: context.sp(10)),
                   Text('जय हनुमान',
                       style: GoogleFonts.notoSerif(
-                          fontSize: 14, color: cs.secondary)),
+                          fontSize: context.sp(14), color: cs.secondary)),
                 ],
               ],
             ),
@@ -323,13 +326,13 @@ class _PlayScreenState extends State<PlayScreen> {
               children: _quickCounts.map((c) {
                 final isSelected = c == _targetCount;
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: EdgeInsets.symmetric(horizontal: context.sp(4)),
                   child: GestureDetector(
                     onTap: () => _setTarget(c),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.sp(18), vertical: context.sp(8)),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? cs.primary
@@ -346,7 +349,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       child: Text(
                         '${c}X',
                         style: GoogleFonts.manrope(
-                          fontSize: 11,
+                          fontSize: context.sp(11),
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
                           color: isSelected
@@ -361,7 +364,7 @@ class _PlayScreenState extends State<PlayScreen> {
             ),
           ),
 
-          const SizedBox(height: 14),
+          SizedBox(height: context.sp(14)),
 
           // ── Progress bar + time — isolated StreamBuilder, ~1fps ───────
           StreamBuilder<Duration>(
@@ -377,11 +380,11 @@ class _PlayScreenState extends State<PlayScreen> {
                 children: [
                   SliderTheme(
                     data: SliderThemeData(
-                      trackHeight: 2,
+                      trackHeight: context.sp(2),
                       thumbShape:
-                          const RoundSliderThumbShape(enabledThumbRadius: 4),
+                          RoundSliderThumbShape(enabledThumbRadius: context.sp(4)),
                       overlayShape:
-                          const RoundSliderOverlayShape(overlayRadius: 12),
+                          RoundSliderOverlayShape(overlayRadius: context.sp(12)),
                       activeTrackColor: cs.secondary,
                       inactiveTrackColor: const Color(0xFF353534),
                       thumbColor: cs.secondary,
@@ -392,13 +395,13 @@ class _PlayScreenState extends State<PlayScreen> {
                         onChanged: _loaded ? _onSeek : null),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.symmetric(horizontal: context.sp(8)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(_fmt(pos),
                             style: GoogleFonts.manrope(
-                                fontSize: 10,
+                                fontSize: context.sp(10),
                                 color: cs.onSurface.withValues(alpha: 0.5),
                                 letterSpacing: 0.5)),
                         Text(
@@ -406,13 +409,13 @@ class _PlayScreenState extends State<PlayScreen> {
                               ? 'Complete!'
                               : 'Chant ${_completedCount + 1} of $_targetCount',
                           style: GoogleFonts.manrope(
-                              fontSize: 10,
+                              fontSize: context.sp(10),
                               color: cs.secondary,
                               letterSpacing: 0.5),
                         ),
                         Text(_fmt(total),
                             style: GoogleFonts.manrope(
-                                fontSize: 10,
+                                fontSize: context.sp(10),
                                 color: cs.onSurface.withValues(alpha: 0.5),
                                 letterSpacing: 0.5)),
                       ],
@@ -423,7 +426,7 @@ class _PlayScreenState extends State<PlayScreen> {
             },
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: context.sp(12)),
 
           // ── Controls — updates only when isPlaying changes ────────────
           Row(
@@ -437,17 +440,17 @@ class _PlayScreenState extends State<PlayScreen> {
               Row(children: [
                 IconButton(
                   icon: Icon(Icons.skip_previous_rounded,
-                      color: cs.onSurface, size: 28),
+                      color: cs.onSurface, size: context.sp(28)),
                   onPressed: _loaded ? _onRestart : null,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: context.sp(12)),
                 GestureDetector(
                   onTap: _loaded
                       ? (isPlaying ? _onPause : _onPlay)
                       : null,
                   child: Container(
-                    width: 72,
-                    height: 72,
+                    width: context.sp(72),
+                    height: context.sp(72),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
@@ -468,14 +471,14 @@ class _PlayScreenState extends State<PlayScreen> {
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
                       color: cs.onPrimary,
-                      size: 38,
+                      size: context.sp(38),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: context.sp(12)),
                 IconButton(
                   icon: Icon(Icons.skip_next_rounded,
-                      color: cs.onSurface, size: 28),
+                      color: cs.onSurface, size: context.sp(28)),
                   onPressed: _loaded && !done ? _onSkipNext : null,
                 ),
               ]),
@@ -497,35 +500,42 @@ class _PlayScreenState extends State<PlayScreen> {
     );
   }
 
-  Widget _buildVolumeOverlay(ColorScheme cs) {
+  Widget _buildVolumeOverlay(BuildContext context, ColorScheme cs) {
+    // Anchor above the player section. Player section is roughly 200 dp tall
+    // (counter + chips + progress + controls) plus safe area bottom.
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final overlayBottom = safeBottom + context.sp(190);
+    final overlayWidth = context.sp(52);
+    final overlayHeight = context.sp(180);
+
     return Positioned(
-      bottom: 180,
-      right: 20,
+      bottom: overlayBottom,
+      right: context.sp(20),
       child: GestureDetector(
         onTap: () => setState(() => _showVolume = false),
         behavior: HitTestBehavior.translucent,
         child: Container(
-          width: 52,
-          height: 180,
+          width: overlayWidth,
+          height: overlayHeight,
           decoration: BoxDecoration(
             color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(100),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: context.sp(12)),
           child: Column(
             children: [
-              Icon(Icons.volume_up_rounded, color: cs.primary, size: 18),
-              const SizedBox(height: 8),
+              Icon(Icons.volume_up_rounded, color: cs.primary, size: context.sp(18)),
+              SizedBox(height: context.sp(8)),
               Expanded(
                 child: RotatedBox(
                   quarterTurns: 3,
                   child: SliderTheme(
                     data: SliderThemeData(
-                      trackHeight: 2,
-                      thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6),
-                      overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 12),
+                      trackHeight: context.sp(2),
+                      thumbShape: RoundSliderThumbShape(
+                          enabledThumbRadius: context.sp(6)),
+                      overlayShape: RoundSliderOverlayShape(
+                          overlayRadius: context.sp(12)),
                       activeTrackColor: cs.primary,
                       inactiveTrackColor: const Color(0xFF353534),
                       thumbColor: cs.primary,
@@ -537,10 +547,10 @@ class _PlayScreenState extends State<PlayScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: context.sp(8)),
               Icon(Icons.volume_off_rounded,
                   color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-                  size: 16),
+                  size: context.sp(16)),
             ],
           ),
         ),
@@ -591,11 +601,13 @@ class _BackgroundLayer extends StatelessWidget {
           ),
         ),
         Center(
-          child: Text(
-            'ॐ',
-            style: GoogleFonts.notoSerif(
-              fontSize: 160,
-              color: cs.secondary.withValues(alpha: 0.10),
+          child: Builder(
+            builder: (context) => Text(
+              'ॐ',
+              style: GoogleFonts.notoSerif(
+                fontSize: context.sp(160),
+                color: cs.secondary.withValues(alpha: 0.10),
+              ),
             ),
           ),
         ),
@@ -622,8 +634,8 @@ class _ControlButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 44,
-        height: 44,
+        width: context.sp(44),
+        height: context.sp(44),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: active
@@ -637,7 +649,7 @@ class _ControlButton extends StatelessWidget {
               : onTap != null
                   ? cs.onSurfaceVariant
                   : cs.onSurfaceVariant.withValues(alpha: 0.3),
-          size: 20,
+          size: context.sp(20),
         ),
       ),
     );
@@ -657,7 +669,8 @@ class _LyricsPanel extends StatefulWidget {
 }
 
 class _LyricsPanelState extends State<_LyricsPanel> {
-  static const _itemExtent = 56.0;
+  // Updated in build() so _scrollToIndex always uses the correct scaled value.
+  double _itemExtent = 56.0;
   final _scrollController = ScrollController();
   StreamSubscription<Duration>? _positionSub;
   int _currentIdx = 0;
@@ -705,6 +718,7 @@ class _LyricsPanelState extends State<_LyricsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    _itemExtent = context.sp(56.0);
     final lines = lyricsService.lines;
     final cs = widget.cs;
 
@@ -712,7 +726,7 @@ class _LyricsPanelState extends State<_LyricsPanel> {
       return Center(
         child: Text('ॐ',
             style: GoogleFonts.notoSerif(
-                fontSize: 64,
+                fontSize: context.sp(64),
                 color: cs.secondary.withValues(alpha: 0.4))),
       );
     }
@@ -720,7 +734,7 @@ class _LyricsPanelState extends State<_LyricsPanel> {
     return ListView.builder(
       controller: _scrollController,
       itemExtent: _itemExtent,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 32),
+      padding: EdgeInsets.symmetric(vertical: context.sp(8), horizontal: context.sp(32)),
       itemCount: lines.length,
       itemBuilder: (ctx, i) {
         final isActive = i == _currentIdx;
@@ -734,7 +748,7 @@ class _LyricsPanelState extends State<_LyricsPanel> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.notoSerif(
-              fontSize: isActive ? 22 : (isNear ? 16 : 14),
+              fontSize: isActive ? context.sp(22) : (isNear ? context.sp(16) : context.sp(14)),
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
               color: isActive
                   ? cs.secondary

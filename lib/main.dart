@@ -49,6 +49,7 @@ class HanumanChalisaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Hanuman Chalisa',
+      debugShowCheckedModeBanner: false,
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
