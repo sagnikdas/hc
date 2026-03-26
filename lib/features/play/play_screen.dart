@@ -14,7 +14,20 @@ import '../../data/models/play_session.dart';
 class PlayScreen extends StatefulWidget {
   final int? initialTarget;
   final String? initialVoice;
-  const PlayScreen({super.key, this.initialTarget, this.initialVoice});
+  @visibleForTesting
+  final Set<int>? debugMilestones;
+  @visibleForTesting
+  final Future<String> Function()? debugReferralCodeProvider;
+  @visibleForTesting
+  final Future<void> Function()? debugSaveSessionOverride;
+  const PlayScreen({
+    super.key,
+    this.initialTarget,
+    this.initialVoice,
+    this.debugMilestones,
+    this.debugReferralCodeProvider,
+    this.debugSaveSessionOverride,
+  });
 
   @override
   State<PlayScreen> createState() => _PlayScreenState();
@@ -23,6 +36,8 @@ class PlayScreen extends StatefulWidget {
 class _PlayScreenState extends State<PlayScreen> {
   static const _defaultAudioAsset = 'assets/audio/hc_real.mp3';
   static const _quickCounts = [1, 11, 21, 108];
+  static const _milestones = {11, 21, 108};
+  Set<int> get _activeMilestones => widget.debugMilestones ?? _milestones;
 
   // Guard: _initAudio must only wire up once even if handler becomes ready
   // after initState fires the listener path.
@@ -43,6 +58,7 @@ class _PlayScreenState extends State<PlayScreen> {
   int _targetCount = 11;
   bool _seekForwardThisRound = false;
   bool _completionHandled = false;
+  final Set<int> _shownMilestones = <int>{};
 
   @override
   void initState() {
@@ -127,6 +143,7 @@ class _PlayScreenState extends State<PlayScreen> {
       setState(() => _completedCount++);
       await _saveSession();
       if (_hapticEnabled) HapticFeedback.mediumImpact();
+      await _maybeShowMilestoneSheet(_completedCount);
     }
     _seekForwardThisRound = false;
 
@@ -144,12 +161,87 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   Future<void> _saveSession() async {
+    final override = widget.debugSaveSessionOverride;
+    if (override != null) {
+      await override();
+      return;
+    }
     final now = DateTime.now();
     await AppRepository.instance.insertSession(PlaySession(
       date: AppRepository.dateStr(now),
       count: 1,
       completedAt: now.millisecondsSinceEpoch,
     ));
+  }
+
+  Future<void> _maybeShowMilestoneSheet(int count) async {
+    if (!_activeMilestones.contains(count)) return;
+    if (_shownMilestones.contains(count)) return;
+    _shownMilestones.add(count);
+    if (!mounted) return;
+
+    final provider = widget.debugReferralCodeProvider;
+    final referralCode = provider != null
+        ? await provider()
+        : await AppRepository.instance.getOrCreateReferralCode();
+    if (!mounted) return;
+    final shareText =
+        'Jai Hanuman! I completed $count Hanuman Chalisa recitations today.\n\n'
+        'Join me on this daily sankalp. Use my referral code: $referralCode';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1C1B1B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Milestone complete!',
+                  style: GoogleFonts.notoSerif(
+                    fontSize: 22,
+                    color: cs.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'You have completed $count recitations today.',
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await SharePlus.instance.share(
+                        ShareParams(
+                          text: shareText,
+                          subject: 'Hanuman Chalisa Milestone',
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.share_rounded),
+                    label: const Text('Share on WhatsApp'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _onPlay() => audioHandler!.play();
@@ -233,7 +325,10 @@ class _PlayScreenState extends State<PlayScreen> {
   void dispose() {
     _volumeTimer?.cancel();
     _speedTimer?.cancel();
-    isPlayScreenOpen.value = false;
+    // Avoid notifying listeners while the framework is finalizing the tree.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      isPlayScreenOpen.value = false;
+    });
     audioHandlerNotifier.removeListener(_onHandlerReady);
     _playerStateSub?.cancel();
     super.dispose();
@@ -456,15 +551,6 @@ class _PlayScreenState extends State<PlayScreen> {
                                 fontSize: context.sp(10),
                                 color: cs.onSurface.withValues(alpha: 0.5),
                                 letterSpacing: 0.5)),
-                        Text(
-                          done
-                              ? 'Complete!'
-                              : 'Chant ${_completedCount + 1} of $_targetCount',
-                          style: GoogleFonts.manrope(
-                              fontSize: context.sp(10),
-                              color: cs.secondary,
-                              letterSpacing: 0.5),
-                        ),
                         Text(_fmt(total),
                             style: GoogleFonts.manrope(
                                 fontSize: context.sp(10),
@@ -565,7 +651,7 @@ class _PlayScreenState extends State<PlayScreen> {
     final safeBottom = MediaQuery.of(context).padding.bottom;
     final overlayBottom = safeBottom + context.sp(190);
     final overlayWidth = context.sp(52);
-    final overlayHeight = context.sp(180);
+    final overlayHeight = context.sp(200);
 
     return Positioned(
       bottom: overlayBottom,
@@ -584,7 +670,7 @@ class _PlayScreenState extends State<PlayScreen> {
           child: Column(
             children: [
               Icon(Icons.volume_up_rounded, color: cs.primary, size: context.sp(18)),
-              SizedBox(height: context.sp(8)),
+              SizedBox(height: context.sp(4)),
               Expanded(
                 child: RotatedBox(
                   quarterTurns: 3,
@@ -598,6 +684,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       activeTrackColor: cs.primary,
                       inactiveTrackColor: const Color(0xFF353534),
                       thumbColor: cs.primary,
+                      overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
                     child: Slider(
                       value: _volume,
@@ -606,9 +693,9 @@ class _PlayScreenState extends State<PlayScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: context.sp(8)),
+              SizedBox(height: context.sp(4)),
               Icon(Icons.volume_off_rounded,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                  color: cs.primary.withValues(alpha: 0.5),
                   size: context.sp(16)),
             ],
           ),
@@ -643,7 +730,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 '5×',
                 style: GoogleFonts.manrope(
                     fontSize: context.sp(10),
-                    color: cs.secondary,
+                    color: cs.primary,
                     fontWeight: FontWeight.w700),
               ),
               SizedBox(height: context.sp(4)),
@@ -657,9 +744,10 @@ class _PlayScreenState extends State<PlayScreen> {
                           enabledThumbRadius: context.sp(6)),
                       overlayShape: RoundSliderOverlayShape(
                           overlayRadius: context.sp(12)),
-                      activeTrackColor: cs.secondary,
+                      activeTrackColor: cs.primary,
                       inactiveTrackColor: const Color(0xFF353534),
-                      thumbColor: cs.secondary,
+                      thumbColor: cs.primary,
+                      overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
                     child: Slider(
                       value: _speed,
@@ -811,7 +899,7 @@ class _SpeedButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: active
-              ? cs.secondary.withValues(alpha: 0.15)
+              ? cs.primary.withValues(alpha: 0.2)
               : const Color(0xFF1C1B1B),
         ),
         alignment: Alignment.center,
@@ -820,7 +908,7 @@ class _SpeedButton extends StatelessWidget {
           style: GoogleFonts.manrope(
             fontSize: context.sp(11),
             fontWeight: FontWeight.w700,
-            color: active ? cs.secondary : cs.onSurfaceVariant,
+            color: active ? cs.primary : cs.onSurfaceVariant,
             letterSpacing: 0.3,
           ),
         ),

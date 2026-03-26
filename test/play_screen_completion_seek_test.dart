@@ -32,11 +32,22 @@ AppRepository _freshRepo() {
   return repo;
 }
 
-Widget _wrap({int? initialTarget}) => MaterialApp(
+Widget _wrap({
+  int? initialTarget,
+  Set<int>? debugMilestones,
+  Future<String> Function()? debugReferralCodeProvider,
+  Future<void> Function()? debugSaveSessionOverride,
+}) =>
+    MaterialApp(
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
-      home: PlayScreen(initialTarget: initialTarget),
+      home: PlayScreen(
+        initialTarget: initialTarget,
+        debugMilestones: debugMilestones,
+        debugReferralCodeProvider: debugReferralCodeProvider,
+        debugSaveSessionOverride: debugSaveSessionOverride,
+      ),
     );
 
 void main() {
@@ -80,8 +91,21 @@ void main() {
     if (!positionCtrl.isClosed) positionCtrl.close();
   });
 
-  Future<void> pump(WidgetTester tester, {int? initialTarget}) async {
-    await tester.pumpWidget(_wrap(initialTarget: initialTarget));
+  Future<void> pump(
+    WidgetTester tester, {
+    int? initialTarget,
+    Set<int>? debugMilestones,
+    Future<String> Function()? debugReferralCodeProvider,
+    Future<void> Function()? debugSaveSessionOverride,
+  }) async {
+    await tester.pumpWidget(
+      _wrap(
+        initialTarget: initialTarget,
+        debugMilestones: debugMilestones,
+        debugReferralCodeProvider: debugReferralCodeProvider,
+        debugSaveSessionOverride: debugSaveSessionOverride,
+      ),
+    );
     await tester.pump();
     await tester.pump();
   }
@@ -105,6 +129,23 @@ void main() {
       final c = await tester.runAsync(() => repo.getTodayCount());
       expect(c, 1);
     });
+
+    testWidgets('milestone sheet shows with share CTA via test seam',
+        (tester) async {
+      await pump(
+        tester,
+        initialTarget: 1,
+        debugMilestones: {1},
+        debugReferralCodeProvider: () async => 'ABC123',
+        debugSaveSessionOverride: () async {},
+      );
+      await fireCompletion(tester);
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Milestone complete!'), findsOneWidget);
+      expect(find.text('Share on WhatsApp'), findsOneWidget);
+    });
+
   });
 
   group('forward-seek detection', () {
