@@ -24,6 +24,9 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   bool get playing => _player.playing;
   double get volume => _player.volume;
   Future<void> setVolume(double v) => _player.setVolume(v.clamp(0.0, 1.0));
+  double get speed => _player.speed;
+  @override
+  Future<void> setSpeed(double speed) => _player.setSpeed(speed.clamp(0.5, 5.0));
 
   // ── Initialisation ────────────────────────────────────────────────────────
 

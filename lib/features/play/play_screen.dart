@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,6 +34,10 @@ class _PlayScreenState extends State<PlayScreen> {
   bool _hapticEnabled = true;
   double _volume = 1.0;
   bool _showVolume = false;
+  double _speed = 1.0;
+  bool _showSpeed = false;
+  Timer? _volumeTimer;
+  Timer? _speedTimer;
 
   int _completedCount = 0;
   int _targetCount = 11;
@@ -63,9 +68,13 @@ class _PlayScreenState extends State<PlayScreen> {
       if (widget.initialTarget == null) _targetCount = settings.targetCount;
       _continuousPlay = settings.continuousPlay;
       _hapticEnabled = settings.hapticEnabled;
+      _speed = settings.playbackSpeed;
       // Only read volume from handler if it's already available.
       final h = audioHandler;
-      if (h != null) _volume = h.volume;
+      if (h != null) {
+        _volume = h.volume;
+        h.setSpeed(_speed);
+      }
     });
   }
 
@@ -168,8 +177,8 @@ class _PlayScreenState extends State<PlayScreen> {
     if (!_loaded) return;
     final handler = audioHandler!;
     setState(() => _seekForwardThisRound = true);
-    final nearEnd =
-        Duration(milliseconds: handler.duration.inMilliseconds - 300);
+    final nearEndMs = math.max(0, handler.duration.inMilliseconds - 300);
+    final nearEnd = Duration(milliseconds: nearEndMs);
     await handler.seek(nearEnd);
     if (!handler.playing) await handler.play();
   }
@@ -181,9 +190,37 @@ class _PlayScreenState extends State<PlayScreen> {
         _completionHandled = false;
       });
 
+  static const _overlayAutohide = Duration(seconds: 3);
+
+  void _startVolumeTimer() {
+    _volumeTimer?.cancel();
+    _volumeTimer = Timer(_overlayAutohide, () {
+      if (mounted) setState(() => _showVolume = false);
+    });
+  }
+
+  void _startSpeedTimer() {
+    _speedTimer?.cancel();
+    _speedTimer = Timer(_overlayAutohide, () {
+      if (mounted) setState(() => _showSpeed = false);
+    });
+  }
+
   void _onVolumeChanged(double v) {
     setState(() => _volume = v);
     audioHandler?.setVolume(v);
+    _startVolumeTimer(); // reset the countdown on every drag tick
+  }
+
+  void _onSpeedSlide(double s) {
+    setState(() => _speed = s);
+    audioHandler?.setSpeed(s);
+    _startSpeedTimer(); // reset the countdown on every drag tick
+  }
+
+  Future<void> _onSpeedEnd(double s) async {
+    final settings = await AppRepository.instance.getSettings();
+    await AppRepository.instance.saveSettings(settings.copyWith(playbackSpeed: s));
   }
 
   String _fmt(Duration d) {
@@ -194,6 +231,8 @@ class _PlayScreenState extends State<PlayScreen> {
 
   @override
   void dispose() {
+    _volumeTimer?.cancel();
+    _speedTimer?.cancel();
     isPlayScreenOpen.value = false;
     audioHandlerNotifier.removeListener(_onHandlerReady);
     _playerStateSub?.cancel();
@@ -250,6 +289,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 ),
               ),
               if (_showVolume) _buildVolumeOverlay(context, cs),
+              if (_showSpeed) _buildSpeedOverlay(context, cs),
             ],
           ),
         );
@@ -444,10 +484,14 @@ class _PlayScreenState extends State<PlayScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _ControlButton(
-                icon: Icons.replay_rounded,
-                onTap: _loaded ? _onRestart : null,
+              _SpeedButton(
+                speed: _speed,
+                active: _showSpeed,
                 cs: cs,
+                onTap: () {
+                  setState(() => _showSpeed = !_showSpeed);
+                  if (_showSpeed) _startSpeedTimer();
+                },
               ),
               Row(children: [
                 IconButton(
@@ -500,7 +544,10 @@ class _PlayScreenState extends State<PlayScreen> {
                     : _volume < 0.5
                         ? Icons.volume_down_rounded
                         : Icons.volume_up_rounded,
-                onTap: () => setState(() => _showVolume = !_showVolume),
+                onTap: () {
+                  setState(() => _showVolume = !_showVolume);
+                  if (_showVolume) _startVolumeTimer();
+                },
                 cs: cs,
                 active: _showVolume,
               ),
@@ -563,6 +610,75 @@ class _PlayScreenState extends State<PlayScreen> {
               Icon(Icons.volume_off_rounded,
                   color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                   size: context.sp(16)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeedOverlay(BuildContext context, ColorScheme cs) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final overlayBottom = safeBottom + context.sp(190);
+    final overlayWidth = context.sp(52);
+    final overlayHeight = context.sp(200);
+
+    return Positioned(
+      bottom: overlayBottom,
+      left: context.sp(20),
+      child: GestureDetector(
+        onTap: () => setState(() => _showSpeed = false),
+        behavior: HitTestBehavior.translucent,
+        child: Container(
+          width: overlayWidth,
+          height: overlayHeight,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          padding: EdgeInsets.symmetric(vertical: context.sp(12)),
+          child: Column(
+            children: [
+              Text(
+                '5×',
+                style: GoogleFonts.manrope(
+                    fontSize: context.sp(10),
+                    color: cs.secondary,
+                    fontWeight: FontWeight.w700),
+              ),
+              SizedBox(height: context.sp(4)),
+              Expanded(
+                child: RotatedBox(
+                  quarterTurns: 3,
+                  child: SliderTheme(
+                    data: SliderThemeData(
+                      trackHeight: context.sp(2),
+                      thumbShape: RoundSliderThumbShape(
+                          enabledThumbRadius: context.sp(6)),
+                      overlayShape: RoundSliderOverlayShape(
+                          overlayRadius: context.sp(12)),
+                      activeTrackColor: cs.secondary,
+                      inactiveTrackColor: const Color(0xFF353534),
+                      thumbColor: cs.secondary,
+                    ),
+                    child: Slider(
+                      value: _speed,
+                      min: 0.5,
+                      max: 5.0,
+                      onChanged: _onSpeedSlide,
+                      onChangeEnd: _onSpeedEnd,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: context.sp(4)),
+              Text(
+                '0.5×',
+                style: GoogleFonts.manrope(
+                    fontSize: context.sp(10),
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                    fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ),
@@ -662,6 +778,51 @@ class _ControlButton extends StatelessWidget {
                   ? cs.onSurfaceVariant
                   : cs.onSurfaceVariant.withValues(alpha: 0.3),
           size: context.sp(20),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Speed button — shows current speed label, toggles speed overlay ────────────
+class _SpeedButton extends StatelessWidget {
+  final double speed;
+  final bool active;
+  final ColorScheme cs;
+  final VoidCallback onTap;
+  const _SpeedButton({
+    required this.speed,
+    required this.active,
+    required this.cs,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = speed == speed.roundToDouble()
+        ? '${speed.toInt()}×'
+        : '${speed.toStringAsFixed(1)}×';
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: context.sp(44),
+        height: context.sp(44),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: active
+              ? cs.secondary.withValues(alpha: 0.15)
+              : const Color(0xFF1C1B1B),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: context.sp(11),
+            fontWeight: FontWeight.w700,
+            color: active ? cs.secondary : cs.onSurfaceVariant,
+            letterSpacing: 0.3,
+          ),
         ),
       ),
     );

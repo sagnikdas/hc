@@ -4,6 +4,7 @@ class UserSettings {
   final bool continuousPlay;
   final String? referralCode;
   final bool onboardingShown;
+  final double playbackSpeed;
 
   const UserSettings({
     this.targetCount = 11,
@@ -11,6 +12,7 @@ class UserSettings {
     this.continuousPlay = false,
     this.referralCode,
     this.onboardingShown = false,
+    this.playbackSpeed = 1.0,
   });
 
   Map<String, dynamic> toMap() => {
@@ -20,6 +22,7 @@ class UserSettings {
         'continuous_play': continuousPlay ? 1 : 0,
         'referral_code': referralCode,
         'onboarding_shown': onboardingShown ? 1 : 0,
+        'playback_speed': playbackSpeed,
       };
 
   factory UserSettings.fromMap(Map<String, dynamic> m) => UserSettings(
@@ -28,6 +31,7 @@ class UserSettings {
         continuousPlay: (m['continuous_play'] as int? ?? 0) == 1,
         referralCode: m['referral_code'] as String?,
         onboardingShown: (m['onboarding_shown'] as int? ?? 0) == 1,
+        playbackSpeed: (m['playback_speed'] as num?)?.toDouble() ?? 1.0,
       );
 
   UserSettings copyWith({
@@ -36,6 +40,7 @@ class UserSettings {
     bool? continuousPlay,
     String? referralCode,
     bool? onboardingShown,
+    double? playbackSpeed,
   }) =>
       UserSettings(
         targetCount: targetCount ?? this.targetCount,
@@ -43,5 +48,6 @@ class UserSettings {
         continuousPlay: continuousPlay ?? this.continuousPlay,
         referralCode: referralCode ?? this.referralCode,
         onboardingShown: onboardingShown ?? this.onboardingShown,
+        playbackSpeed: playbackSpeed ?? this.playbackSpeed,
       );
 }

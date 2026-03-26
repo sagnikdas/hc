@@ -9,7 +9,6 @@ import '../../core/transitions.dart';
 import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
-import '../../data/models/user_settings.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -84,11 +83,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveSettings() async {
-    await AppRepository.instance.saveSettings(UserSettings(
-      targetCount: _selectedCount,
-      hapticEnabled: _hapticEnabled,
-      continuousPlay: _continuousPlay,
-    ));
+    final current = await AppRepository.instance.getSettings();
+    await AppRepository.instance.saveSettings(
+      current.copyWith(
+        targetCount: _selectedCount,
+        hapticEnabled: _hapticEnabled,
+        continuousPlay: _continuousPlay,
+      ),
+    );
   }
 
   Future<void> _signIn() async {
