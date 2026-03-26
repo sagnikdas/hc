@@ -36,7 +36,8 @@ class PlayScreen extends StatefulWidget {
 class _PlayScreenState extends State<PlayScreen> {
   static const _defaultAudioAsset = 'assets/audio/hc_real.mp3';
   static const _quickCounts = [1, 11, 21, 108];
-  static const _milestones = {11, 21, 108};
+  // TEMP (testing): include 1 so the milestone bottom sheet shows immediately.
+  static const _milestones = {1, 11, 21, 108};
   Set<int> get _activeMilestones => widget.debugMilestones ?? _milestones;
 
   // Guard: _initAudio must only wire up once even if handler becomes ready
@@ -191,52 +192,154 @@ class _PlayScreenState extends State<PlayScreen> {
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF1C1B1B),
+      backgroundColor: const Color(0xFF131313),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (ctx) {
         final cs = Theme.of(ctx).colorScheme;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Milestone complete!',
-                  style: GoogleFonts.notoSerif(
-                    fontSize: 22,
-                    color: cs.primary,
-                    fontWeight: FontWeight.w700,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  cs.surfaceContainerLow,
+                  cs.surfaceContainer,
+                  cs.surfaceContainerLow
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              border: Border.all(
+                color: cs.outlineVariant.withValues(alpha: 0.35),
+                width: 0.8,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Decorative saffron/gold stripe.
+                  Container(
+                    height: 10,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [cs.primary, cs.secondary, cs.tertiary],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'You have completed $count recitations today.',
-                  style: GoogleFonts.manrope(
-                    fontSize: 14,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await SharePlus.instance.share(
-                        ShareParams(
-                          text: shareText,
-                          subject: 'Hanuman Chalisa Milestone',
+                  const SizedBox(height: 14),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [cs.primary.withValues(alpha: 0.20), cs.secondary.withValues(alpha: 0.12)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: cs.primary.withValues(alpha: 0.25),
+                              blurRadius: 22,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.share_rounded),
-                    label: const Text('Share on WhatsApp'),
+                        child: Center(
+                          child: Image.asset(
+                            'assets/images/hanumanji_icon.png',
+                            width: 38,
+                            height: 38,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer.withValues(alpha: 0.96),
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: cs.primaryContainer.withValues(alpha: 0.22),
+                                blurRadius: 26,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Milestone: $count',
+                            style: GoogleFonts.notoSerif(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  Text(
+                    'Milestone complete!',
+                    style: GoogleFonts.notoSerif(
+                      fontSize: 22,
+                      color: cs.secondary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You have completed $count recitations today.',
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      color: cs.onSurface.withValues(alpha: 0.86),
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () async {
+                        await SharePlus.instance.share(
+                          ShareParams(
+                            text: shareText,
+                            subject: 'Hanuman Chalisa Milestone',
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.share_rounded),
+                      label: const Text('Share on WhatsApp'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -246,6 +349,18 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Future<void> _onPlay() => audioHandler!.play();
   Future<void> _onPause() => audioHandler!.pause();
+  Future<void> _onPlayAgainFromStart() async {
+    // When the session is "done" (completed >= targetCount), the track is
+    // typically at end-of-media. Calling play() alone may not restart.
+    setState(() {
+      _completedCount = 0;
+      _seekForwardThisRound = false;
+      _completionHandled = false;
+      _shownMilestones.clear(); // allow milestones again for the new run
+    });
+    await audioHandler!.seek(Duration.zero);
+    await audioHandler!.play();
+  }
 
   Future<void> _onSeek(double value) async {
     final handler = audioHandler!;
@@ -359,7 +474,12 @@ class _PlayScreenState extends State<PlayScreen> {
     return StreamBuilder<PlayerState>(
       stream: handler.playerStateStream,
       builder: (context, snap) {
-        final isPlaying = snap.data?.playing ?? false;
+        final ps = snap.data;
+        // Some audio backends may keep `playing=true` after the track
+        // transitions to `completed`. For UI purposes, treat completed as
+        // paused/stopped.
+        final isPlaying =
+            (ps?.playing ?? false) && ps?.processingState != ProcessingState.completed;
         return Scaffold(
           backgroundColor: const Color(0xFF131313),
           body: Stack(
@@ -588,7 +708,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 SizedBox(width: context.sp(12)),
                 GestureDetector(
                   onTap: _loaded
-                      ? (isPlaying ? _onPause : _onPlay)
+                      ? (done ? _onPlayAgainFromStart : (isPlaying ? _onPause : _onPlay))
                       : null,
                   child: Container(
                     width: context.sp(72),

@@ -139,7 +139,12 @@ class _MiniPlayer extends StatelessWidget {
             StreamBuilder<PlayerState>(
               stream: handler.playerStateStream,
               builder: (context, snap) {
-                final isPlaying = snap.data?.playing ?? false;
+                final ps = snap.data;
+                // Some audio backends may leave `playing=true` even after the
+                // track transitions to `completed`. Treat completed as paused
+                // for UI purposes.
+                final isPlaying = (ps?.playing ?? false) &&
+                    ps?.processingState != ProcessingState.completed;
                 return Padding(
                   padding: EdgeInsets.symmetric(
                       horizontal: context.sp(20),
@@ -175,7 +180,20 @@ class _MiniPlayer extends StatelessWidget {
 
                       // Play / Pause
                       GestureDetector(
-                        onTap: isPlaying ? handler.pause : handler.play,
+                        onTap: () async {
+                          // If the track is in `completed`, `play()` may not restart
+                          // from the beginning. Seek to 0 first for a smoother UX.
+                          if (ps?.processingState == ProcessingState.completed) {
+                            await handler.seek(Duration.zero);
+                            await handler.play();
+                            return;
+                          }
+                          if (isPlaying) {
+                            await handler.pause();
+                          } else {
+                            await handler.play();
+                          }
+                        },
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           width: context.sp(40),
