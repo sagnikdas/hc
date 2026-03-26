@@ -11,6 +11,10 @@ import 'features/auth/auth_gate.dart';
 final audioHandlerNotifier = ValueNotifier<HanumanAudioHandler?>(null);
 HanumanAudioHandler? get audioHandler => audioHandlerNotifier.value;
 
+/// True while PlayScreen is mounted. Used by MainShell to show/hide
+/// the mini-player without duplicating the screen.
+final isPlayScreenOpen = ValueNotifier<bool>(false);
+
 final lyricsService = LyricsService();
 
 Future<void> main() async {

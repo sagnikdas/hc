@@ -42,6 +42,7 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void initState() {
     super.initState();
+    isPlayScreenOpen.value = true;
     if (widget.initialTarget != null) _targetCount = widget.initialTarget!;
     _loadSettings();
     final handler = audioHandler;
@@ -82,11 +83,18 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Future<void> _loadAudio() async {
     try {
+      final handler = audioHandler!;
+      // If audio is already loaded (e.g. returning via mini-player), skip
+      // reloading so playback continues uninterrupted.
+      if (handler.duration > Duration.zero) {
+        if (mounted) setState(() => _loaded = true);
+        return;
+      }
       final asset = widget.initialVoice ?? _defaultAudioAsset;
-      await audioHandler!.loadVoice(asset);
+      await handler.loadVoice(asset);
       if (!mounted) return;
       setState(() => _loaded = true);
-      await audioHandler!.play();
+      await handler.play();
     } catch (e) {
       debugPrint('Audio load failed: $e');
     }
@@ -183,6 +191,7 @@ class _PlayScreenState extends State<PlayScreen> {
 
   @override
   void dispose() {
+    isPlayScreenOpen.value = false;
     audioHandlerNotifier.removeListener(_onHandlerReady);
     _playerStateSub?.cancel();
     super.dispose();
