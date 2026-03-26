@@ -1,34 +1,70 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../play/play_screen.dart';
 import '../../core/transitions.dart';
 import '../../core/responsive.dart';
+import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   final int refreshSignal;
-  const HomeScreen({super.key, this.refreshSignal = 0});
+  final VoidCallback? onSwitchToSettings;
+  const HomeScreen({super.key, this.refreshSignal = 0, this.onSwitchToSettings});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+
   int _todayCount = 0;
   int _bestStreak = 0;
   Map<String, int> _heatmapData = {};
   bool _loading = true;
 
+  Map<String, dynamic>? _profile;
+  bool _authLoading = false;
+  StreamSubscription? _authSub;
+
   @override
   void initState() {
     super.initState();
     _loadStats();
+    _loadProfile();
+    _authSub = SupabaseService.authStateChanges.listen((_) {
+      if (mounted) _loadProfile();
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.refreshSignal != oldWidget.refreshSignal) _loadStats();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await SupabaseService.fetchProfile().catchError((_) => null);
+    if (!mounted) return;
+    setState(() => _profile = profile);
+  }
+
+  Future<void> _signIn() async {
+    setState(() => _authLoading = true);
+    try {
+      await SupabaseService.signInWithGoogle();
+    } catch (e) {
+      debugPrint('Sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => _authLoading = false);
+    }
   }
 
   Future<void> _loadStats() async {
@@ -58,7 +94,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: cs.surface,
+      drawer: _AppDrawer(
+        todayCount: _todayCount,
+        profile: _profile,
+        authLoading: _authLoading,
+        onSignIn: _signIn,
+        onGoToSettings: widget.onSwitchToSettings,
+      ),
       body: RefreshIndicator(
         onRefresh: _loadStats,
         color: cs.primary,
@@ -100,8 +144,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(Icons.menu_rounded,
-              color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
+          GestureDetector(
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+            child: Icon(Icons.menu_rounded,
+                color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
+          ),
           Text(
             'Hanuman Chalisa',
             style: GoogleFonts.notoSerif(
@@ -522,5 +569,256 @@ class _HeatmapGrid extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+// ── Drawer ─────────────────────────────────────────────────────────────────────
+
+class _AppDrawer extends StatelessWidget {
+  final int todayCount;
+  final Map<String, dynamic>? profile;
+  final bool authLoading;
+  final VoidCallback onSignIn;
+  final VoidCallback? onGoToSettings;
+
+  const _AppDrawer({
+    required this.todayCount,
+    required this.profile,
+    required this.authLoading,
+    required this.onSignIn,
+    this.onGoToSettings,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final user = SupabaseService.currentUser;
+    final name = (profile?['name'] as String?)?.isNotEmpty == true
+        ? profile!['name'] as String
+        : user?.userMetadata?['full_name'] as String? ?? 'Devotee';
+    final email = user?.email ?? '';
+    final avatarUrl = user?.userMetadata?['avatar_url'] as String?;
+
+    return Drawer(
+      backgroundColor: const Color(0xFF131313),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header — avatar + name ─────────────────────────────────
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  context.sp(24), context.sp(28), context.sp(24), context.sp(20)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: context.sp(30),
+                    backgroundColor: cs.primaryContainer,
+                    backgroundImage:
+                        avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                    child: avatarUrl == null
+                        ? Text(
+                            user != null && name.isNotEmpty
+                                ? name[0].toUpperCase()
+                                : 'ॐ',
+                            style: GoogleFonts.notoSerif(
+                                fontSize: context.sp(22),
+                                color: cs.onPrimaryContainer),
+                          )
+                        : null,
+                  ),
+                  SizedBox(height: context.sp(14)),
+                  Text(
+                    name,
+                    style: GoogleFonts.notoSerif(
+                        fontSize: context.sp(18),
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  if (email.isNotEmpty) ...[
+                    SizedBox(height: context.sp(3)),
+                    Text(
+                      email,
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(11),
+                          color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            Divider(color: cs.outlineVariant.withValues(alpha: 0.15), height: 1),
+
+            // ── Today's recitation count ───────────────────────────────
+            Padding(
+              padding: EdgeInsets.all(context.sp(20)),
+              child: Row(
+                children: [
+                  Container(
+                    width: context.sp(42),
+                    height: context.sp(42),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: cs.primary.withValues(alpha: 0.1),
+                    ),
+                    child: Icon(Icons.auto_awesome_rounded,
+                        color: cs.secondary, size: context.sp(18)),
+                  ),
+                  SizedBox(width: context.sp(14)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "TODAY'S RECITATIONS",
+                        style: GoogleFonts.manrope(
+                            fontSize: context.sp(9),
+                            color: cs.onSurfaceVariant,
+                            letterSpacing: 1.2),
+                      ),
+                      SizedBox(height: context.sp(2)),
+                      Text(
+                        '$todayCount',
+                        style: GoogleFonts.notoSerif(
+                            fontSize: context.sp(28), color: cs.primary),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            Divider(color: cs.outlineVariant.withValues(alpha: 0.15), height: 1),
+
+            // ── SSO CTA or synced status ───────────────────────────────
+            if (user == null)
+              Padding(
+                padding: EdgeInsets.all(context.sp(20)),
+                child: GestureDetector(
+                  onTap: authLoading ? null : onSignIn,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: context.sp(16), vertical: context.sp(14)),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                          colors: [cs.primary, cs.primaryContainer]),
+                      borderRadius: BorderRadius.circular(context.sp(12)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (authLoading)
+                          SizedBox(
+                            width: context.sp(16),
+                            height: context.sp(16),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: cs.onPrimary),
+                          )
+                        else
+                          Icon(Icons.sync_rounded,
+                              color: cs.onPrimary, size: context.sp(16)),
+                        SizedBox(width: context.sp(8)),
+                        Text(
+                          authLoading ? 'Signing in…' : 'Sync Your Path',
+                          style: GoogleFonts.manrope(
+                              fontSize: context.sp(13),
+                              fontWeight: FontWeight.w600,
+                              color: cs.onPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              Padding(
+                padding: EdgeInsets.symmetric(
+                    horizontal: context.sp(20), vertical: context.sp(16)),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_done_rounded,
+                        color: cs.secondary, size: context.sp(16)),
+                    SizedBox(width: context.sp(8)),
+                    Text(
+                      'Path is synced',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(12), color: cs.secondary),
+                    ),
+                  ],
+                ),
+              ),
+
+            Divider(color: cs.outlineVariant.withValues(alpha: 0.15), height: 1),
+
+            // ── Settings link ──────────────────────────────────────────
+            if (onGoToSettings != null)
+              _DrawerItem(
+                icon: Icons.tune_rounded,
+                label: 'Sankalp Settings',
+                cs: cs,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onGoToSettings!();
+                },
+              ),
+
+            const Spacer(),
+
+            // ── Branding footer ────────────────────────────────────────
+            Padding(
+              padding: EdgeInsets.all(context.sp(24)),
+              child: Text(
+                'Hanuman Chalisa',
+                style: GoogleFonts.notoSerif(
+                    fontSize: context.sp(11),
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.35)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final ColorScheme cs;
+  const _DrawerItem(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: cs.primary.withValues(alpha: 0.08),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+            horizontal: context.sp(20), vertical: context.sp(14)),
+        child: Row(
+          children: [
+            Icon(icon, color: cs.primary, size: context.sp(20)),
+            SizedBox(width: context.sp(16)),
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                  fontSize: context.sp(14),
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurface),
+            ),
+            const Spacer(),
+            Icon(Icons.chevron_right_rounded,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                size: context.sp(18)),
+          ],
+        ),
+      ),
+    );
   }
 }

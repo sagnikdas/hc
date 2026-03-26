@@ -20,7 +20,10 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screens = [
-      HomeScreen(refreshSignal: _homeRefreshSignal),
+      HomeScreen(
+        refreshSignal: _homeRefreshSignal,
+        onSwitchToSettings: () => setState(() => _currentIndex = 3),
+      ),
       const ProgressScreen(),
       const LeaderboardScreen(),
       const ProfileScreen(),
