@@ -19,6 +19,20 @@ class AppRepository {
     _instance = AppRepository._();
   }
 
+  // Seams overridden in unit tests so Supabase is never touched.
+  bool Function() _isSignedIn = () => SupabaseService.currentUser != null;
+  Future<void> Function(PlaySession) _syncCompletion =
+      SupabaseService.syncCompletion;
+
+  @visibleForTesting
+  void overrideSyncForTest({
+    required bool Function() isSignedIn,
+    required Future<void> Function(PlaySession) syncCompletion,
+  }) {
+    _isSignedIn = isSignedIn;
+    _syncCompletion = syncCompletion;
+  }
+
   // ── Sessions ──────────────────────────────────────────────────────────────
 
   Future<void> insertSession(PlaySession session) async {
@@ -27,10 +41,10 @@ class AppRepository {
 
     // Only attempt sync when signed in — syncCompletion is a no-op otherwise
     // and there is nothing to queue.
-    if (SupabaseService.currentUser == null) return;
+    if (!_isSignedIn()) return;
 
     try {
-      await SupabaseService.syncCompletion(session);
+      await _syncCompletion(session);
     } catch (_) {
       // Network unavailable: queue for retry.
       await db.insert('pending_syncs', {
@@ -50,14 +64,14 @@ class AppRepository {
   bool _flushing = false;
   Future<void> flushPendingSyncs() async {
     if (_flushing) return;
-    if (SupabaseService.currentUser == null) return;
+    if (!_isSignedIn()) return;
     _flushing = true;
     try {
       final db = await DatabaseHelper.instance.database;
       final rows = await db.query('pending_syncs', orderBy: 'id ASC');
       for (final row in rows) {
         try {
-          await SupabaseService.syncCompletion(PlaySession.fromMap(row));
+          await _syncCompletion(PlaySession.fromMap(row));
           await db.delete('pending_syncs',
               where: 'id = ?', whereArgs: [row['id']]);
           debugPrint('AppRepository: flushed pending sync id=${row['id']}');

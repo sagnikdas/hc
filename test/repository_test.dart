@@ -14,6 +14,7 @@ import 'package:hanuman_chalisa/data/models/play_session.dart';
 int _uid = 0;
 
 /// Returns a fresh isolated DB path and resets both singletons.
+/// The Supabase sync seam is overridden so tests never touch the network.
 AppRepository _freshRepo() {
   final path = join(
     Directory.systemTemp.path,
@@ -25,7 +26,12 @@ AppRepository _freshRepo() {
 
   DatabaseHelper.resetForTest(path);
   AppRepository.resetForTest();
-  return AppRepository.instance;
+  final repo = AppRepository.instance;
+  repo.overrideSyncForTest(
+    isSignedIn: () => false,
+    syncCompletion: (_) async {},
+  );
+  return repo;
 }
 
 PlaySession _session(String date, {int count = 1}) => PlaySession(

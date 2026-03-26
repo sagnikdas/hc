@@ -42,7 +42,10 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void initState() {
     super.initState();
-    isPlayScreenOpen.value = true;
+    // Defer to avoid setState-during-build on the parent MainShell.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      isPlayScreenOpen.value = true;
+    });
     if (widget.initialTarget != null) _targetCount = widget.initialTarget!;
     _loadSettings();
     final handler = audioHandler;
@@ -683,6 +686,7 @@ class _LyricsPanelState extends State<_LyricsPanel> {
   final _scrollController = ScrollController();
   StreamSubscription<Duration>? _positionSub;
   int _currentIdx = 0;
+  bool _showEnglish = false;
 
   @override
   void initState() {
@@ -740,42 +744,130 @@ class _LyricsPanelState extends State<_LyricsPanel> {
       );
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      itemExtent: _itemExtent,
-      padding: EdgeInsets.symmetric(vertical: context.sp(8), horizontal: context.sp(32)),
-      itemCount: lines.length,
-      itemBuilder: (ctx, i) {
-        final isActive = i == _currentIdx;
-        final isNear = (i - _currentIdx).abs() == 1;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          alignment: Alignment.center,
-          child: Text(
-            lines[i].text,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.notoSerif(
-              fontSize: isActive ? context.sp(22) : (isNear ? context.sp(16) : context.sp(14)),
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-              color: isActive
-                  ? cs.secondary
-                  : isNear
-                      ? cs.onSurface.withValues(alpha: 0.5)
-                      : cs.onSurface.withValues(alpha: 0.2),
-              height: 1.3,
-              shadows: isActive
-                  ? [
-                      Shadow(
-                          color: cs.secondary.withValues(alpha: 0.3),
-                          blurRadius: 12)
-                    ]
-                  : null,
+    final hasTransliteration = lines.any((l) => l.transliteration != null);
+
+    return Column(
+      children: [
+        // ── Language toggle ────────────────────────────────────────────────
+        if (hasTransliteration)
+          Padding(
+            padding: EdgeInsets.only(top: context.sp(6), bottom: context.sp(2)),
+            child: _LangToggle(
+              showEnglish: _showEnglish,
+              cs: cs,
+              onToggle: (v) => setState(() => _showEnglish = v),
             ),
           ),
-        );
-      },
+
+        // ── Lyrics list ────────────────────────────────────────────────────
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            itemExtent: _itemExtent,
+            padding: EdgeInsets.symmetric(
+                vertical: context.sp(8), horizontal: context.sp(32)),
+            itemCount: lines.length,
+            itemBuilder: (ctx, i) {
+              final line = lines[i];
+              final isActive = i == _currentIdx;
+              final isNear = (i - _currentIdx).abs() == 1;
+              final displayText = (_showEnglish && line.transliteration != null)
+                  ? line.transliteration!
+                  : line.text;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                alignment: Alignment.center,
+                child: Text(
+                  displayText,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: (_showEnglish
+                          ? GoogleFonts.manrope
+                          : GoogleFonts.notoSerif)(
+                    fontSize: isActive
+                        ? context.sp(20)
+                        : (isNear ? context.sp(15) : context.sp(13)),
+                    fontWeight:
+                        isActive ? FontWeight.w700 : FontWeight.w400,
+                    color: isActive
+                        ? cs.secondary
+                        : isNear
+                            ? cs.onSurface.withValues(alpha: 0.5)
+                            : cs.onSurface.withValues(alpha: 0.2),
+                    height: 1.35,
+                    shadows: isActive
+                        ? [
+                            Shadow(
+                                color: cs.secondary.withValues(alpha: 0.3),
+                                blurRadius: 12)
+                          ]
+                        : null,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Language toggle pill ────────────────────────────────────────────────────
+class _LangToggle extends StatelessWidget {
+  final bool showEnglish;
+  final ColorScheme cs;
+  final ValueChanged<bool> onToggle;
+  const _LangToggle(
+      {required this.showEnglish,
+      required this.cs,
+      required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: context.sp(28),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252424),
+        borderRadius: BorderRadius.circular(context.sp(14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pill(context, label: 'हि', selected: !showEnglish, onTap: () => onToggle(false)),
+          _pill(context, label: 'EN', selected: showEnglish,  onTap: () => onToggle(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(BuildContext context,
+      {required String label,
+      required bool selected,
+      required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: context.sp(44),
+        height: context.sp(28),
+        decoration: BoxDecoration(
+          color: selected ? cs.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(context.sp(14)),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: context.sp(11),
+            fontWeight: FontWeight.w600,
+            color: selected
+                ? const Color(0xFF131313)
+                : cs.onSurface.withValues(alpha: 0.45),
+          ),
+        ),
+      ),
     );
   }
 }

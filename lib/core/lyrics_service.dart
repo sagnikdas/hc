@@ -4,7 +4,12 @@ import 'package:flutter/services.dart';
 class LyricsLine {
   final double startSeconds;
   final String text;
-  const LyricsLine({required this.startSeconds, required this.text});
+  final String? transliteration;
+  const LyricsLine({
+    required this.startSeconds,
+    required this.text,
+    this.transliteration,
+  });
 }
 
 class LyricsService {
@@ -21,6 +26,7 @@ class LyricsService {
         .map((e) => LyricsLine(
               startSeconds: (e['startSeconds'] as num).toDouble(),
               text: e['text'] as String,
+              transliteration: e['en'] as String?,
             ))
         .toList();
   }
