@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import '../main.dart';
+import '../data/repositories/app_repository.dart';
 import '../features/home/home_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/leaderboard/leaderboard_screen.dart';
@@ -18,13 +20,14 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
   int _homeRefreshSignal = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Rebuild when PlayScreen opens/closes or when the handler becomes ready.
     isPlayScreenOpen.addListener(_onStateChanged);
     audioHandlerNotifier.addListener(_onStateChanged);
@@ -32,9 +35,17 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     isPlayScreenOpen.removeListener(_onStateChanged);
     audioHandlerNotifier.removeListener(_onStateChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(AppRepository.instance.flushPendingSyncs());
+    }
   }
 
   void _onStateChanged() => setState(() {});

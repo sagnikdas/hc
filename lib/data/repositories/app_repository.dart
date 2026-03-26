@@ -24,10 +24,52 @@ class AppRepository {
   Future<void> insertSession(PlaySession session) async {
     final db = await DatabaseHelper.instance.database;
     await db.insert('play_sessions', session.toMap());
-    // Fire-and-forget sync to Supabase (no-op if offline or signed out).
-    unawaited(
-      SupabaseService.syncCompletion(session).catchError((_) {}),
-    );
+
+    // Only attempt sync when signed in — syncCompletion is a no-op otherwise
+    // and there is nothing to queue.
+    if (SupabaseService.currentUser == null) return;
+
+    try {
+      await SupabaseService.syncCompletion(session);
+    } catch (_) {
+      // Network unavailable: queue for retry.
+      await db.insert('pending_syncs', {
+        'date': session.date,
+        'count': session.count,
+        'completed_at': session.completedAt,
+      });
+      debugPrint('AppRepository: sync failed — queued for retry.');
+    }
+  }
+
+  /// Retries all queued completions in insertion order.
+  ///
+  /// Stops at the first failure to avoid hammering a still-offline network.
+  /// Safe to call multiple times concurrently — subsequent calls are no-ops
+  /// until the first one finishes.
+  bool _flushing = false;
+  Future<void> flushPendingSyncs() async {
+    if (_flushing) return;
+    if (SupabaseService.currentUser == null) return;
+    _flushing = true;
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query('pending_syncs', orderBy: 'id ASC');
+      for (final row in rows) {
+        try {
+          await SupabaseService.syncCompletion(PlaySession.fromMap(row));
+          await db.delete('pending_syncs',
+              where: 'id = ?', whereArgs: [row['id']]);
+          debugPrint('AppRepository: flushed pending sync id=${row['id']}');
+        } catch (_) {
+          // Still offline — abort; remaining rows stay in the queue.
+          debugPrint('AppRepository: flush aborted (still offline).');
+          break;
+        }
+      }
+    } finally {
+      _flushing = false;
+    }
   }
 
   Future<int> getTodayCount() async {

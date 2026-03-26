@@ -6,6 +6,7 @@ import 'core/audio_handler.dart';
 import 'core/lyrics_service.dart';
 import 'core/notification_service.dart';
 import 'core/app_secrets.dart';
+import 'data/repositories/app_repository.dart';
 import 'features/auth/auth_gate.dart';
 
 final audioHandlerNotifier = ValueNotifier<HanumanAudioHandler?>(null);
@@ -44,6 +45,16 @@ Future<void> _initServices() async {
   } catch (e, st) {
     debugPrint('LyricsService load failed: $e\n$st');
   }
+
+  // Flush any completions that failed to sync in a previous session.
+  unawaited(AppRepository.instance.flushPendingSyncs());
+
+  // Re-flush whenever the user signs in.
+  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    if (data.event == AuthChangeEvent.signedIn) {
+      unawaited(AppRepository.instance.flushPendingSyncs());
+    }
+  });
 }
 
 class HanumanChalisaApp extends StatelessWidget {

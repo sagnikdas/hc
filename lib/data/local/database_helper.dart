@@ -27,7 +27,7 @@ class DatabaseHelper {
         join(await getDatabasesPath(), 'hanuman_chalisa.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -52,6 +52,14 @@ class DatabaseHelper {
         onboarding_shown INTEGER NOT NULL DEFAULT 0
       )
     ''');
+    await db.execute('''
+      CREATE TABLE pending_syncs (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        date        TEXT    NOT NULL,
+        count       INTEGER NOT NULL DEFAULT 1,
+        completed_at INTEGER NOT NULL
+      )
+    ''');
     await db.insert('user_settings', {
       'id': 1,
       'target_count': 11,
@@ -70,6 +78,16 @@ class DatabaseHelper {
       await db.execute(
         'ALTER TABLE user_settings ADD COLUMN onboarding_shown INTEGER NOT NULL DEFAULT 0',
       );
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pending_syncs (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          date        TEXT    NOT NULL,
+          count       INTEGER NOT NULL DEFAULT 1,
+          completed_at INTEGER NOT NULL
+        )
+      ''');
     }
   }
 }
