@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../play/play_screen.dart';
@@ -19,6 +20,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Pick one Hanuman Ji background per app session (survives HomeScreen rebuilds).
+  // When you add more background photos under `assets/images/`, also extend
+  // `_heroBackgroundAssets` below.
+  static String? _sessionHeroBackgroundAsset;
+  static const List<String> _heroBackgroundAssets = [
+    'assets/images/hanuman_hero.png',
+    'assets/images/hanuman_player_bg.png',
+  ];
+
   int _todayCount = 0;
   int _bestStreak = 0;
   Map<String, int> _heatmapData = {};
@@ -31,11 +41,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _sessionHeroBackgroundAsset ??= _pickRandomHeroBackgroundAsset();
     _loadStats();
     _loadProfile();
     _authSub = SupabaseService.authStateChanges.listen((_) {
       if (mounted) _loadProfile();
     });
+  }
+
+  String _pickRandomHeroBackgroundAsset() {
+    // Use time-based seed so a new app launch yields a different hero image.
+    final rng = Random(DateTime.now().millisecondsSinceEpoch);
+    return _heroBackgroundAssets[rng.nextInt(_heroBackgroundAssets.length)];
   }
 
   @override
@@ -174,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/images/hanuman_hero.png',
+              _sessionHeroBackgroundAsset ?? 'assets/images/hanuman_hero.png',
               fit: BoxFit.cover,
               color: Colors.black.withValues(alpha: 0.5),
               colorBlendMode: BlendMode.darken,
@@ -343,54 +360,68 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        SizedBox(
-          height: context.sp(110),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: tracks.length,
-            separatorBuilder: (context, index) => SizedBox(width: context.sp(12)),
-            itemBuilder: (context, i) {
-              final t = tracks[i];
-              return GestureDetector(
-                onTap: () => _openPlay(assetPath: t.asset),
-                child: Container(
-                  width: context.sp(180),
-                  padding: EdgeInsets.all(context.sp(16)),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1B1B),
-                    borderRadius: BorderRadius.circular(context.sp(20)),
-                    border: Border.all(
-                      color: cs.outlineVariant.withValues(alpha: 0.08),
+        // Use `Wrap` so these tiles never overflow horizontally when font
+        // size is at the maximum (they may move to the next line).
+        Wrap(
+          spacing: context.sp(12),
+          runSpacing: context.sp(12),
+          children: [
+            for (final t in tracks)
+              Builder(builder: (context) {
+                return GestureDetector(
+                  onTap: () => _openPlay(assetPath: t.asset),
+                  child: Container(
+                    width: context.sp(180),
+                    padding: EdgeInsets.all(context.sp(16)),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1B1B),
+                      borderRadius: BorderRadius.circular(context.sp(20)),
+                      border: Border.all(
+                        color: cs.outlineVariant.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: context.sp(36),
+                          height: context.sp(36),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: cs.primary.withValues(alpha: 0.12),
+                          ),
+                          child: Icon(
+                            t.icon,
+                            color: cs.primary,
+                            size: context.sp(18),
+                          ),
+                        ),
+                        SizedBox(height: context.sp(10)),
+                        Text(
+                          t.title,
+                          softWrap: true,
+                          style: GoogleFonts.notoSerif(
+                            fontSize: context.sp(13),
+                            color: cs.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: context.sp(4)),
+                        Text(
+                          t.subtitle,
+                          softWrap: true,
+                          style: GoogleFonts.manrope(
+                            fontSize: context.sp(10),
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: context.sp(36),
-                        height: context.sp(36),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: cs.primary.withValues(alpha: 0.12),
-                        ),
-                        child: Icon(t.icon, color: cs.primary, size: context.sp(18)),
-                      ),
-                      const Spacer(),
-                      Text(t.title,
-                          style: GoogleFonts.notoSerif(
-                              fontSize: context.sp(13),
-                              color: cs.onSurface,
-                              fontWeight: FontWeight.w600)),
-                      SizedBox(height: context.sp(2)),
-                      Text(t.subtitle,
-                          style: GoogleFonts.manrope(
-                              fontSize: context.sp(10), color: cs.onSurfaceVariant)),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+                );
+              }),
+          ],
         ),
       ],
     );

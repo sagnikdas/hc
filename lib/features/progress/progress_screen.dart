@@ -181,59 +181,73 @@ class _ProgressScreenState extends State<ProgressScreen> {
             style:
                 GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.onSurface)),
         SizedBox(height: context.sp(16)),
-        SizedBox(
-          height: context.sp(130),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: milestones.length,
-            separatorBuilder: (ctx, index) => SizedBox(width: ctx.sp(10)),
-            itemBuilder: (ctx, i) {
-              final m = milestones[i];
-              return Opacity(
-                opacity: m.unlocked ? 1.0 : 0.45,
-                child: Container(
-                  width: ctx.sp(120),
-                  padding: EdgeInsets.all(ctx.sp(14)),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.circular(ctx.sp(16)),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: ctx.sp(40),
-                        height: ctx.sp(40),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: m.unlocked
-                              ? cs.primary.withValues(alpha: 0.15)
-                              : const Color(0xFF353534),
-                        ),
-                        child: Icon(m.icon,
-                            color: m.unlocked
-                                ? cs.secondary
-                                : cs.onSurfaceVariant,
-                            size: ctx.sp(20)),
+        // Avoid fixed-height constraints so tiles don't overflow at max font size.
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (int i = 0; i < milestones.length; i++) ...[
+                Builder(builder: (ctx) {
+                  final m = milestones[i];
+                  return Opacity(
+                    opacity: m.unlocked ? 1.0 : 0.45,
+                    child: Container(
+                      width: ctx.sp(120),
+                      padding: EdgeInsets.all(ctx.sp(14)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(ctx.sp(16)),
                       ),
-                      SizedBox(height: ctx.sp(8)),
-                      Text(m.label,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.manrope(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: ctx.sp(40),
+                            height: ctx.sp(40),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: m.unlocked
+                                  ? cs.primary.withValues(alpha: 0.15)
+                                  : const Color(0xFF353534),
+                            ),
+                            child: Icon(
+                              m.icon,
+                              color: m.unlocked
+                                  ? cs.secondary
+                                  : cs.onSurfaceVariant,
+                              size: ctx.sp(20),
+                            ),
+                          ),
+                          SizedBox(height: ctx.sp(8)),
+                          Text(
+                            m.label,
+                            textAlign: TextAlign.center,
+                            softWrap: true,
+                            style: GoogleFonts.manrope(
                               fontSize: ctx.sp(10),
                               fontWeight: FontWeight.w700,
-                              color: cs.onSurface)),
-                      SizedBox(height: ctx.sp(2)),
-                      Text(m.sub,
-                          style: GoogleFonts.manrope(
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          SizedBox(height: ctx.sp(2)),
+                          Text(
+                            m.sub,
+                            softWrap: true,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.manrope(
                               fontSize: ctx.sp(8),
                               color: cs.onSurfaceVariant,
-                              letterSpacing: 0.5)),
-                    ],
-                  ),
-                ),
-              );
-            },
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                if (i != milestones.length - 1) SizedBox(width: context.sp(10)),
+              ],
+            ],
           ),
         ),
       ],

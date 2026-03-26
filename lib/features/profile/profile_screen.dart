@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../play/play_screen.dart';
 import '../auth/profile_form_screen.dart';
 import '../../core/transitions.dart';
+import '../../core/font_scale_notifier.dart';
 import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
@@ -22,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedCount = 11;
   bool _hapticEnabled = true;
   bool _continuousPlay = false;
+  double _fontScale = 1.0;
 
   // Auth & referral
   String? _referralCode;
@@ -55,6 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _selectedCount = settings.targetCount;
       _hapticEnabled = settings.hapticEnabled;
       _continuousPlay = settings.continuousPlay;
+      _fontScale = settings.fontScale.clamp(0.8, 1.4);
     });
   }
 
@@ -89,8 +92,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         targetCount: _selectedCount,
         hapticEnabled: _hapticEnabled,
         continuousPlay: _continuousPlay,
+        fontScale: _fontScale.clamp(0.8, 1.4),
       ),
     );
+    // Apply immediately across the app for better UX.
+    fontScaleNotifier.value = _fontScale.clamp(0.8, 1.4);
   }
 
   Future<void> _signIn() async {
@@ -591,6 +597,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildToggles(BuildContext context, ColorScheme cs) {
     return Column(
       children: [
+        _buildFontSizeSlider(context, cs),
+        const SizedBox(height: 10),
         _ToggleRow(
           icon: Icons.vibration_rounded,
           title: 'Haptic Feedback',
@@ -615,6 +623,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
           cs: cs,
         ),
       ],
+    );
+  }
+
+  Widget _buildFontSizeSlider(BuildContext context, ColorScheme cs) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E0E0E),
+        borderRadius: BorderRadius.circular(context.sp(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.text_increase_rounded, color: cs.secondary, size: context.sp(18)),
+              SizedBox(width: context.sp(10)),
+              Text(
+                'Font Size',
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(13),
+                  fontWeight: FontWeight.w700,
+                  color: cs.primary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${_fontScale.toStringAsFixed(1)}×',
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(12),
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.sp(10)),
+          Slider(
+            value: _fontScale,
+            min: 0.8,
+            max: 1.4,
+            onChanged: (v) {
+              setState(() => _fontScale = v);
+            },
+            onChangeEnd: (_) => _saveSettings(),
+          ),
+          SizedBox(height: context.sp(2)),
+          Text(
+            'Helpful for elderly devotees.',
+            style: GoogleFonts.manrope(
+              fontSize: context.sp(11),
+              color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

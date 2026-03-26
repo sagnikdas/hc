@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
 import 'core/audio_handler.dart';
+import 'core/font_scale_notifier.dart';
 import 'core/lyrics_service.dart';
 import 'core/notification_service.dart';
 import 'core/app_secrets.dart';
@@ -55,6 +56,16 @@ Future<void> _initServices() async {
       unawaited(AppRepository.instance.flushPendingSyncs());
     }
   });
+
+  // Load global UI settings (e.g. font scale) after launch.
+  try {
+    final settings = await AppRepository.instance.getSettings();
+    // Clamp to avoid pathological values in the DB (e.g. 0) which can make
+    // all text effectively invisible and look like a black screen.
+    fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
+  } catch (e) {
+    debugPrint('Font scale init failed: $e');
+  }
 }
 
 class HanumanChalisaApp extends StatelessWidget {
@@ -68,7 +79,18 @@ class HanumanChalisaApp extends StatelessWidget {
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
-      home: const AuthGate(),
+      home: ValueListenableBuilder<double>(
+        valueListenable: fontScaleNotifier,
+        builder: (context, scale, _) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              // Flutter deprecates `textScaleFactor` in favor of `textScaler`.
+              textScaler: TextScaler.linear(scale),
+            ),
+            child: const AuthGate(),
+          );
+        },
+      ),
     );
   }
 }

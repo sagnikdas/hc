@@ -5,6 +5,7 @@ class UserSettings {
   final String? referralCode;
   final bool onboardingShown;
   final double playbackSpeed;
+  final double fontScale;
 
   const UserSettings({
     this.targetCount = 11,
@@ -13,6 +14,7 @@ class UserSettings {
     this.referralCode,
     this.onboardingShown = false,
     this.playbackSpeed = 1.0,
+    this.fontScale = 1.0,
   });
 
   Map<String, dynamic> toMap() => {
@@ -23,6 +25,7 @@ class UserSettings {
         'referral_code': referralCode,
         'onboarding_shown': onboardingShown ? 1 : 0,
         'playback_speed': playbackSpeed,
+        'font_scale': fontScale,
       };
 
   factory UserSettings.fromMap(Map<String, dynamic> m) => UserSettings(
@@ -32,6 +35,7 @@ class UserSettings {
         referralCode: m['referral_code'] as String?,
         onboardingShown: (m['onboarding_shown'] as int? ?? 0) == 1,
         playbackSpeed: (m['playback_speed'] as num?)?.toDouble() ?? 1.0,
+        fontScale: (m['font_scale'] as num?)?.toDouble() ?? 1.0,
       );
 
   UserSettings copyWith({
@@ -41,6 +45,7 @@ class UserSettings {
     String? referralCode,
     bool? onboardingShown,
     double? playbackSpeed,
+    double? fontScale,
   }) =>
       UserSettings(
         targetCount: targetCount ?? this.targetCount,
@@ -49,5 +54,6 @@ class UserSettings {
         referralCode: referralCode ?? this.referralCode,
         onboardingShown: onboardingShown ?? this.onboardingShown,
         playbackSpeed: playbackSpeed ?? this.playbackSpeed,
+        fontScale: fontScale ?? this.fontScale,
       );
 }

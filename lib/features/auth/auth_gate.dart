@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/main_shell.dart';
 import '../../data/repositories/app_repository.dart';
@@ -18,16 +19,42 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   bool? _onboardingShown; // null while loading
+  Timer? _fallbackTimer;
 
   @override
   void initState() {
     super.initState();
     _checkOnboarding();
+    // Avoid a permanent black/loading screen if local DB access/migration
+    // hangs for any reason.
+    _fallbackTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      if (_onboardingShown == null) {
+        debugPrint('AuthGate: onboarding load fallback -> proceed to MainShell');
+        setState(() => _onboardingShown = true);
+      }
+    });
   }
 
   Future<void> _checkOnboarding() async {
-    final shown = await AppRepository.instance.isOnboardingShown();
-    if (mounted) setState(() => _onboardingShown = shown);
+    try {
+      final shown = await AppRepository.instance.isOnboardingShown();
+      if (mounted) {
+        debugPrint('AuthGate: onboardingShown=$shown');
+        setState(() => _onboardingShown = shown);
+      }
+    } catch (e, st) {
+      // If local DB migration/query fails (e.g., after schema changes),
+      // the user should still be able to reach the app.
+      debugPrint('AuthGate: onboarding load failed: $e\n$st');
+      if (mounted) setState(() => _onboardingShown = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _fallbackTimer?.cancel();
+    super.dispose();
   }
 
   @override

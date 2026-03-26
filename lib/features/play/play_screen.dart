@@ -36,8 +36,8 @@ class PlayScreen extends StatefulWidget {
 class _PlayScreenState extends State<PlayScreen> {
   static const _defaultAudioAsset = 'assets/audio/hc_real.mp3';
   static const _quickCounts = [1, 11, 21, 108];
-  // TEMP (testing): include 1 so the milestone bottom sheet shows immediately.
-  static const _milestones = {1, 11, 21, 108};
+  // Milestone bottom-sheet triggers.
+  static const _milestones = {11, 21, 108};
   Set<int> get _activeMilestones => widget.debugMilestones ?? _milestones;
 
   // Guard: _initAudio must only wire up once even if handler becomes ready
@@ -936,14 +936,15 @@ class _BackgroundLayer extends StatelessWidget {
             ),
           ),
         ),
-        Center(
-          child: Builder(
-            builder: (context) => Text(
-              'ॐ',
-              style: GoogleFonts.notoSerif(
-                fontSize: context.sp(160),
-                color: cs.secondary.withValues(alpha: 0.10),
-              ),
+        // ॐ symbol: per original design, it sits enlarged in the lower-right.
+        Positioned(
+          right: context.sp(22),
+          bottom: context.sp(18),
+          child: Text(
+            'ॐ',
+            style: GoogleFonts.notoSerif(
+              fontSize: context.sp(220),
+              color: cs.secondary.withValues(alpha: 0.10),
             ),
           ),
         ),

@@ -27,7 +27,7 @@ class DatabaseHelper {
         join(await getDatabasesPath(), 'hanuman_chalisa.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -50,7 +50,8 @@ class DatabaseHelper {
         continuous_play INTEGER NOT NULL DEFAULT 0,
         referral_code TEXT,
         onboarding_shown INTEGER NOT NULL DEFAULT 0,
-        playback_speed REAL NOT NULL DEFAULT 1.0
+        playback_speed REAL NOT NULL DEFAULT 1.0,
+        font_scale REAL NOT NULL DEFAULT 1.0
       )
     ''');
     await db.execute('''
@@ -68,6 +69,8 @@ class DatabaseHelper {
       'continuous_play': 0,
       'referral_code': null,
       'onboarding_shown': 0,
+      'playback_speed': 1.0,
+      'font_scale': 1.0,
     });
   }
 
@@ -93,6 +96,11 @@ class DatabaseHelper {
     if (oldVersion < 4) {
       await db.execute(
         'ALTER TABLE user_settings ADD COLUMN playback_speed REAL NOT NULL DEFAULT 1.0',
+      );
+    }
+    if (oldVersion < 5) {
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN font_scale REAL NOT NULL DEFAULT 1.0',
       );
     }
   }
