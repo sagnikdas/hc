@@ -33,6 +33,25 @@ class AppRepository {
     _syncCompletion = syncCompletion;
   }
 
+  // Stat overrides — bypass sqflite for widget tests so the FFI worker
+  // thread is never involved and pumpAndSettle() can settle immediately.
+  @visibleForTesting
+  int? todayCountForTest;
+  @visibleForTesting
+  ({int current, int best})? streaksForTest;
+
+  @visibleForTesting
+  void overrideStatsForTest({required int todayCount, required int bestStreak}) {
+    todayCountForTest = todayCount;
+    streaksForTest = (current: bestStreak, best: bestStreak);
+  }
+
+  @visibleForTesting
+  void clearStatsOverrideForTest() {
+    todayCountForTest = null;
+    streaksForTest = null;
+  }
+
   // ── Sessions ──────────────────────────────────────────────────────────────
 
   Future<void> insertSession(PlaySession session) async {
@@ -87,6 +106,7 @@ class AppRepository {
   }
 
   Future<int> getTodayCount() async {
+    if (todayCountForTest != null) return todayCountForTest!;
     final today = dateStr(DateTime.now());
     final db = await DatabaseHelper.instance.database;
     final rows = await db.rawQuery(
@@ -137,6 +157,7 @@ class AppRepository {
   }
 
   Future<({int current, int best})> getStreaks() async {
+    if (streaksForTest != null) return streaksForTest!;
     final db = await DatabaseHelper.instance.database;
     final rows = await db.rawQuery(
       'SELECT DISTINCT date FROM play_sessions ORDER BY date DESC',

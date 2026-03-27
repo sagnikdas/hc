@@ -13,12 +13,36 @@ class SupabaseService {
 
   // ── Auth ─────────────────────────────────────────────────────────────────
 
-  static User? get currentUser => supabase.auth.currentUser;
+  // ── Test seams ───────────────────────────────────────────────────────────
+  // Set these in unit tests to avoid touching the Supabase SDK.
+
+  @visibleForTesting
+  static User? Function()? currentUserForTest;
+  @visibleForTesting
+  static Stream<AuthState>? authChangesForTest;
+  @visibleForTesting
+  static Future<Map<String, dynamic>?> Function()? fetchProfileForTest;
+  @visibleForTesting
+  static Future<void> Function()? signInForTest;
+
+  @visibleForTesting
+  static void resetAuthForTest() {
+    currentUserForTest = null;
+    authChangesForTest = null;
+    fetchProfileForTest = null;
+    signInForTest = null;
+  }
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
+
+  static User? get currentUser =>
+      currentUserForTest != null ? currentUserForTest!() : supabase.auth.currentUser;
 
   static Stream<AuthState> get authStateChanges =>
-      supabase.auth.onAuthStateChange;
+      authChangesForTest ?? supabase.auth.onAuthStateChange;
 
   static Future<void> signInWithGoogle() async {
+    if (signInForTest != null) return signInForTest!();
     if (!_isGoogleWebClientIdConfigured) {
       throw StateError(
         'Google Sign-In: set kGoogleWebClientId in lib/core/app_secrets.dart to '
@@ -70,6 +94,7 @@ class SupabaseService {
   // ── Profile ───────────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>?> fetchProfile() async {
+    if (fetchProfileForTest != null) return fetchProfileForTest!();
     final uid = currentUser?.id;
     if (uid == null) return null;
     final res = await supabase.from('profiles').select().eq('id', uid).maybeSingle();

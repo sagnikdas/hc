@@ -154,17 +154,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
             onTap: () => _scaffoldKey.currentState?.openDrawer(),
             child: Icon(Icons.menu_rounded,
                 color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
           ),
-          Text(
-            'Hanuman Chalisa',
-            style: GoogleFonts.notoSerif(
-                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
+          Expanded(
+            child: Text(
+              'Hanuman Chalisa',
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.notoSerif(
+                  fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
+            ),
           ),
           SizedBox(width: context.sp(24)),
         ],
@@ -341,32 +344,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Sacred Melodies',
-                style: GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.onSurface)),
-            Text('ALL',
-                style: GoogleFonts.manrope(
-                    fontSize: context.sp(9),
-                    color: cs.primary,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w700)),
-          ],
-        ),
+        Text('Sacred Melodies',
+            style: GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.onSurface)),
         const SizedBox(height: 14),
-        // Use `Wrap` so these tiles never overflow horizontally when font
-        // size is at the maximum (they may move to the next line).
-        Wrap(
-          spacing: context.sp(12),
-          runSpacing: context.sp(12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final t in tracks)
-              Builder(builder: (context) {
-                return GestureDetector(
-                  onTap: () => _openPlay(assetPath: t.asset),
+            for (int i = 0; i < tracks.length; i++) ...[
+              if (i > 0) SizedBox(width: context.sp(12)),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _openPlay(assetPath: tracks[i].asset),
                   child: Container(
-                    width: context.sp(180),
                     padding: EdgeInsets.all(context.sp(16)),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1C1B1B),
@@ -387,14 +376,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: cs.primary.withValues(alpha: 0.12),
                           ),
                           child: Icon(
-                            t.icon,
+                            tracks[i].icon,
                             color: cs.primary,
                             size: context.sp(18),
                           ),
                         ),
                         SizedBox(height: context.sp(10)),
                         Text(
-                          t.title,
+                          tracks[i].title,
                           softWrap: true,
                           style: GoogleFonts.notoSerif(
                             fontSize: context.sp(13),
@@ -404,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         SizedBox(height: context.sp(4)),
                         Text(
-                          t.subtitle,
+                          tracks[i].subtitle,
                           softWrap: true,
                           style: GoogleFonts.manrope(
                             fontSize: context.sp(10),
@@ -414,8 +403,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                );
-              }),
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -451,7 +441,7 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: cs.secondary, size: context.sp(20)),
+          Icon(icon, color: cs.primary, size: context.sp(20)),
           SizedBox(height: context.sp(10)),
           Text(
             label,
@@ -577,7 +567,7 @@ class _AppDrawer extends StatelessWidget {
                       color: cs.primary.withValues(alpha: 0.1),
                     ),
                     child: Icon(Icons.auto_awesome_rounded,
-                        color: cs.secondary, size: context.sp(18)),
+                        color: cs.primary, size: context.sp(18)),
                   ),
                   SizedBox(width: context.sp(14)),
                   Column(
@@ -651,12 +641,12 @@ class _AppDrawer extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.cloud_done_rounded,
-                        color: cs.secondary, size: context.sp(16)),
+                        color: cs.primary, size: context.sp(16)),
                     SizedBox(width: context.sp(8)),
                     Text(
                       'Path is synced',
                       style: GoogleFonts.manrope(
-                          fontSize: context.sp(12), color: cs.secondary),
+                          fontSize: context.sp(12), color: cs.primary),
                     ),
                   ],
                 ),
@@ -718,14 +708,17 @@ class _DrawerItem extends StatelessWidget {
           children: [
             Icon(icon, color: cs.primary, size: context.sp(20)),
             SizedBox(width: context.sp(16)),
-            Text(
-              label,
-              style: GoogleFonts.manrope(
-                  fontSize: context.sp(14),
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface),
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.manrope(
+                    fontSize: context.sp(14),
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface),
+              ),
             ),
-            const Spacer(),
+            SizedBox(width: context.sp(8)),
             Icon(Icons.chevron_right_rounded,
                 color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                 size: context.sp(18)),
