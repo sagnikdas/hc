@@ -91,19 +91,19 @@ class _ProgressScreenState extends State<ProgressScreen> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _buildSectionLabel(context, cs),
-                  const SizedBox(height: 20),
+                  SizedBox(height: context.sp(20)),
                   _buildHeatmapSection(context, cs),
-                  const SizedBox(height: 28),
+                  SizedBox(height: context.sp(28)),
                   _buildMilestones(context, cs),
-                  const SizedBox(height: 28),
+                  SizedBox(height: context.sp(28)),
                   _buildRecentSessions(cs),
-                  const SizedBox(height: 28),
+                  SizedBox(height: context.sp(28)),
                   _WeeklyCard(
                       total: _weeklyTotal,
                       bars: _weeklyBars,
                       loading: _loading,
                       cs: cs),
-                  const SizedBox(height: 14),
+                  SizedBox(height: context.sp(14)),
                   _StreakCard(
                       current: _currentStreak,
                       best: _bestStreak,
@@ -134,10 +134,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Icon(Icons.auto_graph_rounded,
               color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
-          Text(
-            'Your Devotional Journey',
-            style: GoogleFonts.notoSerif(
-                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
+          Flexible(
+            child: Text(
+              'Your Devotional Journey',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.notoSerif(
+                  fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
+            ),
           ),
           SizedBox(width: context.sp(24)),
         ],
@@ -167,21 +170,23 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Spiritual Consistency',
-                      style: GoogleFonts.notoSerif(
-                          fontSize: context.sp(17), color: cs.onSurface)),
-                  SizedBox(height: context.sp(3)),
-                  Text(
-                    'JOURNEY OVER THE LAST 12 WEEKS',
-                    style: GoogleFonts.manrope(
-                        fontSize: context.sp(8),
-                        color: cs.onSurfaceVariant,
-                        letterSpacing: 1.2),
-                  ),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Spiritual Consistency',
+                        style: GoogleFonts.notoSerif(
+                            fontSize: context.sp(17), color: cs.onSurface)),
+                    SizedBox(height: context.sp(3)),
+                    Text(
+                      'JOURNEY OVER THE LAST 12 WEEKS',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(8),
+                          color: cs.onSurfaceVariant,
+                          letterSpacing: 1.2),
+                    ),
+                  ],
+                ),
               ),
               Icon(Icons.calendar_today_outlined,
                   color: cs.onSurfaceVariant.withValues(alpha: 0.4),
@@ -335,8 +340,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1C1B1B),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(context.sp(24)))),
       isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.7,
@@ -345,7 +350,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         expand: false,
         builder: (_, controller) => Column(
           children: [
-            const SizedBox(height: 12),
+            Builder(builder: (ctx) => SizedBox(height: ctx.sp(12))),
             Builder(builder: (ctx) => Container(
                 width: ctx.sp(40),
                 height: ctx.sp(4),
@@ -368,12 +373,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   ? Center(
                       child: Text('No sessions yet.',
                           style: GoogleFonts.manrope(
-                              fontSize: 13, color: cs.onSurfaceVariant)))
+                              fontSize: context.sp(13), color: cs.onSurfaceVariant)))
                   : ListView.separated(
                       controller: controller,
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                      padding: EdgeInsets.fromLTRB(context.sp(24), 0, context.sp(24), context.sp(32)),
                       itemCount: sessions.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
+                      separatorBuilder: (context, index) => SizedBox(height: context.sp(10)),
                       itemBuilder: (context, i) {
                         final s = sessions[i];
                         final date =
@@ -405,9 +410,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Recent Sessions',
-                style: GoogleFonts.notoSerif(
-                    fontSize: context.sp(20), color: cs.onSurface)),
+            Flexible(
+              child: Text('Recent Sessions',
+                  style: GoogleFonts.notoSerif(
+                      fontSize: context.sp(20), color: cs.onSurface)),
+            ),
             GestureDetector(
               onTap: () => _showAllSessions(context, cs),
               child: Text('VIEW ALL',
@@ -419,18 +426,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: context.sp(14)),
         if (_loading)
           const Center(child: CircularProgressIndicator())
         else if (_recentSessions.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: EdgeInsets.symmetric(vertical: context.sp(24)),
             child: Center(
               child: Text(
                 'No sessions yet.\nStart your first recitation!',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.manrope(
-                    fontSize: 13, color: cs.onSurfaceVariant),
+                    fontSize: context.sp(13), color: cs.onSurfaceVariant),
               ),
             ),
           )

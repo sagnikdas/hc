@@ -47,9 +47,40 @@ class AppRepository {
   }
 
   @visibleForTesting
+  Map<String, int>? weeklyCountsForTest;
+  @visibleForTesting
+  Map<String, int>? heatmapDataForTest;
+  @visibleForTesting
+  List<PlaySession>? recentSessionsForTest;
+  @visibleForTesting
+  int? allTimeTotalForTest;
+
+  /// Sets all data needed by ProgressScreen in one call, bypassing sqflite.
+  /// currentStreak and bestStreak can differ (unlike overrideStatsForTest).
+  @visibleForTesting
+  void overrideProgressForTest({
+    int currentStreak = 0,
+    int bestStreak = 0,
+    Map<String, int> weeklyCounts = const {},
+    List<PlaySession> recentSessions = const [],
+    int allTimeTotal = 0,
+    Map<String, int> heatmapData = const {},
+  }) {
+    streaksForTest = (current: currentStreak, best: bestStreak);
+    weeklyCountsForTest = Map<String, int>.from(weeklyCounts);
+    recentSessionsForTest = List<PlaySession>.from(recentSessions);
+    allTimeTotalForTest = allTimeTotal;
+    heatmapDataForTest = Map<String, int>.from(heatmapData);
+  }
+
+  @visibleForTesting
   void clearStatsOverrideForTest() {
     todayCountForTest = null;
     streaksForTest = null;
+    weeklyCountsForTest = null;
+    heatmapDataForTest = null;
+    recentSessionsForTest = null;
+    allTimeTotalForTest = null;
   }
 
   // ── Sessions ──────────────────────────────────────────────────────────────
@@ -118,6 +149,8 @@ class AppRepository {
 
   /// Returns a map of date strings to counts for the last [days] days.
   Future<Map<String, int>> getCountsForLastDays(int days) async {
+    if (days == 7 && weeklyCountsForTest != null) return weeklyCountsForTest!;
+    if (days != 7 && heatmapDataForTest != null) return heatmapDataForTest!;
     final db = await DatabaseHelper.instance.database;
     final cutoff = dateStr(DateTime.now().subtract(Duration(days: days)));
     final rows = await db.rawQuery(
@@ -128,6 +161,7 @@ class AppRepository {
   }
 
   Future<int> getTotalSessionCount() async {
+    if (allTimeTotalForTest != null) return allTimeTotalForTest!;
     final db = await DatabaseHelper.instance.database;
     final rows = await db.rawQuery(
         'SELECT SUM(count) as total FROM play_sessions');
@@ -147,6 +181,7 @@ class AppRepository {
   }
 
   Future<List<PlaySession>> getRecentSessions({int limit = 10}) async {
+    if (recentSessionsForTest != null) return recentSessionsForTest!.take(limit).toList();
     final db = await DatabaseHelper.instance.database;
     final rows = await db.query(
       'play_sessions',
