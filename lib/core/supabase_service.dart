@@ -24,6 +24,9 @@ class SupabaseService {
   static Future<Map<String, dynamic>?> Function()? fetchProfileForTest;
   @visibleForTesting
   static Future<void> Function()? signInForTest;
+  @visibleForTesting
+  static Future<List<Map<String, dynamic>>> Function({required bool weekly})?
+      fetchLeaderboardForTest;
 
   @visibleForTesting
   static void resetAuthForTest() {
@@ -31,6 +34,7 @@ class SupabaseService {
     authChangesForTest = null;
     fetchProfileForTest = null;
     signInForTest = null;
+    fetchLeaderboardForTest = null;
   }
 
   // ── Auth ─────────────────────────────────────────────────────────────────
@@ -202,6 +206,9 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> fetchLeaderboard({
     required bool weekly,
   }) async {
+    if (fetchLeaderboardForTest != null) {
+      return fetchLeaderboardForTest!(weekly: weekly);
+    }
     final data = await supabase
         .rpc('get_leaderboard', params: {'p_weekly': weekly}) as List<dynamic>;
     return data.cast<Map<String, dynamic>>();

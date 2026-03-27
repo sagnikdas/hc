@@ -143,24 +143,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   Widget _buildTabBar(ColorScheme cs) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+      padding: EdgeInsets.fromLTRB(context.sp(24), 0, context.sp(24), context.sp(12)),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1C1B1B),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.sp(12)),
         ),
         child: TabBar(
           controller: _tabs,
           indicator: BoxDecoration(
             color: cs.primary,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(context.sp(10)),
           ),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
           labelColor: cs.onPrimary,
           unselectedLabelColor: cs.onSurfaceVariant,
           labelStyle: GoogleFonts.manrope(
-              fontSize: 13, fontWeight: FontWeight.w600),
+              fontSize: context.sp(13), fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'This Week'),
             Tab(text: 'All Time'),
@@ -180,25 +180,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     if (_offline) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(context.sp(32)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.wifi_off_rounded,
-                  color: cs.onSurfaceVariant, size: 48),
-              const SizedBox(height: 16),
+                  color: cs.onSurfaceVariant, size: context.sp(48)),
+              SizedBox(height: context.sp(16)),
               Text(
                 'No internet connection',
                 style: GoogleFonts.manrope(
-                    fontSize: 15,
+                    fontSize: context.sp(15),
                     fontWeight: FontWeight.w600,
                     color: cs.onSurface),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: context.sp(8)),
               Text(
                 'Connect to view the leaderboard.',
                 style: GoogleFonts.manrope(
-                    fontSize: 13, color: cs.onSurfaceVariant),
+                    fontSize: context.sp(13), color: cs.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -210,22 +210,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     if (_entries.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(context.sp(32)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('🙏', style: TextStyle(fontSize: 48)),
-              const SizedBox(height: 16),
+              Text('🙏', style: TextStyle(fontSize: context.sp(48))),
+              SizedBox(height: context.sp(16)),
               Text(
                 'No completions yet this period.',
                 style: GoogleFonts.manrope(
-                    fontSize: 14, color: cs.onSurfaceVariant),
+                    fontSize: context.sp(14), color: cs.onSurfaceVariant),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: context.sp(8)),
               Text(
                 'Be the first on the board!',
                 style: GoogleFonts.manrope(
-                    fontSize: 12, color: cs.onSurfaceVariant),
+                    fontSize: context.sp(12), color: cs.onSurfaceVariant),
               ),
             ],
           ),
@@ -237,7 +237,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       onRefresh: () => _load(weekly: _tabs.index == 0),
       color: cs.primary,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        padding: EdgeInsets.fromLTRB(context.sp(24), 0, context.sp(24), context.sp(24)),
         itemCount: _entries.length,
         itemBuilder: (context, index) {
           final entry = _entries[index];
@@ -285,13 +285,13 @@ class _LeaderboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: EdgeInsets.only(bottom: context.sp(8)),
+      padding: EdgeInsets.symmetric(horizontal: context.sp(16), vertical: context.sp(14)),
       decoration: BoxDecoration(
         color: isMe
             ? cs.primary.withValues(alpha: 0.08)
             : const Color(0xFF1C1B1B),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(context.sp(14)),
         border: Border.all(
           color: isMe
               ? cs.primary.withValues(alpha: 0.3)
@@ -303,24 +303,24 @@ class _LeaderboardRow extends StatelessWidget {
         children: [
           // Rank badge
           SizedBox(
-            width: 32,
+            width: context.sp(32),
             child: rank <= 3
                 ? Text(
                     rank == 1 ? '🥇' : rank == 2 ? '🥈' : '🥉',
-                    style: const TextStyle(fontSize: 22),
+                    style: TextStyle(fontSize: context.sp(22)),
                     textAlign: TextAlign.center,
                   )
                 : Text(
                     '#$rank',
                     style: GoogleFonts.manrope(
-                      fontSize: 13,
+                      fontSize: context.sp(13),
                       fontWeight: FontWeight.w700,
                       color: _rankColor,
                     ),
                     textAlign: TextAlign.center,
                   ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: context.sp(12)),
           // Name
           Expanded(
             child: Row(
@@ -329,7 +329,7 @@ class _LeaderboardRow extends StatelessWidget {
                   child: Text(
                     name,
                     style: GoogleFonts.manrope(
-                      fontSize: 14,
+                      fontSize: context.sp(14),
                       fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
                       color: isMe ? cs.primary : cs.onSurface,
                     ),
@@ -337,17 +337,17 @@ class _LeaderboardRow extends StatelessWidget {
                   ),
                 ),
                 if (isMe) ...[
-                  const SizedBox(width: 6),
+                  SizedBox(width: context.sp(6)),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: context.sp(6), vertical: context.sp(2)),
                     decoration: BoxDecoration(
                       color: cs.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(context.sp(6)),
                     ),
                     child: Text('you',
                         style: GoogleFonts.manrope(
-                            fontSize: 9,
+                            fontSize: context.sp(9),
                             color: cs.primary,
                             fontWeight: FontWeight.w700)),
                   ),
@@ -361,15 +361,15 @@ class _LeaderboardRow extends StatelessWidget {
               Text(
                 '$count',
                 style: GoogleFonts.notoSerif(
-                  fontSize: 18,
+                  fontSize: context.sp(18),
                   fontWeight: FontWeight.w700,
                   color: rank <= 3 ? _rankColor : cs.onSurface,
                 ),
               ),
-              const SizedBox(width: 4),
+              SizedBox(width: context.sp(4)),
               Text('paaths',
                   style: GoogleFonts.manrope(
-                      fontSize: 10, color: cs.onSurfaceVariant)),
+                      fontSize: context.sp(10), color: cs.onSurfaceVariant)),
             ],
           ),
         ],
