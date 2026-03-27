@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Flutter devotional mobile app for the Hanuman Chalisa (a Hindu prayer). The app is **offline-first** — the core prayer experience must work without any backend. **Phases 0 and 1 are complete** (see git log). Currently working toward Phase 2.
+This is a Flutter devotional mobile app for the Hanuman Chalisa (a Hindu prayer). The app is **offline-first** — the core prayer experience must work without any backend. **All four phases are complete** (see git log). Active work is tracked in `todos/BACKLOG.md`.
 
 ## Commands
 
@@ -19,34 +19,32 @@ flutter run -d <device>
 
 Test dependencies: `mocktail` (mocking), `sqflite_common_ffi` (in-memory SQLite for unit tests).
 
-## Phased Implementation
+## Active Work
 
-Work is organized into four phases defined in `IMPLEMENTATION_PLAN.md`, with per-phase checklists in `todos/`:
+All four phases are shipped. Ongoing bugs and features are tracked in **`todos/BACKLOG.md`** (ranked P1–P4). Work from that file — one item at a time.
 
-- **Phase 0** (`todos/phase-0-foundation.md`): App shell, 3-tab nav (Play/Progress/Profile), SQLite DB + data models, CI
-- **Phase 1** (`todos/phase-1-v1-core.md`): Audio playback, completion counter (≥95% played), streaks, heatmap, recording
-- **Phase 2** (`todos/phase-2-monetization-growth.md`): Paywall infrastructure, referral unlocks, event instrumentation
-- **Phase 3** (`todos/phase-3-v2-social.md`): Supabase auth, leaderboard, cloud sync
-
-**Mandatory stage protocol**: Implement checklist items one at a time → run `flutter analyze` + `flutter test` + `flutter build apk --debug` → smoke run on device → commit only after all checks pass. Do not start the next phase until the current phase is passing.
-
-Commit format: `feat(phase-X): complete <phase-name> shippable milestone`
+**Protocol**: Implement one backlog item → run `flutter analyze` + `flutter test` + `flutter build apk --debug` → commit.
 
 ## Architecture
 
 ```
 lib/
-  core/                  # theme, audio_handler, completion_detector,
-                         # streak_calculator, lyrics_service, recording_service,
-                         # analytics
+  core/                  # theme, audio_handler, lyrics_service,
+                         # supabase_service, notification_service,
+                         # font_scale_notifier, responsive, transitions,
+                         # main_shell, app_secrets
   features/
+    auth/                # AuthGate, SignInScreen, ProfileFormScreen
+    home/                # HomeScreen — landing/hero card
+    onboarding/          # OnboardingScreen
     play/                # PlayScreen — main player UI
     progress/            # ProgressScreen — streak, heatmap, daily stats
     profile/             # ProfileScreen — settings, account
+    leaderboard/         # LeaderboardScreen
   data/
     local/               # database_helper.dart (SQLite via sqflite)
-    models/              # PlaySession, DailyStat, UserSettings, Recording
-    repositories/        # Repository interfaces + implementations
+    models/              # PlaySession, UserSettings
+    repositories/        # app_repository.dart (single repo)
 assets/
   audio/                 # Preloaded Hanuman Chalisa audio
   lyrics/                # Timestamped lyrics JSON
@@ -55,9 +53,9 @@ assets/
 
 **Global singletons in `main.dart`**: `audioHandlerNotifier` (`ValueNotifier<HanumanAudioHandler?>`) and `lyricsService`. Both are initialized asynchronously *after* `runApp` to keep launch fast.
 
-**Audio**: `HanumanAudioHandler` wraps `just_audio` directly with `audio_session` for OS focus management. The `audio_service` package is in `pubspec.yaml` but the background/lock-screen layer is **not yet wired** — it is a Phase 1 remaining task.
+**Audio**: `HanumanAudioHandler` wraps `just_audio` directly with `audio_session` for OS focus management. `audio_service` is in `pubspec.yaml` for lock-screen controls.
 
-**Key tech**: `just_audio` + `audio_session`, `sqflite` (local DB), `record` (user recording), Supabase (Phase 3 only), RevenueCat (Phase 2 IAP), PostHog or Firebase Analytics.
+**Key tech**: `just_audio` + `audio_session`, `sqflite` (local DB), `supabase_flutter` (auth + cloud sync), `google_sign_in`, `flutter_local_notifications`, `share_plus`, `google_fonts`.
 
 ## Critical Product Constraints
 
@@ -73,4 +71,4 @@ assets/
 - Implement **one checklist task at a time** from the relevant `todos/phase-*.md` file.
 - Request patch-style edits, not broad rewrites.
 - Do not touch unrelated files when implementing a task.
-- Use the prompt template from `IMPLEMENTATION_PLAN.md § 7` when generating code.
+- Pick items from `todos/BACKLOG.md` by priority (P1 first).
