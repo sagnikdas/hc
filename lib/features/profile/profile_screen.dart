@@ -161,11 +161,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           // Background ambient glows
           Positioned(
-            top: -60,
-            right: -60,
+            top: context.sp(-60),
+            right: context.sp(-60),
             child: Container(
-              width: 280,
-              height: 280,
+              width: context.sp(280),
+              height: context.sp(280),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: cs.primary.withValues(alpha: 0.04),
@@ -173,11 +173,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           Positioned(
-            bottom: -40,
-            left: -60,
+            bottom: context.sp(-40),
+            left: context.sp(-60),
             child: Container(
-              width: 240,
-              height: 240,
+              width: context.sp(240),
+              height: context.sp(240),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: cs.secondary.withValues(alpha: 0.04),
@@ -189,17 +189,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildHeader(context, cs),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  padding: EdgeInsets.fromLTRB(context.sp(24), context.sp(4), context.sp(24), context.sp(24)),
                   child: Column(
                     children: [
                       _buildAuthSection(context, cs),
-                      const SizedBox(height: 20),
+                      SizedBox(height: context.sp(20)),
                       _buildInviteSection(context, cs),
-                      const SizedBox(height: 20),
+                      SizedBox(height: context.sp(20)),
                       _buildIntro(context, cs),
-                      const SizedBox(height: 28),
+                      SizedBox(height: context.sp(28)),
                       _buildRepetitionGrid(context, cs),
-                      const SizedBox(height: 20),
+                      SizedBox(height: context.sp(20)),
                       _buildToggles(context, cs),
                       // Spacer matches CTA container height: sp(20+58+24) + safe area.
                       SizedBox(height: MediaQuery.of(context).padding.bottom + context.sp(120)),
@@ -599,7 +599,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       children: [
         _buildFontSizeSlider(context, cs),
-        const SizedBox(height: 10),
+        SizedBox(height: context.sp(10)),
         _ToggleRow(
           icon: Icons.vibration_rounded,
           title: 'Haptic Feedback',
@@ -611,7 +611,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
           cs: cs,
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: context.sp(10)),
         _ToggleRow(
           icon: Icons.all_inclusive_rounded,
           title: 'Continuous Play',

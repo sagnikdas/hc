@@ -41,6 +41,7 @@ lib/
     progress/            # ProgressScreen — streak, heatmap, daily stats
     profile/             # ProfileScreen — settings, account
     leaderboard/         # LeaderboardScreen
+    recitation/          # RecitationScreen — scrollable lyrics with language toggle
   data/
     local/               # database_helper.dart (SQLite via sqflite)
     models/              # PlaySession, UserSettings
@@ -51,11 +52,61 @@ assets/
   images/                # Idol illustrations
 ```
 
-**Global singletons in `main.dart`**: `audioHandlerNotifier` (`ValueNotifier<HanumanAudioHandler?>`) and `lyricsService`. Both are initialized asynchronously *after* `runApp` to keep launch fast.
+**Global singletons in `main.dart`**: `audioHandlerNotifier` (`ValueNotifier<HanumanAudioHandler?>`), `isPlayScreenOpen` (`ValueNotifier<bool>`), and `lyricsService`. All are initialized asynchronously *after* `runApp` to keep launch fast.
 
 **Audio**: `HanumanAudioHandler` wraps `just_audio` directly with `audio_session` for OS focus management. `audio_service` is in `pubspec.yaml` for lock-screen controls.
 
 **Key tech**: `just_audio` + `audio_session`, `sqflite` (local DB), `supabase_flutter` (auth + cloud sync), `google_sign_in`, `flutter_local_notifications`, `share_plus`, `google_fonts`.
+
+## Data Flow
+
+**Completion recording** (the critical path):
+1. `PlayScreen` detects `ProcessingState.completed` on the audio stream
+2. Calls `AppRepository.insertSession()` → writes to SQLite `play_sessions` table
+3. If signed in, fire-and-forget `SupabaseService.syncCompletion()` (if offline, queues to `pending_syncs` for retry)
+4. `MainShell` detects `isPlayScreenOpen` flipping `true → false` → increments `_progressRefreshSignal` → `ProgressScreen` reloads its stats
+
+**Settings flow**: `UserSettings` lives in SQLite `user_settings` (row id=1). Read at app start and on `ProfileScreen`; written via `AppRepository.saveSettings()`.
+
+## UI Patterns
+
+**Responsive scaling**: Use `context.sp(value)` (from `lib/core/responsive.dart`) for all sizes — padding, font sizes, border radii, icon sizes. Baseline is 375px width, clamped to [0.85×, 1.28×]. Never use raw pixel values.
+
+**Theme colors** (Material 3, dark only): Primary = saffron `#FFB59A`, secondary = gold `#E9C349`, surface = charcoal `#131313`. Access via `Theme.of(context).colorScheme`. Use `cs.primary` for accent elements; avoid `cs.secondary` for consistency with HomeScreen style.
+
+**Typography**: Headlines/titles → `GoogleFonts.notoSerif`, body/labels → `GoogleFonts.manrope`. Both are pre-configured in `theme.dart` TextTheme.
+
+**Navigation**: `slideUpRoute()` from `lib/core/transitions.dart` for full-screen pushes (380ms slide-up).
+
+## Testing Patterns
+
+**Test seams** — avoid real SQLite and Supabase in widget tests by using the built-in overrides:
+
+```dart
+// Reset singletons before each test
+setUp(() {
+  DatabaseHelper.resetForTest();
+  AppRepository.resetForTest();
+  SupabaseService.resetAuthForTest();
+});
+
+// Bypass SQLite entirely
+AppRepository.instance.overrideProgressForTest(
+  currentStreak: 3, bestStreak: 7,
+  weeklyCounts: {'2025-01-01': 2},
+  recentSessions: [...],
+  allTimeTotal: 42,
+  heatmapData: {'2025-01-01': 1},
+);
+
+// Bypass Supabase auth
+SupabaseService.currentUserForTest = () => null;
+SupabaseService.fetchLeaderboardForTest = ({required bool weekly}) async => [];
+```
+
+**SQLite in unit tests**: Use `sqflite_common_ffi` with `databaseFactoryFfi`. See `test/repository_test.dart` for the setup pattern.
+
+**Screen size in widget tests**: `tester.view.physicalSize` + `tester.view.devicePixelRatio` to test responsiveness at different breakpoints.
 
 ## Critical Product Constraints
 
@@ -68,7 +119,7 @@ assets/
 
 ## Token-Efficiency Rules
 
-- Implement **one checklist task at a time** from the relevant `todos/phase-*.md` file.
+- Implement **one backlog item at a time** from `todos/BACKLOG.md`.
 - Request patch-style edits, not broad rewrites.
 - Do not touch unrelated files when implementing a task.
 - Pick items from `todos/BACKLOG.md` by priority (P1 first).
