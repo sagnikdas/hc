@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 
 class LeaderboardScreen extends StatefulWidget {
@@ -107,28 +108,34 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Widget _buildHeader(BuildContext context, ColorScheme cs) {
-    return Padding(
+    return Container(
       padding: EdgeInsets.fromLTRB(
-          24, MediaQuery.of(context).padding.top + 14, 24, 8),
+          context.sp(24), MediaQuery.of(context).padding.top + context.sp(12), context.sp(24), context.sp(16)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+        ),
+      ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(Icons.emoji_events_rounded, color: cs.primary, size: 24),
-          const SizedBox(width: 12),
+          Icon(Icons.emoji_events_rounded,
+              color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
           Text(
             'Leaderboard',
             style: GoogleFonts.notoSerif(
-              fontSize: 22,
-              color: cs.primary,
-              fontStyle: FontStyle.italic,
-            ),
+                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
           ),
-          const Spacer(),
           if (!_loading)
             GestureDetector(
               onTap: () => _load(weekly: _tabs.index == 0),
               child: Icon(Icons.refresh_rounded,
-                  color: cs.onSurfaceVariant, size: 20),
-            ),
+                  color: cs.onSurfaceVariant, size: context.sp(20)),
+            )
+          else
+            SizedBox(width: context.sp(24)),
         ],
       ),
     );

@@ -104,46 +104,36 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Container(
       padding: EdgeInsets.fromLTRB(
           context.sp(24), MediaQuery.of(context).padding.top + context.sp(12), context.sp(24), context.sp(16)),
-      color: cs.surface,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+        ),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(children: [
-            Icon(Icons.menu_rounded, color: cs.primary, size: context.sp(24)),
-            SizedBox(width: context.sp(14)),
-            Text('Hanuman Chalisa',
-                style:
-                    GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.primary)),
-          ]),
-          CircleAvatar(
-            radius: context.sp(16),
-            backgroundColor: const Color(0xFF2A2A2A),
-            child: Icon(Icons.person_outline_rounded,
-                size: context.sp(18), color: cs.onSurfaceVariant),
+          Icon(Icons.auto_graph_rounded,
+              color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
+          Text(
+            'Your Devotional Journey',
+            style: GoogleFonts.notoSerif(
+                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
           ),
+          SizedBox(width: context.sp(24)),
         ],
       ),
     );
   }
 
   Widget _buildSectionLabel(BuildContext context, ColorScheme cs) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('SADHANA PROGRESS',
-            style: GoogleFonts.manrope(
-                fontSize: context.sp(10),
-                color: cs.secondary,
-                letterSpacing: 2,
-                fontWeight: FontWeight.w600)),
-        SizedBox(height: context.sp(6)),
-        Text('Your Devotional Journey',
-            style: GoogleFonts.notoSerif(
-                fontSize: context.sp(28),
-                color: cs.onSurface,
-                fontStyle: FontStyle.italic)),
-      ],
-    );
+    return Text('SADHANA PROGRESS',
+        style: GoogleFonts.manrope(
+            fontSize: context.sp(10),
+            color: cs.secondary,
+            letterSpacing: 2,
+            fontWeight: FontWeight.w600));
   }
 
   Widget _buildMilestones(BuildContext context, ColorScheme cs) {

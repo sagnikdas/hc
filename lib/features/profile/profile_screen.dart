@@ -221,26 +221,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader(BuildContext context, ColorScheme cs) {
-    return Padding(
+    return Container(
       padding: EdgeInsets.fromLTRB(
-          context.sp(24), MediaQuery.of(context).padding.top + context.sp(14), context.sp(24), context.sp(14)),
+          context.sp(24), MediaQuery.of(context).padding.top + context.sp(12), context.sp(24), context.sp(16)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+        ),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(Icons.tune_rounded, color: cs.primary, size: context.sp(22)),
-              SizedBox(width: context.sp(14)),
-              Text(
-                'Sankalp Settings',
-                style: GoogleFonts.notoSerif(
-                    fontSize: context.sp(20),
-                    color: cs.primary,
-                    fontStyle: FontStyle.italic),
-              ),
-            ],
+          Icon(Icons.tune_rounded,
+              color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
+          Text(
+            'Sankalp Settings',
+            style: GoogleFonts.notoSerif(
+                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
           ),
-          Icon(Icons.auto_awesome_rounded, color: cs.secondary, size: context.sp(20)),
+          SizedBox(width: context.sp(24)),
         ],
       ),
     );
