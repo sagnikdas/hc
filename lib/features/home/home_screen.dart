@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../play/play_screen.dart';
+import '../recitation/recitation_screen.dart';
 import '../../core/transitions.dart';
 import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
@@ -102,6 +103,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context)
         .push(slideUpRoute(PlayScreen(initialVoice: assetPath)))
         .then((_) => _loadStats());
+  }
+
+  void _openRecitation() {
+    Navigator.of(context).push(slideUpRoute(const RecitationScreen()));
   }
 
   @override
@@ -332,12 +337,14 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'Hanuman Chalisa',
         subtitle: 'Traditional Devotional',
         icon: Icons.surround_sound_rounded,
+        isRecitation: false,
       ),
       (
         asset: 'assets/audio/voice_1.mp3',
         title: 'Voice Recitation',
         subtitle: 'Sacred Chant',
         icon: Icons.record_voice_over_rounded,
+        isRecitation: true,
       ),
     ];
 
@@ -354,7 +361,9 @@ class _HomeScreenState extends State<HomeScreen> {
               if (i > 0) SizedBox(width: context.sp(12)),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => _openPlay(assetPath: tracks[i].asset),
+                  onTap: () => tracks[i].isRecitation
+                      ? _openRecitation()
+                      : _openPlay(assetPath: tracks[i].asset),
                   child: Container(
                     padding: EdgeInsets.all(context.sp(16)),
                     decoration: BoxDecoration(
