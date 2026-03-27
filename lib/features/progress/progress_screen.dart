@@ -18,6 +18,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   int _allTimeTotal = 0;
   List<int> _weeklyBars = List.filled(7, 0);
   List<PlaySession> _recentSessions = [];
+  Map<String, int> _heatmapData = {};
   bool _loading = true;
 
   @override
@@ -33,12 +34,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
       repo.getCountsForLastDays(7),
       repo.getRecentSessions(limit: 5),
       repo.getTotalSessionCount(),
+      repo.getCountsForLastDays(84),
     ]);
 
     final streaks = results[0] as ({int current, int best});
     final weekMap = results[1] as Map<String, int>;
     final sessions = results[2] as List<PlaySession>;
     final allTime = results[3] as int;
+    final heatmap = results[4] as Map<String, int>;
 
     final now = DateTime.now();
     final bars = List.generate(7, (i) {
@@ -54,6 +57,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       _weeklyTotal = bars.fold(0, (a, b) => a + b);
       _weeklyBars = bars;
       _recentSessions = sessions;
+      _heatmapData = heatmap;
       _loading = false;
     });
   }
@@ -87,6 +91,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       best: _bestStreak,
                       loading: _loading,
                       cs: cs),
+                  const SizedBox(height: 28),
+                  _buildHeatmapSection(context, cs),
                   const SizedBox(height: 28),
                   _buildMilestones(context, cs),
                   const SizedBox(height: 28),
@@ -134,6 +140,72 @@ class _ProgressScreenState extends State<ProgressScreen> {
             color: cs.secondary,
             letterSpacing: 2,
             fontWeight: FontWeight.w600));
+  }
+
+  Widget _buildHeatmapSection(BuildContext context, ColorScheme cs) {
+    return Container(
+      padding: EdgeInsets.all(context.sp(24)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1B1B),
+        borderRadius: BorderRadius.circular(context.sp(28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Spiritual Consistency',
+                      style: GoogleFonts.notoSerif(
+                          fontSize: context.sp(17), color: cs.onSurface)),
+                  SizedBox(height: context.sp(3)),
+                  Text(
+                    'JOURNEY OVER THE LAST 12 WEEKS',
+                    style: GoogleFonts.manrope(
+                        fontSize: context.sp(8),
+                        color: cs.onSurfaceVariant,
+                        letterSpacing: 1.2),
+                  ),
+                ],
+              ),
+              Icon(Icons.calendar_today_outlined,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                  size: context.sp(18)),
+            ],
+          ),
+          SizedBox(height: context.sp(18)),
+          _HeatmapGrid(cs: cs, data: _heatmapData),
+          SizedBox(height: context.sp(10)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Less',
+                  style: GoogleFonts.manrope(
+                      fontSize: context.sp(8), color: cs.onSurfaceVariant)),
+              SizedBox(width: context.sp(6)),
+              ...[0.0, 0.4, 0.8, 1.0].map((o) => Container(
+                    width: context.sp(9),
+                    height: context.sp(9),
+                    margin: EdgeInsets.symmetric(horizontal: context.sp(2)),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      color: o == 0
+                          ? const Color(0xFF353534)
+                          : cs.primary.withValues(alpha: o),
+                    ),
+                  )),
+              SizedBox(width: context.sp(6)),
+              Text('More',
+                  style: GoogleFonts.manrope(
+                      fontSize: context.sp(8), color: cs.onSurfaceVariant)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMilestones(BuildContext context, ColorScheme cs) {
@@ -628,5 +700,54 @@ class _SessionTile extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _HeatmapGrid extends StatelessWidget {
+  final ColorScheme cs;
+  final Map<String, int> data;
+  const _HeatmapGrid({required this.cs, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final maxCount =
+        data.values.isEmpty ? 1 : data.values.reduce((a, b) => a > b ? a : b);
+
+    return LayoutBuilder(builder: (context, constraints) {
+      const cols = 12;
+      const rows = 7;
+      final spacing = context.sp(3.0);
+      final cellSize = (constraints.maxWidth - (cols - 1) * spacing) / cols;
+      final gridHeight = rows * cellSize + (rows - 1) * spacing;
+
+      return SizedBox(
+        height: gridHeight,
+        child: GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+          ),
+          itemCount: 84,
+          itemBuilder: (_, i) {
+            final date = today.subtract(Duration(days: 83 - i));
+            final key = AppRepository.dateStr(date);
+            final count = data[key] ?? 0;
+            final opacity =
+                count == 0 ? 0.0 : (count / maxCount).clamp(0.2, 1.0);
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: opacity == 0
+                    ? const Color(0xFF353534)
+                    : cs.primary.withValues(alpha: opacity),
+              ),
+            );
+          },
+        ),
+      );
+    });
   }
 }

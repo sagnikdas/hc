@@ -311,7 +311,7 @@ class _SacredNavBar extends StatelessWidget {
     final bottom = MediaQuery.of(context).padding.bottom;
     const icons = [
       Icons.home_rounded,
-      Icons.history_rounded,
+      Icons.auto_graph_rounded,
       Icons.emoji_events_rounded,
       Icons.settings_rounded,
     ];

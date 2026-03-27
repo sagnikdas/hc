@@ -31,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _todayCount = 0;
   int _bestStreak = 0;
-  Map<String, int> _heatmapData = {};
   bool _loading = true;
 
   Map<String, dynamic>? _profile;
@@ -89,14 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final results = await Future.wait([
       repo.getTodayCount(),
       repo.getStreaks(),
-      repo.getCountsForLastDays(84),
     ]);
     if (!mounted) return;
     final streaks = results[1] as ({int current, int best});
     setState(() {
       _todayCount = results[0] as int;
       _bestStreak = streaks.best;
-      _heatmapData = results[2] as Map<String, int>;
       _loading = false;
     });
   }
@@ -136,8 +133,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildQuickStats(cs),
                   const SizedBox(height: 20),
                   _buildSacredMelodies(context, cs),
-                  const SizedBox(height: 20),
-                  _buildHeatmapSection(context, cs),
                 ]),
               ),
             ),
@@ -427,70 +422,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeatmapSection(BuildContext context, ColorScheme cs) {
-    return Container(
-      padding: EdgeInsets.all(context.sp(24)),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
-        borderRadius: BorderRadius.circular(context.sp(28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Spiritual Consistency',
-                      style:
-                          GoogleFonts.notoSerif(fontSize: context.sp(17), color: cs.onSurface)),
-                  SizedBox(height: context.sp(3)),
-                  Text(
-                    'JOURNEY OVER THE LAST 12 WEEKS',
-                    style: GoogleFonts.manrope(
-                        fontSize: context.sp(8),
-                        color: cs.onSurfaceVariant,
-                        letterSpacing: 1.2),
-                  ),
-                ],
-              ),
-              Icon(Icons.calendar_today_outlined,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.4), size: context.sp(18)),
-            ],
-          ),
-          SizedBox(height: context.sp(18)),
-          _HeatmapGrid(cs: cs, data: _heatmapData),
-          SizedBox(height: context.sp(10)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text('Less',
-                  style: GoogleFonts.manrope(
-                      fontSize: context.sp(8), color: cs.onSurfaceVariant)),
-              SizedBox(width: context.sp(6)),
-              ...[0.0, 0.4, 0.8, 1.0].map((o) => Container(
-                    width: context.sp(9),
-                    height: context.sp(9),
-                    margin: EdgeInsets.symmetric(horizontal: context.sp(2)),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
-                      color: o == 0
-                          ? const Color(0xFF353534)
-                          : cs.primary.withValues(alpha: o),
-                    ),
-                  )),
-              SizedBox(width: context.sp(6)),
-              Text('More',
-                  style: GoogleFonts.manrope(
-                      fontSize: context.sp(8), color: cs.onSurfaceVariant)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 
@@ -553,55 +484,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _HeatmapGrid extends StatelessWidget {
-  final ColorScheme cs;
-  final Map<String, int> data;
-  const _HeatmapGrid({required this.cs, required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final today = DateTime.now();
-    final maxCount =
-        data.values.isEmpty ? 1 : data.values.reduce((a, b) => a > b ? a : b);
-
-    // 12 columns, 7 rows, 3px gaps — compute height from actual width
-    return LayoutBuilder(builder: (context, constraints) {
-      const cols = 12;
-      const rows = 7;
-      final spacing = context.sp(3.0);
-      final cellSize = (constraints.maxWidth - (cols - 1) * spacing) / cols;
-      final gridHeight = rows * cellSize + (rows - 1) * spacing;
-
-      return SizedBox(
-        height: gridHeight,
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
-          ),
-          itemCount: 84,
-          itemBuilder: (_, i) {
-            final date = today.subtract(Duration(days: 83 - i));
-            final key = AppRepository.dateStr(date);
-            final count = data[key] ?? 0;
-            final opacity =
-                count == 0 ? 0.0 : (count / maxCount).clamp(0.2, 1.0);
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                color: opacity == 0
-                    ? const Color(0xFF353534)
-                    : cs.primary.withValues(alpha: opacity),
-              ),
-            );
-          },
-        ),
-      );
-    });
-  }
-}
 
 // ── Drawer ─────────────────────────────────────────────────────────────────────
 
