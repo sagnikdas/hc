@@ -124,14 +124,14 @@ class AppRepository {
       'SELECT date, SUM(count) as total FROM play_sessions WHERE date >= ? GROUP BY date',
       [cutoff],
     );
-    return {for (final r in rows) r['date'] as String: (r['total'] as int?) ?? 0};
+    return {for (final r in rows) r['date'] as String: (r['total'] as num?)?.toInt() ?? 0};
   }
 
   Future<int> getTotalSessionCount() async {
     final db = await DatabaseHelper.instance.database;
     final rows = await db.rawQuery(
         'SELECT SUM(count) as total FROM play_sessions');
-    return (rows.first['total'] as int?) ?? 0;
+    return (rows.first['total'] as num?)?.toInt() ?? 0;
   }
 
   Future<List<PlaySession>> getAllSessions(

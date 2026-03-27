@@ -23,22 +23,34 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
   int _homeRefreshSignal = 0;
+  int _progressRefreshSignal = 0;
+  bool _wasPlayScreenOpen = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Rebuild when PlayScreen opens/closes or when the handler becomes ready.
-    isPlayScreenOpen.addListener(_onStateChanged);
+    isPlayScreenOpen.addListener(_onPlayScreenChanged);
     audioHandlerNotifier.addListener(_onStateChanged);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    isPlayScreenOpen.removeListener(_onStateChanged);
+    isPlayScreenOpen.removeListener(_onPlayScreenChanged);
     audioHandlerNotifier.removeListener(_onStateChanged);
     super.dispose();
+  }
+
+  void _onPlayScreenChanged() {
+    final isNowOpen = isPlayScreenOpen.value;
+    // Play screen just closed — reload progress data so heatmap/stats are fresh.
+    if (_wasPlayScreenOpen && !isNowOpen) {
+      _progressRefreshSignal++;
+    }
+    _wasPlayScreenOpen = isNowOpen;
+    setState(() {});
   }
 
   @override
@@ -66,7 +78,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         refreshSignal: _homeRefreshSignal,
         onSwitchToSettings: () => setState(() => _currentIndex = 3),
       ),
-      const ProgressScreen(),
+      ProgressScreen(refreshSignal: _progressRefreshSignal),
       const LeaderboardScreen(),
       const ProfileScreen(),
     ];
@@ -92,6 +104,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         currentIndex: _currentIndex,
         onTap: (i) {
           if (i == 0 && _currentIndex != 0) _homeRefreshSignal++;
+          if (i == 1 && _currentIndex != 1) _progressRefreshSignal++;
           setState(() => _currentIndex = i);
         },
       ),

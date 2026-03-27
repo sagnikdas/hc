@@ -5,7 +5,8 @@ import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
 
 class ProgressScreen extends StatefulWidget {
-  const ProgressScreen({super.key});
+  final int refreshSignal;
+  const ProgressScreen({super.key, this.refreshSignal = 0});
 
   @override
   State<ProgressScreen> createState() => _ProgressScreenState();
@@ -27,39 +28,50 @@ class _ProgressScreenState extends State<ProgressScreen> {
     _loadData();
   }
 
+  @override
+  void didUpdateWidget(ProgressScreen old) {
+    super.didUpdateWidget(old);
+    if (old.refreshSignal != widget.refreshSignal) _loadData();
+  }
+
   Future<void> _loadData() async {
-    final repo = AppRepository.instance;
-    final results = await Future.wait([
-      repo.getStreaks(),
-      repo.getCountsForLastDays(7),
-      repo.getRecentSessions(limit: 5),
-      repo.getTotalSessionCount(),
-      repo.getCountsForLastDays(84),
-    ]);
+    try {
+      final repo = AppRepository.instance;
+      final results = await Future.wait([
+        repo.getStreaks(),
+        repo.getCountsForLastDays(7),
+        repo.getRecentSessions(limit: 5),
+        repo.getTotalSessionCount(),
+        repo.getCountsForLastDays(84),
+      ]);
 
-    final streaks = results[0] as ({int current, int best});
-    final weekMap = results[1] as Map<String, int>;
-    final sessions = results[2] as List<PlaySession>;
-    final allTime = results[3] as int;
-    final heatmap = results[4] as Map<String, int>;
+      final streaks = results[0] as ({int current, int best});
+      final weekMap = results[1] as Map<String, int>;
+      final sessions = results[2] as List<PlaySession>;
+      final allTime = results[3] as int;
+      final heatmap = results[4] as Map<String, int>;
 
-    final now = DateTime.now();
-    final bars = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: 6 - i));
-      return weekMap[AppRepository.dateStr(d)] ?? 0;
-    });
+      final now = DateTime.now();
+      final bars = List.generate(7, (i) {
+        final d = now.subtract(Duration(days: 6 - i));
+        return weekMap[AppRepository.dateStr(d)] ?? 0;
+      });
 
-    if (!mounted) return;
-    setState(() {
-      _currentStreak = streaks.current;
-      _bestStreak = streaks.best;
-      _allTimeTotal = allTime;
-      _weeklyTotal = bars.fold(0, (a, b) => a + b);
-      _weeklyBars = bars;
-      _recentSessions = sessions;
-      _heatmapData = heatmap;
-      _loading = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        _currentStreak = streaks.current;
+        _bestStreak = streaks.best;
+        _allTimeTotal = allTime;
+        _weeklyTotal = bars.fold(0, (a, b) => a + b);
+        _weeklyBars = bars;
+        _recentSessions = sessions;
+        _heatmapData = heatmap;
+        _loading = false;
+      });
+    } catch (e, st) {
+      debugPrint('ProgressScreen._loadData error: $e\n$st');
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -80,6 +92,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 delegate: SliverChildListDelegate([
                   _buildSectionLabel(context, cs),
                   const SizedBox(height: 20),
+                  _buildHeatmapSection(context, cs),
+                  const SizedBox(height: 28),
+                  _buildMilestones(context, cs),
+                  const SizedBox(height: 28),
+                  _buildRecentSessions(cs),
+                  const SizedBox(height: 28),
                   _WeeklyCard(
                       total: _weeklyTotal,
                       bars: _weeklyBars,
@@ -91,12 +109,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       best: _bestStreak,
                       loading: _loading,
                       cs: cs),
-                  const SizedBox(height: 28),
-                  _buildHeatmapSection(context, cs),
-                  const SizedBox(height: 28),
-                  _buildMilestones(context, cs),
-                  const SizedBox(height: 28),
-                  _buildRecentSessions(cs),
                 ]),
               ),
             ),
@@ -137,7 +149,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Text('SADHANA PROGRESS',
         style: GoogleFonts.manrope(
             fontSize: context.sp(10),
-            color: cs.secondary,
+            color: cs.primary,
             letterSpacing: 2,
             fontWeight: FontWeight.w600));
   }
@@ -275,7 +287,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             child: Icon(
                               m.icon,
                               color: m.unlocked
-                                  ? cs.secondary
+                                  ? cs.primary
                                   : cs.onSurfaceVariant,
                               size: ctx.sp(20),
                             ),
@@ -478,7 +490,7 @@ class _WeeklyCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.auto_graph_rounded, color: cs.secondary, size: context.sp(26)),
+                Icon(Icons.auto_graph_rounded, color: cs.primary, size: context.sp(26)),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: context.sp(8), vertical: context.sp(4)),
                   decoration: BoxDecoration(
@@ -496,7 +508,7 @@ class _WeeklyCard extends StatelessWidget {
             SizedBox(height: context.sp(10)),
             Text(loading ? '–' : '$total',
                 style:
-                    GoogleFonts.notoSerif(fontSize: context.sp(34), color: cs.onSurface)),
+                    GoogleFonts.notoSerif(fontSize: context.sp(34), color: cs.primary)),
             Text('Recitations this week',
                 style: GoogleFonts.manrope(
                     fontSize: context.sp(11), color: cs.onSurfaceVariant)),
@@ -519,7 +531,7 @@ class _WeeklyCard extends StatelessWidget {
                           height: barHeight * frac,
                           decoration: BoxDecoration(
                             color: isToday && count > 0
-                                ? cs.secondary
+                                ? cs.primary
                                 : count > 0
                                     ? cs.primary.withValues(alpha: 0.6)
                                     : const Color(0xFF353534),
@@ -546,7 +558,7 @@ class _WeeklyCard extends StatelessWidget {
                         style: GoogleFonts.manrope(
                           fontSize: context.sp(9),
                           color: isToday
-                              ? cs.secondary
+                              ? cs.primary
                               : cs.onSurfaceVariant.withValues(alpha: 0.5),
                           fontWeight:
                               isToday ? FontWeight.w700 : FontWeight.w400,
@@ -601,7 +613,7 @@ class _StreakCard extends StatelessWidget {
               TextSpan(
                   text: loading ? '– ' : '$current ',
                   style: GoogleFonts.notoSerif(
-                      fontSize: context.sp(44), color: cs.secondary)),
+                      fontSize: context.sp(44), color: cs.primary)),
               TextSpan(
                   text: 'Days',
                   style: GoogleFonts.manrope(
@@ -633,7 +645,7 @@ class _StreakCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: const Color(0xFF353534),
-              valueColor: AlwaysStoppedAnimation(cs.secondary),
+              valueColor: AlwaysStoppedAnimation(cs.primary),
               minHeight: context.sp(4),
             ),
           ),
@@ -690,7 +702,7 @@ class _SessionTile extends StatelessWidget {
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('x $count',
                 style: GoogleFonts.notoSerif(
-                    fontSize: context.sp(18), color: cs.secondary)),
+                    fontSize: context.sp(18), color: cs.primary)),
             Text('COUNTS',
                 style: GoogleFonts.manrope(
                     fontSize: context.sp(8),
@@ -713,41 +725,32 @@ class _HeatmapGrid extends StatelessWidget {
     final today = DateTime.now();
     final maxCount =
         data.values.isEmpty ? 1 : data.values.reduce((a, b) => a > b ? a : b);
+    final spacing = context.sp(3.0);
 
-    return LayoutBuilder(builder: (context, constraints) {
-      const cols = 12;
-      const rows = 7;
-      final spacing = context.sp(3.0);
-      final cellSize = (constraints.maxWidth - (cols - 1) * spacing) / cols;
-      final gridHeight = rows * cellSize + (rows - 1) * spacing;
-
-      return SizedBox(
-        height: gridHeight,
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 12,
+        mainAxisSpacing: spacing,
+        crossAxisSpacing: spacing,
+      ),
+      itemCount: 84,
+      itemBuilder: (_, i) {
+        final date = today.subtract(Duration(days: 83 - i));
+        final key = AppRepository.dateStr(date);
+        final count = data[key] ?? 0;
+        final opacity =
+            count == 0 ? 0.0 : (count / maxCount).clamp(0.2, 1.0);
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(2),
+            color: opacity == 0
+                ? const Color(0xFF353534)
+                : cs.primary.withValues(alpha: opacity),
           ),
-          itemCount: 84,
-          itemBuilder: (_, i) {
-            final date = today.subtract(Duration(days: 83 - i));
-            final key = AppRepository.dateStr(date);
-            final count = data[key] ?? 0;
-            final opacity =
-                count == 0 ? 0.0 : (count / maxCount).clamp(0.2, 1.0);
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                color: opacity == 0
-                    ? const Color(0xFF353534)
-                    : cs.primary.withValues(alpha: opacity),
-              ),
-            );
-          },
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 }
