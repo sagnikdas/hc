@@ -180,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: context.sp(240),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: cs.secondary.withValues(alpha: 0.04),
+                color: cs.primary.withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -408,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.people_rounded, color: cs.secondary, size: context.sp(18)),
+              Icon(Icons.people_rounded, color: cs.primary, size: context.sp(18)),
               SizedBox(width: context.sp(10)),
               Text(
                 'Invite Devotees',
@@ -487,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'DEVOTIONAL INTENT',
           style: GoogleFonts.manrope(
             fontSize: context.sp(10),
-            color: cs.secondary,
+            color: cs.primary,
             letterSpacing: 2.5,
             fontWeight: FontWeight.w600,
           ),
@@ -562,7 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: GoogleFonts.notoSerif(
                           fontSize: context.sp(26),
                           color:
-                              isSelected ? cs.primary : cs.secondary,
+                              isSelected ? cs.primary : cs.primary,
                         ),
                       ),
                       Text(
@@ -642,7 +642,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.text_increase_rounded, color: cs.secondary, size: context.sp(18)),
+              Icon(Icons.text_increase_rounded, color: cs.primary, size: context.sp(18)),
               SizedBox(width: context.sp(10)),
               Text(
                 'Font Size',
@@ -775,7 +775,7 @@ class _ToggleRow extends StatelessWidget {
             height: context.sp(38),
             decoration: const BoxDecoration(
                 shape: BoxShape.circle, color: Color(0xFF2A2A2A)),
-            child: Icon(icon, color: cs.secondary, size: context.sp(18)),
+            child: Icon(icon, color: cs.primary, size: context.sp(18)),
           ),
           SizedBox(width: context.sp(12)),
           Expanded(
