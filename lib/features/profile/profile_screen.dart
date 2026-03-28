@@ -236,10 +236,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Icon(Icons.tune_rounded,
               color: cs.primary.withValues(alpha: 0.6), size: context.sp(24)),
-          Text(
-            'Sankalp Settings',
-            style: GoogleFonts.notoSerif(
-                fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
+          Flexible(
+            child: Text(
+              'Sankalp Settings',
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.notoSerif(
+                  fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
+            ),
           ),
           SizedBox(width: context.sp(24)),
         ],

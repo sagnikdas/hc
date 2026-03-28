@@ -83,6 +83,29 @@ class AppRepository {
     allTimeTotalForTest = null;
   }
 
+  // Settings / referral-code overrides — bypass sqflite for widget tests so
+  // pumpAndSettle() can settle without waiting for FFI isolate messages.
+  @visibleForTesting
+  UserSettings? settingsForTest;
+  @visibleForTesting
+  String? referralCodeForTest;
+
+  @visibleForTesting
+  void overrideSettingsForTest(UserSettings settings) {
+    settingsForTest = settings;
+  }
+
+  @visibleForTesting
+  void overrideReferralCodeForTest(String code) {
+    referralCodeForTest = code;
+  }
+
+  @visibleForTesting
+  void clearSettingsOverrideForTest() {
+    settingsForTest = null;
+    referralCodeForTest = null;
+  }
+
   // ── Sessions ──────────────────────────────────────────────────────────────
 
   Future<void> insertSession(PlaySession session) async {
@@ -238,6 +261,7 @@ class AppRepository {
   // ── Settings ─────────────────────────────────────────────────────────────
 
   Future<UserSettings> getSettings() async {
+    if (settingsForTest != null) return settingsForTest!;
     final db = await DatabaseHelper.instance.database;
     final rows = await db.query('user_settings', where: 'id = 1');
     if (rows.isEmpty) return const UserSettings();
@@ -268,6 +292,7 @@ class AppRepository {
   // ── Referral ──────────────────────────────────────────────────────────────
 
   Future<String> getOrCreateReferralCode() async {
+    if (referralCodeForTest != null) return referralCodeForTest!;
     final s = await getSettings();
     if (s.referralCode != null) return s.referralCode!;
     final code = _generateCode();

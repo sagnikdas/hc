@@ -27,6 +27,14 @@ class SupabaseService {
   @visibleForTesting
   static Future<List<Map<String, dynamic>>> Function({required bool weekly})?
       fetchLeaderboardForTest;
+  @visibleForTesting
+  static Future<void> Function({
+    required String name,
+    required String email,
+    required String phone,
+    required DateTime dateOfBirth,
+    String? referralCode,
+  })? upsertProfileForTest;
 
   @visibleForTesting
   static void resetAuthForTest() {
@@ -35,6 +43,7 @@ class SupabaseService {
     fetchProfileForTest = null;
     signInForTest = null;
     fetchLeaderboardForTest = null;
+    upsertProfileForTest = null;
   }
 
   // ── Auth ─────────────────────────────────────────────────────────────────
@@ -112,6 +121,15 @@ class SupabaseService {
     required DateTime dateOfBirth,
     String? referralCode,
   }) async {
+    if (upsertProfileForTest != null) {
+      return upsertProfileForTest!(
+        name: name,
+        email: email,
+        phone: phone,
+        dateOfBirth: dateOfBirth,
+        referralCode: referralCode,
+      );
+    }
     final uid = currentUser?.id;
     if (uid == null) return;
 
