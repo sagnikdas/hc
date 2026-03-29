@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/responsive.dart';
+import '../../core/supabase_service.dart';
+import '../../core/transitions.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
+import '../auth/sign_in_screen.dart';
 
 class ProgressScreen extends StatefulWidget {
   final int refreshSignal;
@@ -22,9 +26,21 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Map<String, int> _heatmapData = {};
   bool _loading = true;
 
+  bool _isSignedIn = false;
+  StreamSubscription? _authSub;
+
   @override
   void initState() {
     super.initState();
+    _isSignedIn = SupabaseService.currentUser != null;
+    _authSub = SupabaseService.authStateChanges.listen((_) {
+      if (!mounted) return;
+      final signedIn = SupabaseService.currentUser != null;
+      if (signedIn != _isSignedIn) {
+        setState(() => _isSignedIn = signedIn);
+        _loadData();
+      }
+    });
     _loadData();
   }
 
@@ -32,6 +48,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
   void didUpdateWidget(ProgressScreen old) {
     super.didUpdateWidget(old);
     if (old.refreshSignal != widget.refreshSignal) _loadData();
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -57,6 +79,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         return weekMap[AppRepository.dateStr(d)] ?? 0;
       });
 
+      // For unsigned-in users, only expose sessions from the last 30 minutes.
+      final visibleSessions = _isSignedIn
+          ? sessions
+          : sessions.where((s) {
+              final age = now.millisecondsSinceEpoch - s.completedAt;
+              return age <= const Duration(minutes: 30).inMilliseconds;
+            }).toList();
+
       if (!mounted) return;
       setState(() {
         _currentStreak = streaks.current;
@@ -64,7 +94,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         _allTimeTotal = allTime;
         _weeklyTotal = bars.fold(0, (a, b) => a + b);
         _weeklyBars = bars;
-        _recentSessions = sessions;
+        _recentSessions = visibleSessions;
         _heatmapData = heatmap;
         _loading = false;
       });
@@ -92,23 +122,28 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 delegate: SliverChildListDelegate([
                   _buildSectionLabel(context, cs),
                   SizedBox(height: context.sp(20)),
-                  _buildHeatmapSection(context, cs),
-                  SizedBox(height: context.sp(28)),
-                  _buildMilestones(context, cs),
-                  SizedBox(height: context.sp(28)),
                   _buildRecentSessions(cs),
                   SizedBox(height: context.sp(28)),
-                  _WeeklyCard(
-                      total: _weeklyTotal,
-                      bars: _weeklyBars,
-                      loading: _loading,
-                      cs: cs),
-                  SizedBox(height: context.sp(14)),
-                  _StreakCard(
-                      current: _currentStreak,
-                      best: _bestStreak,
-                      loading: _loading,
-                      cs: cs),
+                  if (!_isSignedIn) ...[
+                    _SignInUpsellCard(cs: cs),
+                    SizedBox(height: context.sp(28)),
+                  ] else ...[
+                    _buildHeatmapSection(context, cs),
+                    SizedBox(height: context.sp(28)),
+                    _buildMilestones(context, cs),
+                    SizedBox(height: context.sp(28)),
+                    _WeeklyCard(
+                        total: _weeklyTotal,
+                        bars: _weeklyBars,
+                        loading: _loading,
+                        cs: cs),
+                    SizedBox(height: context.sp(14)),
+                    _StreakCard(
+                        current: _currentStreak,
+                        best: _bestStreak,
+                        loading: _loading,
+                        cs: cs),
+                  ],
                 ]),
               ),
             ),
@@ -260,7 +295,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
             style:
                 GoogleFonts.notoSerif(fontSize: context.sp(20), color: cs.onSurface)),
         SizedBox(height: context.sp(16)),
-        // Avoid fixed-height constraints so tiles don't overflow at max font size.
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -404,6 +438,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Widget _buildRecentSessions(ColorScheme cs) {
+    final isSignedIn = _isSignedIn;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -415,17 +450,28 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   style: GoogleFonts.notoSerif(
                       fontSize: context.sp(20), color: cs.onSurface)),
             ),
-            GestureDetector(
-              onTap: () => _showAllSessions(context, cs),
-              child: Text('VIEW ALL',
-                  style: GoogleFonts.manrope(
-                      fontSize: context.sp(9),
-                      color: cs.primary,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w700)),
-            ),
+            if (isSignedIn)
+              GestureDetector(
+                onTap: () => _showAllSessions(context, cs),
+                child: Text('VIEW ALL',
+                    style: GoogleFonts.manrope(
+                        fontSize: context.sp(9),
+                        color: cs.primary,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w700)),
+              ),
           ],
         ),
+        if (!isSignedIn) ...[
+          SizedBox(height: context.sp(6)),
+          Text(
+            'Showing recitations from the last 30 minutes',
+            style: GoogleFonts.manrope(
+                fontSize: context.sp(11),
+                color: cs.onSurfaceVariant,
+                fontStyle: FontStyle.italic),
+          ),
+        ],
         SizedBox(height: context.sp(14)),
         if (_loading)
           const Center(child: CircularProgressIndicator())
@@ -462,6 +508,139 @@ class _ProgressScreenState extends State<ProgressScreen> {
               ),
             );
           }),
+      ],
+    );
+  }
+}
+
+// ── Sign-in upsell card (shown when user is not authenticated) ─────────────
+
+class _SignInUpsellCard extends StatelessWidget {
+  final ColorScheme cs;
+  const _SignInUpsellCard({required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(context.sp(24)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1B1B),
+        borderRadius: BorderRadius.circular(context.sp(24)),
+        border: Border.all(
+          color: cs.primary.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: context.sp(40),
+                height: context.sp(40),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: cs.primary.withValues(alpha: 0.12),
+                ),
+                child: Icon(Icons.lock_open_rounded,
+                    color: cs.primary, size: context.sp(20)),
+              ),
+              SizedBox(width: context.sp(14)),
+              Expanded(
+                child: Text(
+                  'Unlock Your Full Journey',
+                  style: GoogleFonts.notoSerif(
+                      fontSize: context.sp(17), color: cs.onSurface),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.sp(16)),
+          Text(
+            'Sign in with Google to sync your practice and unlock:',
+            style: GoogleFonts.manrope(
+                fontSize: context.sp(12),
+                color: cs.onSurfaceVariant,
+                height: 1.5),
+          ),
+          SizedBox(height: context.sp(12)),
+          _UpsellBullet(
+            icon: Icons.calendar_today_outlined,
+            label: '12-week heatmap of your spiritual consistency',
+            cs: cs,
+          ),
+          SizedBox(height: context.sp(8)),
+          _UpsellBullet(
+            icon: Icons.auto_graph_rounded,
+            label: 'Weekly & all-time recitation streaks',
+            cs: cs,
+          ),
+          SizedBox(height: context.sp(8)),
+          _UpsellBullet(
+            icon: Icons.emoji_events_rounded,
+            label: 'Community leaderboard — see where you rank',
+            cs: cs,
+          ),
+          SizedBox(height: context.sp(8)),
+          _UpsellBullet(
+            icon: Icons.devices_rounded,
+            label: 'Full history synced across your devices',
+            cs: cs,
+          ),
+          SizedBox(height: context.sp(20)),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(slideUpRoute(const SignInScreen())),
+            child: Container(
+              width: double.infinity,
+              height: context.sp(48),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [cs.primary, cs.primaryContainer],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(context.sp(12)),
+              ),
+              child: Center(
+                child: Text(
+                  'Sign in with Google',
+                  style: GoogleFonts.notoSerif(
+                      fontSize: context.sp(15),
+                      fontWeight: FontWeight.w700,
+                      color: cs.onPrimary),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UpsellBullet extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final ColorScheme cs;
+  const _UpsellBullet({required this.icon, required this.label, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: cs.primary.withValues(alpha: 0.7), size: context.sp(14)),
+        SizedBox(width: context.sp(8)),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.manrope(
+                fontSize: context.sp(11),
+                color: cs.onSurfaceVariant,
+                height: 1.4),
+          ),
+        ),
       ],
     );
   }

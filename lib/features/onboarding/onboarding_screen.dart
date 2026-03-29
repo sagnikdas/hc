@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/main_shell.dart';
 import '../../core/notification_service.dart';
+import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -17,6 +19,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late final AnimationController _controller;
   late final Animation<double> _fadeIn;
   bool _starting = false;
+  bool _signingIn = false;
+  String? _signInError;
 
   @override
   void initState() {
@@ -35,17 +39,53 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.dispose();
   }
 
-  Future<void> _onGetStarted() async {
+  Future<void> _proceed() async {
     if (_starting) return;
     setState(() => _starting = true);
     await AppRepository.instance.markOnboardingShown();
-    // Request notification permissions at first-launch moment.
     await NotificationService.requestPermissions();
     await NotificationService.scheduleDailyReminders();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShell()),
     );
+  }
+
+  Future<void> _onSignInWithGoogle() async {
+    if (_signingIn || _starting) return;
+    setState(() {
+      _signingIn = true;
+      _signInError = null;
+    });
+    try {
+      await SupabaseService.signInWithGoogle();
+    } catch (e, st) {
+      debugPrint('Onboarding Google sign-in error: $e\n$st');
+      if (mounted) {
+        setState(() {
+          _signingIn = false;
+          _signInError = kDebugMode
+              ? '$e'
+              : (e is StateError)
+                  ? '$e'
+                  : 'Sign-in failed. Please try again.';
+        });
+      }
+      // Always exit — never fall through to _proceed() on error.
+      return;
+    }
+    // If the user cancelled the picker, signInWithGoogle() returns normally
+    // but no session is created. In that case, reset the loading state and
+    // stay on the onboarding screen so they can try again or skip explicitly.
+    if (SupabaseService.currentUser == null) {
+      if (mounted) setState(() => _signingIn = false);
+      return;
+    }
+    await _proceed();
+  }
+
+  Future<void> _onSkip() async {
+    await _proceed();
   }
 
   void _onShare() {
@@ -163,13 +203,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
               ),
               const SizedBox(height: 14),
-              // Get Started
+              // Sign in with Google (primary CTA)
               Padding(
-                padding: EdgeInsets.fromLTRB(
-                  32, 0, 32, MediaQuery.of(context).padding.bottom + 24,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: GestureDetector(
-                  onTap: _starting ? null : _onGetStarted,
+                  onTap: (_signingIn || _starting) ? null : _onSignInWithGoogle,
                   child: Container(
                     width: size.width,
                     height: 56,
@@ -189,7 +227,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ],
                     ),
                     child: Center(
-                      child: _starting
+                      child: (_signingIn || _starting)
                           ? const SizedBox(
                               width: 22,
                               height: 22,
@@ -198,14 +236,77 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 color: Colors.white,
                               ),
                             )
-                          : Text(
-                              'Begin Your Journey',
-                              style: GoogleFonts.notoSerif(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: cs.onPrimary,
-                              ),
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'G',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF4285F4),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Continue with Google',
+                                  style: GoogleFonts.notoSerif(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: cs.onPrimary,
+                                  ),
+                                ),
+                              ],
                             ),
+                    ),
+                  ),
+                ),
+              ),
+              if (_signInError != null) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    _signInError!,
+                    style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+              // Skip for now (secondary)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  32, 4, 32, MediaQuery.of(context).padding.bottom + 20,
+                ),
+                child: GestureDetector(
+                  onTap: (_signingIn || _starting) ? null : _onSkip,
+                  child: SizedBox(
+                    width: size.width,
+                    height: 44,
+                    child: Center(
+                      child: Text(
+                        'Skip for now',
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                          decorationColor: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                        ),
+                      ),
                     ),
                   ),
                 ),

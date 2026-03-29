@@ -17,6 +17,20 @@ import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
 import 'package:hanuman_chalisa/features/leaderboard/leaderboard_screen.dart';
 import 'package:hanuman_chalisa/main.dart' show isPlayScreenOpen;
 
+// ── Mock user ─────────────────────────────────────────────────────────────────
+//
+// Most existing tests verify the leaderboard content (tabs, entries, medals,
+// refresh). These are only rendered when signed in. We set up a signed-in user
+// by default in setUp so existing tests continue to pass.
+// See leaderboard_signin_gate_test.dart for guest/gate-specific tests.
+
+class _MockUser extends Mock implements User {
+  @override
+  String get id => 'lb-test-user';
+}
+
+final _kSignedInUser = _MockUser();
+
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
 int _dbUid = 0;
@@ -84,7 +98,8 @@ void main() {
     isPlayScreenOpen.value = false;
 
     SupabaseService.authChangesForTest = authCtrl.stream;
-    SupabaseService.currentUserForTest = () => null;
+    // Signed-in by default so the leaderboard view (not gate) is shown.
+    SupabaseService.currentUserForTest = () => _kSignedInUser;
     SupabaseService.fetchProfileForTest = () async => null;
     SupabaseService.signInForTest = null;
     SupabaseService.fetchLeaderboardForTest =
@@ -398,25 +413,39 @@ void main() {
   // ── Group 6: isMe / you badge ───────────────────────────────────────────────
 
   group('isMe / you badge', () {
-    testWidgets('no you badge when currentUser is null', (tester) async {
+    // The gate is shown for null users (tested in leaderboard_signin_gate_test).
+    // Here we use a signed-in user whose ID does not match any entry to verify
+    // that the "you" badge is not shown even when authenticated.
+    testWidgets('no you badge when signed-in user ID matches no entry',
+        (tester) async {
       _portraitView(tester);
-      SupabaseService.currentUserForTest = () => null;
+      // _kSignedInUser.id == 'lb-test-user'; none of _sampleEntries match it.
       SupabaseService.fetchLeaderboardForTest =
-          ({required bool weekly}) async => List<Map<String, dynamic>>.from(_sampleEntries);
+          ({required bool weekly}) async =>
+              List<Map<String, dynamic>>.from(_sampleEntries);
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
       expect(find.text('you'), findsNothing);
     });
 
-    testWidgets('no you container when all entries have non-matching user_ids',
+    testWidgets('no you badge when all entries have non-matching user_ids',
         (tester) async {
       _portraitView(tester);
-      SupabaseService.currentUserForTest = () => null;
-      SupabaseService.fetchLeaderboardForTest = ({required bool weekly}) async =>
-          [
-            {'rank': 1, 'user_id': 'other1', 'display_name': 'Rama', 'total_count': 5},
-            {'rank': 2, 'user_id': 'other2', 'display_name': 'Lakshmana', 'total_count': 3},
-          ];
+      SupabaseService.fetchLeaderboardForTest =
+          ({required bool weekly}) async => [
+                {
+                  'rank': 1,
+                  'user_id': 'other1',
+                  'display_name': 'Rama',
+                  'total_count': 5
+                },
+                {
+                  'rank': 2,
+                  'user_id': 'other2',
+                  'display_name': 'Lakshmana',
+                  'total_count': 3
+                },
+              ];
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
       expect(find.text('you'), findsNothing);

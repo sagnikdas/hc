@@ -1,17 +1,35 @@
 // ignore_for_file: avoid_relative_lib_imports
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:hanuman_chalisa/core/supabase_service.dart';
 import 'package:hanuman_chalisa/core/theme.dart';
 import 'package:hanuman_chalisa/data/local/database_helper.dart';
 import 'package:hanuman_chalisa/data/models/play_session.dart';
 import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
 import 'package:hanuman_chalisa/features/progress/progress_screen.dart';
+
+// ── Mock user ─────────────────────────────────────────────────────────────────
+//
+// ProgressScreen now reads SupabaseService.currentUser in initState and
+// subscribes to authStateChanges. All existing tests verify the signed-in view
+// (heatmap, milestones, streak, weekly), so we set up a signed-in user by
+// default in setUp. For guest-mode tests see progress_guest_view_test.dart.
+
+class _MockUser extends Mock implements User {
+  @override
+  String get id => 'progress-test-user';
+}
+
+final _kSignedInUser = _MockUser();
 
 // ── Overflow suppression ──────────────────────────────────────────────────────
 //
@@ -95,6 +113,8 @@ Finder _richTextContaining(String s) => find.byWidgetPredicate(
 // ─────────────────────────────────────────────────────────────────────────────
 
 void main() {
+  late StreamController<AuthState> _authCtrl;
+
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -109,11 +129,17 @@ void main() {
 
   setUp(() {
     _freshRepo();
+    // Provide a signed-in user so that all signed-in sections are rendered.
+    _authCtrl = StreamController<AuthState>.broadcast();
+    SupabaseService.authChangesForTest = _authCtrl.stream;
+    SupabaseService.currentUserForTest = () => _kSignedInUser;
     AppRepository.instance.overrideProgressForTest();
   });
 
   tearDown(() {
     AppRepository.instance.clearStatsOverrideForTest();
+    if (!_authCtrl.isClosed) _authCtrl.close();
+    SupabaseService.resetAuthForTest();
   });
 
   // ── 1. Initial render ──────────────────────────────────────────────────────

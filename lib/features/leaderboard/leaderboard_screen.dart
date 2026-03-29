@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/responsive.dart';
@@ -23,6 +24,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   StreamSubscription? _authSub;
 
+  bool get _isSignedIn => _currentUserId != null;
+
   @override
   void initState() {
     super.initState();
@@ -30,15 +33,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     _tabs.addListener(_onTabChange);
     _currentUserId = SupabaseService.currentUser?.id;
     _authSub = SupabaseService.authStateChanges.listen((state) {
-      if (mounted) setState(() => _currentUserId = SupabaseService.currentUser?.id);
+      if (!mounted) return;
+      final newId = SupabaseService.currentUser?.id;
+      setState(() => _currentUserId = newId);
+      // Auto-load leaderboard when user signs in from the gate
+      if (newId != null && !_loadedOnce) {
+        _loadedOnce = true;
+        _load(weekly: true);
+      }
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only load once when the screen becomes part of the tree.
-    if (!_loadedOnce) {
+    if (!_loadedOnce && _isSignedIn) {
       _loadedOnce = true;
       _load(weekly: true);
     }
@@ -92,16 +101,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       body: Column(
         children: [
           _buildHeader(context, cs),
-          _buildTabBar(cs),
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [
-                _buildList(cs),
-                _buildList(cs),
-              ],
+          if (_isSignedIn) ...[
+            _buildTabBar(cs),
+            Expanded(
+              child: TabBarView(
+                controller: _tabs,
+                children: [
+                  _buildList(cs),
+                  _buildList(cs),
+                ],
+              ),
             ),
-          ),
+          ] else
+            Expanded(child: _buildSignInGate(context, cs)),
         ],
       ),
     );
@@ -128,7 +140,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             style: GoogleFonts.notoSerif(
                 fontSize: context.sp(20), color: cs.primary, letterSpacing: -0.3),
           ),
-          if (!_loading)
+          if (_isSignedIn && !_loading)
             GestureDetector(
               onTap: () => _load(weekly: _tabs.index == 0),
               child: Icon(Icons.refresh_rounded,
@@ -164,6 +176,56 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           tabs: const [
             Tab(text: 'This Week'),
             Tab(text: 'All Time'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignInGate(BuildContext context, ColorScheme cs) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(context.sp(32)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: context.sp(80),
+              height: context.sp(80),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: cs.primary.withValues(alpha: 0.1),
+              ),
+              child: Icon(Icons.emoji_events_rounded,
+                  color: cs.primary, size: context.sp(40)),
+            ),
+            SizedBox(height: context.sp(24)),
+            Text(
+              'Join the Community',
+              style: GoogleFonts.notoSerif(
+                  fontSize: context.sp(22), color: cs.onSurface),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: context.sp(12)),
+            Text(
+              'Sign in with Google to see how you rank among thousands of devoted practitioners around the world.',
+              style: GoogleFonts.manrope(
+                  fontSize: context.sp(13),
+                  color: cs.onSurfaceVariant,
+                  height: 1.6),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: context.sp(10)),
+            Text(
+              'Your recitations will sync and appear on the global leaderboard.',
+              style: GoogleFonts.manrope(
+                  fontSize: context.sp(12),
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                  height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: context.sp(32)),
+            _SignInButton(cs: cs),
           ],
         ),
       ),
@@ -256,6 +318,125 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           );
         },
       ),
+    );
+  }
+}
+
+// ── Sign-in button used inside the leaderboard gate ───────────────────────────
+
+class _SignInButton extends StatefulWidget {
+  final ColorScheme cs;
+  const _SignInButton({required this.cs});
+
+  @override
+  State<_SignInButton> createState() => _SignInButtonState();
+}
+
+class _SignInButtonState extends State<_SignInButton> {
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _signIn() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await SupabaseService.signInWithGoogle();
+    } catch (e, st) {
+      debugPrint('Leaderboard sign-in error: $e\n$st');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = kDebugMode
+              ? '$e'
+              : (e is StateError)
+                  ? '$e'
+                  : 'Sign-in failed. Please try again.';
+        });
+      }
+      return;
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = widget.cs;
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _loading ? null : _signIn,
+          child: Container(
+            width: double.infinity,
+            height: context.sp(54),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [cs.primary, cs.primaryContainer],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(context.sp(14)),
+              boxShadow: [
+                BoxShadow(
+                  color: cs.primary.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: _loading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: context.sp(22),
+                          height: context.sp(22),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                          ),
+                          child: Center(
+                            child: Text(
+                              'G',
+                              style: TextStyle(
+                                fontSize: context.sp(13),
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF4285F4),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: context.sp(10)),
+                        Text(
+                          'Sign in with Google',
+                          style: GoogleFonts.notoSerif(
+                              fontSize: context.sp(16),
+                              fontWeight: FontWeight.w700,
+                              color: cs.onPrimary),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+        if (_error != null) ...[
+          SizedBox(height: context.sp(10)),
+          Text(
+            _error!,
+            style: GoogleFonts.manrope(
+                fontSize: context.sp(12), color: cs.error),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
     );
   }
 }
