@@ -70,8 +70,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   ? '$e'
                   : 'Sign-in failed. Please try again.';
         });
-        return;
       }
+      // Always exit — never fall through to _proceed() on error.
+      return;
+    }
+    // If the user cancelled the picker, signInWithGoogle() returns normally
+    // but no session is created. In that case, reset the loading state and
+    // stay on the onboarding screen so they can try again or skip explicitly.
+    if (SupabaseService.currentUser == null) {
+      if (mounted) setState(() => _signingIn = false);
+      return;
     }
     await _proceed();
   }
