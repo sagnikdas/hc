@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../play/audio_track_selection_screen.dart';
 import '../play/play_screen.dart';
 import '../recitation/recitation_screen.dart';
 import '../../core/transitions.dart';
@@ -103,6 +104,22 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context)
         .push(slideUpRoute(PlayScreen(initialVoice: assetPath)))
         .then((_) => _loadStats());
+  }
+
+  Future<void> _openChalisaTile() async {
+    final settings = await AppRepository.instance.getSettings();
+    if (!mounted) return;
+    if (settings.preferredTrack == null) {
+      // First time — show track selection screen.
+      Navigator.of(context)
+          .push(slideUpRoute(const AudioTrackSelectionScreen()))
+          .then((_) => _loadStats());
+    } else {
+      // Returning user — play directly with saved preference.
+      Navigator.of(context)
+          .push(slideUpRoute(PlayScreen(initialTrackId: settings.preferredTrack)))
+          .then((_) => _loadStats());
+    }
   }
 
   void _openRecitation() {
@@ -363,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: GestureDetector(
                   onTap: () => tracks[i].isRecitation
                       ? _openRecitation()
-                      : _openPlay(assetPath: tracks[i].asset),
+                      : _openChalisaTile(),
                   child: Container(
                     padding: EdgeInsets.all(context.sp(16)),
                     decoration: BoxDecoration(

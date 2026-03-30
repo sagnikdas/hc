@@ -10,10 +10,12 @@ import '../../core/audio_handler.dart';
 import '../../core/responsive.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
+import '../../data/models/audio_track.dart';
 
 class PlayScreen extends StatefulWidget {
   final int? initialTarget;
   final String? initialVoice;
+  final String? initialTrackId;
   @visibleForTesting
   final Set<int>? debugMilestones;
   @visibleForTesting
@@ -24,6 +26,7 @@ class PlayScreen extends StatefulWidget {
     super.key,
     this.initialTarget,
     this.initialVoice,
+    this.initialTrackId,
     this.debugMilestones,
     this.debugReferralCodeProvider,
     this.debugSaveSessionOverride,
@@ -34,10 +37,11 @@ class PlayScreen extends StatefulWidget {
 }
 
 class _PlayScreenState extends State<PlayScreen> {
-  static const _defaultAudioAsset = 'assets/audio/hc_real.mp3';
   static const _quickCounts = [1, 11, 21, 108];
   // Milestone bottom-sheet triggers.
   static const _milestones = {11, 21, 108};
+
+  late AudioTrack _currentTrack;
   Set<int> get _activeMilestones => widget.debugMilestones ?? _milestones;
 
   // Guard: _initAudio must only wire up once even if handler becomes ready
@@ -64,6 +68,7 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void initState() {
     super.initState();
+    _currentTrack = trackById(widget.initialTrackId ?? widget.initialVoice);
     // Defer to avoid setState-during-build on the parent MainShell.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       isPlayScreenOpen.value = true;
@@ -119,14 +124,78 @@ class _PlayScreenState extends State<PlayScreen> {
         if (mounted) setState(() => _loaded = true);
         return;
       }
-      final asset = widget.initialVoice ?? _defaultAudioAsset;
-      await handler.loadVoice(asset);
+      await lyricsService.loadTrack(_currentTrack.lyricsPath);
+      await handler.loadVoice(_currentTrack.assetPath);
       if (!mounted) return;
       setState(() => _loaded = true);
       await handler.play();
     } catch (e) {
       debugPrint('Audio load failed: $e');
     }
+  }
+
+  Future<void> _switchTrack(AudioTrack newTrack) async {
+    if (newTrack.id == _currentTrack.id) return;
+    setState(() {
+      _currentTrack = newTrack;
+      _completedCount = 0;
+      _seekForwardThisRound = false;
+      _completionHandled = false;
+      _shownMilestones.clear();
+    });
+    final s = await AppRepository.instance.getSettings();
+    await AppRepository.instance.saveSettings(s.copyWith(preferredTrack: newTrack.id));
+    await lyricsService.loadTrack(newTrack.lyricsPath);
+    await audioHandler!.loadVoice(newTrack.assetPath);
+    if (!mounted) return;
+    await audioHandler!.seek(Duration.zero);
+    await audioHandler!.play();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showTrackPicker() async {
+    final cs = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF131313),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Choose Recitation',
+                  style: GoogleFonts.notoSerif(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                for (final track in kAudioTracks) ...[
+                  _TrackPickerTile(
+                    track: track,
+                    selected: track.id == _currentTrack.id,
+                    cs: cs,
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      _switchTrack(track);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _onPlayerState(PlayerState state) {
@@ -631,7 +700,47 @@ class _PlayScreenState extends State<PlayScreen> {
             ),
           ),
 
-          SizedBox(height: context.sp(14)),
+          SizedBox(height: context.sp(10)),
+
+          // ── Track switcher chip ───────────────────────────────────────
+          GestureDetector(
+            onTap: _showTrackPicker,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: context.sp(12), vertical: context.sp(6)),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.music_note_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: context.sp(13)),
+                  SizedBox(width: context.sp(5)),
+                  Text(
+                    _currentTrack.name,
+                    style: GoogleFonts.manrope(
+                      fontSize: context.sp(11),
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  SizedBox(width: context.sp(4)),
+                  Icon(Icons.expand_more_rounded,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.6),
+                      size: context.sp(14)),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: context.sp(10)),
 
           // ── Progress bar + time — isolated StreamBuilder, ~1fps ───────
           StreamBuilder<Duration>(
@@ -1032,6 +1141,82 @@ class _SpeedButton extends StatelessWidget {
             color: active ? cs.primary : cs.onSurfaceVariant,
             letterSpacing: 0.3,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Track picker tile (used inside modal bottom sheet) ─────────────────────────
+class _TrackPickerTile extends StatelessWidget {
+  final AudioTrack track;
+  final bool selected;
+  final ColorScheme cs;
+  final VoidCallback onTap;
+
+  const _TrackPickerTile({
+    required this.track,
+    required this.selected,
+    required this.cs,
+    required this.onTap,
+  });
+
+  static const _icons = {
+    'traditional': Icons.surround_sound_rounded,
+    'male': Icons.record_voice_over_rounded,
+    'female': Icons.mic_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = selected ? cs.primary : Colors.white12;
+    final bgColor = selected
+        ? cs.primary.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.04);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _icons[track.id] ?? Icons.music_note_rounded,
+              color: selected ? cs.primary : Colors.white54,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    track.name,
+                    style: GoogleFonts.notoSerif(
+                      color: selected ? cs.primary : Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    track.description,
+                    style: GoogleFonts.manrope(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
+          ],
         ),
       ),
     );

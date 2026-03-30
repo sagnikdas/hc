@@ -6,6 +6,8 @@ class UserSettings {
   final bool onboardingShown;
   final double playbackSpeed;
   final double fontScale;
+  /// ID of the user's preferred audio track (null = first-time, show selection screen).
+  final String? preferredTrack;
 
   const UserSettings({
     this.targetCount = 11,
@@ -15,6 +17,7 @@ class UserSettings {
     this.onboardingShown = false,
     this.playbackSpeed = 1.0,
     this.fontScale = 1.0,
+    this.preferredTrack,
   });
 
   Map<String, dynamic> toMap() => {
@@ -26,6 +29,7 @@ class UserSettings {
         'onboarding_shown': onboardingShown ? 1 : 0,
         'playback_speed': playbackSpeed,
         'font_scale': fontScale,
+        'preferred_track': preferredTrack,
       };
 
   factory UserSettings.fromMap(Map<String, dynamic> m) => UserSettings(
@@ -36,6 +40,7 @@ class UserSettings {
         onboardingShown: (m['onboarding_shown'] as int? ?? 0) == 1,
         playbackSpeed: (m['playback_speed'] as num?)?.toDouble() ?? 1.0,
         fontScale: (m['font_scale'] as num?)?.toDouble() ?? 1.0,
+        preferredTrack: m['preferred_track'] as String?,
       );
 
   UserSettings copyWith({
@@ -46,6 +51,8 @@ class UserSettings {
     bool? onboardingShown,
     double? playbackSpeed,
     double? fontScale,
+    String? preferredTrack,
+    bool clearPreferredTrack = false,
   }) =>
       UserSettings(
         targetCount: targetCount ?? this.targetCount,
@@ -55,5 +62,7 @@ class UserSettings {
         onboardingShown: onboardingShown ?? this.onboardingShown,
         playbackSpeed: playbackSpeed ?? this.playbackSpeed,
         fontScale: fontScale ?? this.fontScale,
+        preferredTrack:
+            clearPreferredTrack ? null : (preferredTrack ?? this.preferredTrack),
       );
 }
