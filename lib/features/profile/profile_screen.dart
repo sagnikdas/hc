@@ -7,8 +7,10 @@ import '../play/play_screen.dart';
 import '../auth/profile_form_screen.dart';
 import '../../core/transitions.dart';
 import '../../core/font_scale_notifier.dart';
+import '../../core/notification_service.dart';
 import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
+import '../../data/models/user_settings.dart';
 import '../../data/repositories/app_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,6 +26,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hapticEnabled = true;
   bool _continuousPlay = false;
   double _fontScale = 1.0;
+  bool _reminderEnabled = true;
+  bool _sacredDayEnabled = true;
+  int _morningMinutes = UserSettings.defaultReminderMorningMinutes;
+  int _eveningMinutes = UserSettings.defaultReminderEveningMinutes;
 
   // Auth & referral
   String? _referralCode;
@@ -58,6 +64,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _hapticEnabled = settings.hapticEnabled;
       _continuousPlay = settings.continuousPlay;
       _fontScale = settings.fontScale.clamp(0.8, 1.4);
+      _reminderEnabled = settings.reminderNotificationsEnabled;
+      _sacredDayEnabled = settings.sacredDayNotificationsEnabled;
+      _morningMinutes = settings.reminderMorningMinutes;
+      _eveningMinutes = settings.reminderEveningMinutes;
     });
   }
 
@@ -87,16 +97,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveSettings() async {
     final current = await AppRepository.instance.getSettings();
-    await AppRepository.instance.saveSettings(
-      current.copyWith(
-        targetCount: _selectedCount,
-        hapticEnabled: _hapticEnabled,
-        continuousPlay: _continuousPlay,
-        fontScale: _fontScale.clamp(0.8, 1.4),
+    final updated = current.copyWith(
+      targetCount: _selectedCount,
+      hapticEnabled: _hapticEnabled,
+      continuousPlay: _continuousPlay,
+      fontScale: _fontScale.clamp(0.8, 1.4),
+      reminderNotificationsEnabled: _reminderEnabled,
+      reminderMorningMinutes: _morningMinutes,
+      reminderEveningMinutes: _eveningMinutes,
+      sacredDayNotificationsEnabled: _sacredDayEnabled,
+    );
+    await AppRepository.instance.saveSettings(updated);
+    fontScaleNotifier.value = _fontScale.clamp(0.8, 1.4);
+    if (updated.reminderNotificationsEnabled) {
+      final granted = await NotificationService.requestPermissions();
+      if (!mounted) return;
+      if (!granted) {
+        await NotificationService.cancelReminders();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Notifications are disabled in system settings. Enable them to receive reminders.',
+              style: GoogleFonts.manrope(),
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+        return;
+      }
+    }
+    await NotificationService.applyReminderSchedule(updated);
+  }
+
+  Future<void> _onReminderEnabledChanged(bool v) async {
+    setState(() => _reminderEnabled = v);
+    await _saveSettings();
+  }
+
+  String _formatReminderTimeLabel(BuildContext context, int minutes) {
+    final t = TimeOfDay(
+      hour: minutes ~/ 60,
+      minute: minutes % 60,
+    );
+    return t.format(context);
+  }
+
+  Future<void> _pickMorningReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: _morningMinutes ~/ 60,
+        minute: _morningMinutes % 60,
       ),
     );
-    // Apply immediately across the app for better UX.
-    fontScaleNotifier.value = _fontScale.clamp(0.8, 1.4);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _morningMinutes = UserSettings.clampReminderMinutes(
+        picked.hour * 60 + picked.minute,
+      );
+    });
+    await _saveSettings();
+  }
+
+  Future<void> _pickEveningReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: _eveningMinutes ~/ 60,
+        minute: _eveningMinutes % 60,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _eveningMinutes = UserSettings.clampReminderMinutes(
+        picked.hour * 60 + picked.minute,
+      );
+    });
+    await _saveSettings();
   }
 
   Future<void> _signIn() async {
@@ -201,6 +279,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildRepetitionGrid(context, cs),
                       SizedBox(height: context.sp(20)),
                       _buildToggles(context, cs),
+                      SizedBox(height: context.sp(20)),
+                      _buildReminderSection(context, cs),
                       // Spacer matches CTA container height: sp(20+58+24) + safe area.
                       SizedBox(height: MediaQuery.of(context).padding.bottom + context.sp(120)),
                     ],
@@ -598,6 +678,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildReminderSection(BuildContext context, ColorScheme cs) {
+    return Container(
+      padding: EdgeInsets.all(context.sp(16)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1B1B),
+        borderRadius: BorderRadius.circular(context.sp(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_active_rounded,
+                  color: cs.primary, size: context.sp(18)),
+              SizedBox(width: context.sp(10)),
+              Text(
+                'Paath reminders',
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.sp(12)),
+          _ToggleRow(
+            icon: Icons.wb_sunny_outlined,
+            title: 'Daily reminders',
+            subtitle: 'Morning and evening nudge to chant',
+            value: _reminderEnabled,
+            onChanged: _onReminderEnabledChanged,
+            cs: cs,
+          ),
+          if (_reminderEnabled) ...[
+            SizedBox(height: context.sp(10)),
+            _ReminderTimeRow(
+              label: 'Morning',
+              timeLabel: _formatReminderTimeLabel(context, _morningMinutes),
+              onTap: _pickMorningReminderTime,
+              cs: cs,
+            ),
+            SizedBox(height: context.sp(8)),
+            _ReminderTimeRow(
+              label: 'Evening',
+              timeLabel: _formatReminderTimeLabel(context, _eveningMinutes),
+              onTap: _pickEveningReminderTime,
+              cs: cs,
+            ),
+            SizedBox(height: context.sp(10)),
+            _ToggleRow(
+              icon: Icons.auto_awesome_rounded,
+              title: 'Mangalvaar & Shanivar Vishesh',
+              subtitle: 'Special alerts on Tuesday & Saturday',
+              value: _sacredDayEnabled,
+              onChanged: (v) {
+                setState(() => _sacredDayEnabled = v);
+                _saveSettings();
+              },
+              cs: cs,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildToggles(BuildContext context, ColorScheme cs) {
     return Column(
       children: [
@@ -735,6 +882,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(width: context.sp(10)),
               Icon(Icons.arrow_forward_rounded,
                   color: cs.onPrimary, size: context.sp(20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderTimeRow extends StatelessWidget {
+  final String label;
+  final String timeLabel;
+  final VoidCallback onTap;
+  final ColorScheme cs;
+
+  const _ReminderTimeRow({
+    required this.label,
+    required this.timeLabel,
+    required this.onTap,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF0E0E0E),
+      borderRadius: BorderRadius.circular(context.sp(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(context.sp(12)),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.sp(14),
+            vertical: context.sp(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.manrope(
+                    fontSize: context.sp(13),
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ),
+              Text(
+                timeLabel,
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                ),
+              ),
+              SizedBox(width: context.sp(4)),
+              Icon(Icons.chevron_right_rounded,
+                  color: cs.onSurfaceVariant, size: context.sp(20)),
             ],
           ),
         ),

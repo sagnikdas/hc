@@ -30,6 +30,7 @@ Future<void> _initServices() async {
   // Init notifications (timezone data, plugin registration).
   try {
     await NotificationService.init();
+    await NotificationService.consumeNotificationLaunchNavigation();
   } catch (e) {
     debugPrint('NotificationService init failed: $e');
   }
@@ -63,6 +64,7 @@ Future<void> _initServices() async {
     // Clamp to avoid pathological values in the DB (e.g. 0) which can make
     // all text effectively invisible and look like a black screen.
     fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
+    unawaited(NotificationService.applyReminderSchedule(settings));
   } catch (e) {
     debugPrint('Font scale init failed: $e');
   }

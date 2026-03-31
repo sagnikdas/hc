@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import '../main.dart';
+import 'reminder_navigation.dart';
 import '../data/repositories/app_repository.dart';
 import '../features/home/home_screen.dart';
 import '../features/progress/progress_screen.dart';
@@ -25,6 +26,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _homeRefreshSignal = 0;
   int _progressRefreshSignal = 0;
   bool _wasPlayScreenOpen = false;
+  int _lastConsumedReminderTapVersion = 0;
 
   @override
   void initState() {
@@ -33,6 +35,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     // Rebuild when PlayScreen opens/closes or when the handler becomes ready.
     isPlayScreenOpen.addListener(_onPlayScreenChanged);
     audioHandlerNotifier.addListener(_onStateChanged);
+    reminderNotificationTapVersion.addListener(_onReminderTapVersion);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _tryOpenPlayFromReminder());
   }
 
   @override
@@ -40,7 +45,34 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     isPlayScreenOpen.removeListener(_onPlayScreenChanged);
     audioHandlerNotifier.removeListener(_onStateChanged);
+    reminderNotificationTapVersion.removeListener(_onReminderTapVersion);
     super.dispose();
+  }
+
+  void _onReminderTapVersion() {
+    _tryOpenPlayFromReminder();
+  }
+
+  Future<void> _tryOpenPlayFromReminder() async {
+    if (!mounted) return;
+    final v = reminderNotificationTapVersion.value;
+    if (v <= _lastConsumedReminderTapVersion) return;
+    if (isPlayScreenOpen.value) return;
+
+    final settings = await AppRepository.instance.getSettings();
+    if (!mounted) return;
+    if (isPlayScreenOpen.value) return;
+
+    _lastConsumedReminderTapVersion = v;
+    await Navigator.of(context).push(
+      slideUpRoute(
+        PlayScreen(
+          initialTarget: settings.targetCount,
+          initialTrackId: settings.preferredTrack,
+          beginPaathImmediately: true,
+        ),
+      ),
+    );
   }
 
   void _onPlayScreenChanged() {

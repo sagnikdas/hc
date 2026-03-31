@@ -17,6 +17,10 @@ class PlayScreen extends StatefulWidget {
   final int? initialTarget;
   final String? initialVoice;
   final String? initialTrackId;
+
+  /// When true (e.g. opened from a reminder tap), start playback from the
+  /// beginning once audio is ready, including when the same track is cached.
+  final bool beginPaathImmediately;
   @visibleForTesting
   final Set<int>? debugMilestones;
   @visibleForTesting
@@ -28,6 +32,7 @@ class PlayScreen extends StatefulWidget {
     this.initialTarget,
     this.initialVoice,
     this.initialTrackId,
+    this.beginPaathImmediately = false,
     this.debugMilestones,
     this.debugReferralCodeProvider,
     this.debugSaveSessionOverride,
@@ -129,6 +134,14 @@ class _PlayScreenState extends State<PlayScreen> {
       if (handler.duration > Duration.zero &&
           handler.currentAssetPath == _currentTrack.assetPath) {
         if (mounted) setState(() => _loaded = true);
+        if (widget.beginPaathImmediately) {
+          try {
+            await handler.seek(Duration.zero);
+            await handler.play();
+          } catch (e) {
+            debugPrint('beginPaathImmediately: $e');
+          }
+        }
         return;
       }
       await handler.loadVoice(_currentTrack.assetPath);

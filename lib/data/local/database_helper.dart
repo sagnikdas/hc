@@ -27,7 +27,7 @@ class DatabaseHelper {
         join(await getDatabasesPath(), 'hanuman_chalisa.db');
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -52,7 +52,11 @@ class DatabaseHelper {
         onboarding_shown INTEGER NOT NULL DEFAULT 0,
         playback_speed REAL NOT NULL DEFAULT 1.0,
         font_scale REAL NOT NULL DEFAULT 1.0,
-        preferred_track TEXT
+        preferred_track TEXT,
+        reminder_notifications_enabled INTEGER NOT NULL DEFAULT 1,
+        reminder_morning_minutes INTEGER NOT NULL DEFAULT 420,
+        reminder_evening_minutes INTEGER NOT NULL DEFAULT 1200,
+        sacred_day_notifications_enabled INTEGER NOT NULL DEFAULT 1
       )
     ''');
     await db.execute('''
@@ -72,6 +76,10 @@ class DatabaseHelper {
       'onboarding_shown': 0,
       'playback_speed': 1.0,
       'font_scale': 1.0,
+      'reminder_notifications_enabled': 1,
+      'reminder_morning_minutes': 420,
+      'reminder_evening_minutes': 1200,
+      'sacred_day_notifications_enabled': 1,
     });
   }
 
@@ -107,6 +115,20 @@ class DatabaseHelper {
     if (oldVersion < 6) {
       await db.execute(
         'ALTER TABLE user_settings ADD COLUMN preferred_track TEXT',
+      );
+    }
+    if (oldVersion < 7) {
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN reminder_notifications_enabled INTEGER NOT NULL DEFAULT 1',
+      );
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN reminder_morning_minutes INTEGER NOT NULL DEFAULT 420',
+      );
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN reminder_evening_minutes INTEGER NOT NULL DEFAULT 1200',
+      );
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN sacred_day_notifications_enabled INTEGER NOT NULL DEFAULT 1',
       );
     }
   }

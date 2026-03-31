@@ -3,8 +3,18 @@ class UserSettings {
   static const double minPlaybackSpeed = 0.5;
   static const double maxPlaybackSpeed = 1.5;
 
+  /// Default morning reminder — 7:00 (minutes from midnight).
+  static const int defaultReminderMorningMinutes = 7 * 60;
+
+  /// Default evening reminder — 20:00.
+  static const int defaultReminderEveningMinutes = 20 * 60;
+
   static double clampPlaybackSpeed(double s) =>
       s.clamp(minPlaybackSpeed, maxPlaybackSpeed).toDouble();
+
+  /// Valid range for [reminderMorningMinutes] / [reminderEveningMinutes].
+  static int clampReminderMinutes(int m) =>
+      m.clamp(0, 24 * 60 - 1).toInt();
 
   final int targetCount;
   final bool hapticEnabled;
@@ -13,8 +23,21 @@ class UserSettings {
   final bool onboardingShown;
   final double playbackSpeed;
   final double fontScale;
+
   /// ID of the user's preferred audio track (null = first-time, show selection screen).
   final String? preferredTrack;
+
+  /// Morning + evening local notifications for chanting (Sankalpa reminders).
+  final bool reminderNotificationsEnabled;
+
+  /// Minutes from midnight for the morning reminder (0–1439).
+  final int reminderMorningMinutes;
+
+  /// Minutes from midnight for the evening reminder (0–1439).
+  final int reminderEveningMinutes;
+
+  /// Higher-priority Tue/Sat titles and channel when enabled.
+  final bool sacredDayNotificationsEnabled;
 
   const UserSettings({
     this.targetCount = 11,
@@ -25,6 +48,10 @@ class UserSettings {
     this.playbackSpeed = 1.0,
     this.fontScale = 1.0,
     this.preferredTrack,
+    this.reminderNotificationsEnabled = true,
+    this.reminderMorningMinutes = defaultReminderMorningMinutes,
+    this.reminderEveningMinutes = defaultReminderEveningMinutes,
+    this.sacredDayNotificationsEnabled = true,
   });
 
   Map<String, dynamic> toMap() => {
@@ -37,6 +64,11 @@ class UserSettings {
         'playback_speed': playbackSpeed,
         'font_scale': fontScale,
         'preferred_track': preferredTrack,
+        'reminder_notifications_enabled': reminderNotificationsEnabled ? 1 : 0,
+        'reminder_morning_minutes': reminderMorningMinutes,
+        'reminder_evening_minutes': reminderEveningMinutes,
+        'sacred_day_notifications_enabled':
+            sacredDayNotificationsEnabled ? 1 : 0,
       };
 
   factory UserSettings.fromMap(Map<String, dynamic> m) => UserSettings(
@@ -49,6 +81,16 @@ class UserSettings {
             (m['playback_speed'] as num?)?.toDouble() ?? 1.0),
         fontScale: (m['font_scale'] as num?)?.toDouble() ?? 1.0,
         preferredTrack: m['preferred_track'] as String?,
+        reminderNotificationsEnabled:
+            (m['reminder_notifications_enabled'] as int? ?? 1) == 1,
+        reminderMorningMinutes: clampReminderMinutes(
+            (m['reminder_morning_minutes'] as num?)?.toInt() ??
+                defaultReminderMorningMinutes),
+        reminderEveningMinutes: clampReminderMinutes(
+            (m['reminder_evening_minutes'] as num?)?.toInt() ??
+                defaultReminderEveningMinutes),
+        sacredDayNotificationsEnabled:
+            (m['sacred_day_notifications_enabled'] as int? ?? 1) == 1,
       );
 
   UserSettings copyWith({
@@ -61,6 +103,10 @@ class UserSettings {
     double? fontScale,
     String? preferredTrack,
     bool clearPreferredTrack = false,
+    bool? reminderNotificationsEnabled,
+    int? reminderMorningMinutes,
+    int? reminderEveningMinutes,
+    bool? sacredDayNotificationsEnabled,
   }) =>
       UserSettings(
         targetCount: targetCount ?? this.targetCount,
@@ -74,5 +120,15 @@ class UserSettings {
         fontScale: fontScale ?? this.fontScale,
         preferredTrack:
             clearPreferredTrack ? null : (preferredTrack ?? this.preferredTrack),
+        reminderNotificationsEnabled: reminderNotificationsEnabled ??
+            this.reminderNotificationsEnabled,
+        reminderMorningMinutes: reminderMorningMinutes != null
+            ? clampReminderMinutes(reminderMorningMinutes)
+            : this.reminderMorningMinutes,
+        reminderEveningMinutes: reminderEveningMinutes != null
+            ? clampReminderMinutes(reminderEveningMinutes)
+            : this.reminderEveningMinutes,
+        sacredDayNotificationsEnabled: sacredDayNotificationsEnabled ??
+            this.sacredDayNotificationsEnabled,
       );
 }

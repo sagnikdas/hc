@@ -18,6 +18,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:hanuman_chalisa/core/font_scale_notifier.dart';
+import 'package:hanuman_chalisa/core/notification_service.dart';
 import 'package:hanuman_chalisa/core/supabase_service.dart';
 import 'package:hanuman_chalisa/core/theme.dart';
 import 'package:hanuman_chalisa/data/local/database_helper.dart';
@@ -145,6 +146,10 @@ void main() {
       referralCode,
     }) async {};
     SupabaseService.signInForTest = null;
+
+    NotificationService.applyReminderScheduleForTest = (_) async {};
+    NotificationService.cancelRemindersForTest = () async {};
+    NotificationService.consumeLaunchNavigationForTest = () async {};
   });
 
   tearDown(() {
@@ -152,6 +157,9 @@ void main() {
     SupabaseService.resetAuthForTest();
     AppRepository.instance.clearStatsOverrideForTest();
     AppRepository.instance.clearSettingsOverrideForTest();
+    NotificationService.applyReminderScheduleForTest = null;
+    NotificationService.cancelRemindersForTest = null;
+    NotificationService.consumeLaunchNavigationForTest = null;
   });
 
   // ==========================================================================
@@ -168,6 +176,10 @@ void main() {
       expect(s.playbackSpeed, 1.0);
       expect(s.referralCode, isNull);
       expect(s.onboardingShown, isFalse);
+      expect(s.reminderNotificationsEnabled, isTrue);
+      expect(s.sacredDayNotificationsEnabled, isTrue);
+      expect(s.reminderMorningMinutes, UserSettings.defaultReminderMorningMinutes);
+      expect(s.reminderEveningMinutes, UserSettings.defaultReminderEveningMinutes);
     });
 
     test('toMap / fromMap round-trips all fields', () {
@@ -179,6 +191,10 @@ void main() {
         playbackSpeed: 1.5,
         referralCode: 'ABC123',
         onboardingShown: true,
+        reminderNotificationsEnabled: false,
+        reminderMorningMinutes: 480,
+        reminderEveningMinutes: 1260,
+        sacredDayNotificationsEnabled: false,
       );
       final roundTripped = UserSettings.fromMap(original.toMap());
       expect(roundTripped.targetCount, 21);
@@ -188,6 +204,10 @@ void main() {
       expect(roundTripped.playbackSpeed, closeTo(1.5, 0.001));
       expect(roundTripped.referralCode, 'ABC123');
       expect(roundTripped.onboardingShown, isTrue);
+      expect(roundTripped.reminderNotificationsEnabled, isFalse);
+      expect(roundTripped.reminderMorningMinutes, 480);
+      expect(roundTripped.reminderEveningMinutes, 1260);
+      expect(roundTripped.sacredDayNotificationsEnabled, isFalse);
     });
 
     test('fromMap handles null / missing columns gracefully', () {
@@ -206,6 +226,8 @@ void main() {
       expect(s.continuousPlay, isFalse);
       expect(s.fontScale, 1.0);
       expect(s.referralCode, isNull);
+      expect(s.reminderNotificationsEnabled, isTrue);
+      expect(s.sacredDayNotificationsEnabled, isTrue);
     });
 
     test('copyWith does not overwrite unspecified fields', () {
@@ -261,6 +283,8 @@ void main() {
       expect(loaded.continuousPlay, isTrue);
       expect(loaded.fontScale, closeTo(1.2, 0.001));
       expect(loaded.playbackSpeed, closeTo(0.75, 0.001));
+      expect(loaded.reminderNotificationsEnabled, isTrue);
+      expect(loaded.sacredDayNotificationsEnabled, isTrue);
     });
 
     test('successive saves overwrite previous values', () async {

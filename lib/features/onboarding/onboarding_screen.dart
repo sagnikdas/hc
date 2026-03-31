@@ -44,7 +44,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() => _starting = true);
     await AppRepository.instance.markOnboardingShown();
     await NotificationService.requestPermissions();
-    await NotificationService.scheduleDailyReminders();
+    final settings = await AppRepository.instance.getSettings();
+    await NotificationService.applyReminderSchedule(settings);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShell()),
