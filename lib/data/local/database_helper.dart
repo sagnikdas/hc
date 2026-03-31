@@ -27,7 +27,7 @@ class DatabaseHelper {
         join(await getDatabasesPath(), 'hanuman_chalisa.db');
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -56,7 +56,8 @@ class DatabaseHelper {
         reminder_notifications_enabled INTEGER NOT NULL DEFAULT 1,
         reminder_morning_minutes INTEGER NOT NULL DEFAULT 420,
         reminder_evening_minutes INTEGER NOT NULL DEFAULT 1200,
-        sacred_day_notifications_enabled INTEGER NOT NULL DEFAULT 1
+        sacred_day_notifications_enabled INTEGER NOT NULL DEFAULT 1,
+        theme_mode INTEGER NOT NULL DEFAULT 2
       )
     ''');
     await db.execute('''
@@ -129,6 +130,11 @@ class DatabaseHelper {
       );
       await db.execute(
         'ALTER TABLE user_settings ADD COLUMN sacred_day_notifications_enabled INTEGER NOT NULL DEFAULT 1',
+      );
+    }
+    if (oldVersion < 8) {
+      await db.execute(
+        'ALTER TABLE user_settings ADD COLUMN theme_mode INTEGER NOT NULL DEFAULT 2',
       );
     }
   }

@@ -39,6 +39,9 @@ class UserSettings {
   /// Higher-priority Tue/Sat titles and channel when enabled.
   final bool sacredDayNotificationsEnabled;
 
+  /// Theme mode: 0 = system, 1 = light, 2 = dark. Default 2 (dark).
+  final int themeMode;
+
   const UserSettings({
     this.targetCount = 11,
     this.hapticEnabled = true,
@@ -52,6 +55,7 @@ class UserSettings {
     this.reminderMorningMinutes = defaultReminderMorningMinutes,
     this.reminderEveningMinutes = defaultReminderEveningMinutes,
     this.sacredDayNotificationsEnabled = true,
+    this.themeMode = 2,
   });
 
   Map<String, dynamic> toMap() => {
@@ -69,6 +73,7 @@ class UserSettings {
         'reminder_evening_minutes': reminderEveningMinutes,
         'sacred_day_notifications_enabled':
             sacredDayNotificationsEnabled ? 1 : 0,
+        'theme_mode': themeMode,
       };
 
   factory UserSettings.fromMap(Map<String, dynamic> m) => UserSettings(
@@ -91,6 +96,7 @@ class UserSettings {
                 defaultReminderEveningMinutes),
         sacredDayNotificationsEnabled:
             (m['sacred_day_notifications_enabled'] as int? ?? 1) == 1,
+        themeMode: (m['theme_mode'] as int? ?? 2).clamp(0, 2),
       );
 
   UserSettings copyWith({
@@ -107,6 +113,7 @@ class UserSettings {
     int? reminderMorningMinutes,
     int? reminderEveningMinutes,
     bool? sacredDayNotificationsEnabled,
+    int? themeMode,
   }) =>
       UserSettings(
         targetCount: targetCount ?? this.targetCount,
@@ -130,5 +137,6 @@ class UserSettings {
             : this.reminderEveningMinutes,
         sacredDayNotificationsEnabled: sacredDayNotificationsEnabled ??
             this.sacredDayNotificationsEnabled,
+        themeMode: themeMode?.clamp(0, 2) ?? this.themeMode,
       );
 }

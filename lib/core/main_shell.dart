@@ -163,7 +163,7 @@ class _MiniPlayer extends StatelessWidget {
         );
       },
       child: Container(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -180,7 +180,7 @@ class _MiniPlayer extends StatelessWidget {
                 return LinearProgressIndicator(
                   value: progress,
                   minHeight: context.sp(2),
-                  backgroundColor: const Color(0xFF353534),
+                  backgroundColor: cs.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation(cs.secondary),
                 );
               },
@@ -368,7 +368,7 @@ class _SacredNavBar extends StatelessWidget {
     ];
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+        color: cs.surfaceContainerLow.withValues(alpha: 0.95),
         borderRadius: BorderRadius.vertical(top: Radius.circular(context.sp(28))),
         boxShadow: [
           BoxShadow(
@@ -403,7 +403,7 @@ class _SacredNavBar extends StatelessWidget {
               child: Icon(
                 icons[i],
                 color: isSelected
-                    ? const Color(0xFF131313)
+                    ? cs.onPrimary
                     : cs.primary.withValues(alpha: 0.5),
                 size: context.sp(22),
               ),

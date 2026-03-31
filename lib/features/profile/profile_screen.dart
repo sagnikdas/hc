@@ -7,6 +7,7 @@ import '../play/play_screen.dart';
 import '../auth/profile_form_screen.dart';
 import '../../core/transitions.dart';
 import '../../core/font_scale_notifier.dart';
+import '../../core/theme_notifier.dart';
 import '../../core/notification_service.dart';
 import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
@@ -30,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _sacredDayEnabled = true;
   int _morningMinutes = UserSettings.defaultReminderMorningMinutes;
   int _eveningMinutes = UserSettings.defaultReminderEveningMinutes;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   // Auth & referral
   String? _referralCode;
@@ -68,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _sacredDayEnabled = settings.sacredDayNotificationsEnabled;
       _morningMinutes = settings.reminderMorningMinutes;
       _eveningMinutes = settings.reminderEveningMinutes;
+      _themeMode = ThemeMode.values[settings.themeMode.clamp(0, 2)];
     });
   }
 
@@ -106,9 +109,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       reminderMorningMinutes: _morningMinutes,
       reminderEveningMinutes: _eveningMinutes,
       sacredDayNotificationsEnabled: _sacredDayEnabled,
+      themeMode: _themeMode.index,
     );
     await AppRepository.instance.saveSettings(updated);
     fontScaleNotifier.value = _fontScale.clamp(0.8, 1.4);
+    themeModeNotifier.value = _themeMode;
     if (updated.reminderNotificationsEnabled) {
       final granted = await NotificationService.requestPermissions();
       if (!mounted) return;
@@ -274,6 +279,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       SizedBox(height: context.sp(20)),
                       _buildInviteSection(context, cs),
                       SizedBox(height: context.sp(20)),
+                      _buildThemeSection(context, cs),
+                      SizedBox(height: context.sp(20)),
                       _buildIntro(context, cs),
                       SizedBox(height: context.sp(28)),
                       _buildRepetitionGrid(context, cs),
@@ -308,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+          colors: [cs.surfaceContainerLow, cs.surface.withValues(alpha: 0)],
         ),
       ),
       child: Row(
@@ -346,7 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return Container(
         padding: EdgeInsets.all(context.sp(16)),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(context.sp(16)),
           border: Border.all(
               color: cs.primary.withValues(alpha: 0.15), width: 1),
@@ -412,7 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: EdgeInsets.all(context.sp(16)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(16)),
         border: Border.all(
             color: cs.outlineVariant.withValues(alpha: 0.2), width: 1),
@@ -480,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: EdgeInsets.all(context.sp(16)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(16)),
       ),
       child: Column(
@@ -614,8 +621,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFF2A2A2A)
-                  : const Color(0xFF1C1B1B),
+                  ? cs.surfaceContainerHigh
+                  : cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(context.sp(16)),
               border: Border.all(
                 color: isSelected
@@ -678,11 +685,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildThemeSection(BuildContext context, ColorScheme cs) {
+    return Container(
+      padding: EdgeInsets.all(context.sp(16)),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(context.sp(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.palette_outlined, color: cs.primary, size: context.sp(18)),
+              SizedBox(width: context.sp(10)),
+              Text(
+                'Appearance',
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.sp(14)),
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(
+                value: ThemeMode.system,
+                icon: Icon(Icons.brightness_auto_rounded),
+                label: Text('System'),
+              ),
+              ButtonSegment(
+                value: ThemeMode.light,
+                icon: Icon(Icons.light_mode_rounded),
+                label: Text('Light'),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                icon: Icon(Icons.dark_mode_rounded),
+                label: Text('Dark'),
+              ),
+            ],
+            selected: {_themeMode},
+            onSelectionChanged: (selection) {
+              setState(() => _themeMode = selection.first);
+              _saveSettings();
+            },
+            style: ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                GoogleFonts.manrope(fontSize: context.sp(12), fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildReminderSection(BuildContext context, ColorScheme cs) {
     return Container(
       padding: EdgeInsets.all(context.sp(16)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(16)),
       ),
       child: Column(
@@ -781,7 +847,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E0E0E),
+        color: cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(context.sp(16)),
       ),
       child: Column(
@@ -906,7 +972,7 @@ class _ReminderTimeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF0E0E0E),
+      color: cs.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(context.sp(12)),
       child: InkWell(
         onTap: onTap,
@@ -969,7 +1035,7 @@ class _ToggleRow extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E0E0E),
+        color: cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(context.sp(16)),
       ),
       child: Row(
@@ -977,8 +1043,8 @@ class _ToggleRow extends StatelessWidget {
           Container(
             width: context.sp(38),
             height: context.sp(38),
-            decoration: const BoxDecoration(
-                shape: BoxShape.circle, color: Color(0xFF2A2A2A)),
+            decoration: BoxDecoration(
+                shape: BoxShape.circle, color: cs.surfaceContainerHigh),
             child: Icon(icon, color: cs.primary, size: context.sp(18)),
           ),
           SizedBox(width: context.sp(12)),

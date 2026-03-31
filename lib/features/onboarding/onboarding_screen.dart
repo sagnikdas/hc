@@ -107,7 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surface,
       body: FadeTransition(
         opacity: _fadeIn,
         child: SafeArea(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
+import 'core/theme_notifier.dart';
 import 'core/audio_handler.dart';
 import 'core/font_scale_notifier.dart';
 import 'core/lyrics_service.dart';
@@ -58,12 +59,13 @@ Future<void> _initServices() async {
     }
   });
 
-  // Load global UI settings (e.g. font scale) after launch.
+  // Load global UI settings (e.g. font scale, theme mode) after launch.
   try {
     final settings = await AppRepository.instance.getSettings();
     // Clamp to avoid pathological values in the DB (e.g. 0) which can make
     // all text effectively invisible and look like a black screen.
     fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
+    themeModeNotifier.value = ThemeMode.values[settings.themeMode.clamp(0, 2)];
     unawaited(NotificationService.applyReminderSchedule(settings));
   } catch (e) {
     debugPrint('Font scale init failed: $e');
@@ -75,24 +77,29 @@ class HanumanChalisaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Hanuman Chalisa',
-      debugShowCheckedModeBanner: false,
-      theme: darkTheme,
-      darkTheme: darkTheme,
-      themeMode: ThemeMode.dark,
-      home: ValueListenableBuilder<double>(
-        valueListenable: fontScaleNotifier,
-        builder: (context, scale, _) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              // Flutter deprecates `textScaleFactor` in favor of `textScaler`.
-              textScaler: TextScaler.linear(scale),
-            ),
-            child: const AuthGate(),
-          );
-        },
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Hanuman Chalisa',
+          debugShowCheckedModeBanner: false,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: themeMode,
+          home: ValueListenableBuilder<double>(
+            valueListenable: fontScaleNotifier,
+            builder: (context, scale, _) {
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  // Flutter deprecates `textScaleFactor` in favor of `textScaler`.
+                  textScaler: TextScaler.linear(scale),
+                ),
+                child: const AuthGate(),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

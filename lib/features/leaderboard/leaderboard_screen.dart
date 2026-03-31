@@ -127,7 +127,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+          colors: [cs.surfaceContainerLow, cs.surface.withValues(alpha: 0)],
         ),
       ),
       child: Row(
@@ -158,7 +158,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       padding: EdgeInsets.fromLTRB(context.sp(24), 0, context.sp(24), context.sp(12)),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(context.sp(12)),
         ),
         child: TabBar(
@@ -471,7 +471,7 @@ class _LeaderboardRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? cs.primary.withValues(alpha: 0.08)
-            : const Color(0xFF1C1B1B),
+            : cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(14)),
         border: Border.all(
           color: isMe

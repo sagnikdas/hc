@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _loadStats,
         color: cs.primary,
-        backgroundColor: const Color(0xFF1C1B1B),
+        backgroundColor: cs.surfaceContainerLow,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(context, cs)),
@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+          colors: [cs.surfaceContainerLow, cs.surface.withValues(alpha: 0)],
         ),
       ),
       child: Row(
@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
         height: context.sp(360),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(32),
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -221,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF2A2A2A),
+                      cs.surfaceContainerHigh,
                       cs.primaryContainer.withValues(alpha: 0.3)
                     ],
                   ),
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF131313).withValues(alpha: 0.95)
+                    Colors.black.withValues(alpha: 0.9)
                   ],
                   stops: const [0.3, 1.0],
                 ),
@@ -384,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     padding: EdgeInsets.all(context.sp(16)),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1C1B1B),
+                      color: cs.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(context.sp(20)),
                       border: Border.all(
                         color: cs.outlineVariant.withValues(alpha: 0.08),
@@ -461,7 +461,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(context.sp(20)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(24)),
       ),
       child: Column(
@@ -529,7 +529,7 @@ class _AppDrawer extends StatelessWidget {
     final avatarUrl = user?.userMetadata?['avatar_url'] as String?;
 
     return Drawer(
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surface,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
