@@ -150,6 +150,8 @@ void main() {
     SupabaseService.authChangesForTest = authCtrl.stream;
     // Default: guest (not signed in)
     SupabaseService.currentUserForTest = () => null;
+    // SignInScreen auto-starts SSO from upsell; avoid real GoogleSignIn in tests.
+    SupabaseService.signInForTest = () async {};
     AppRepository.instance.overrideProgressForTest();
   });
 

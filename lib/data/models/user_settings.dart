@@ -1,4 +1,11 @@
 class UserSettings {
+  /// Playback speed limits (chant listening; cap avoids chipmunk rates).
+  static const double minPlaybackSpeed = 0.5;
+  static const double maxPlaybackSpeed = 1.5;
+
+  static double clampPlaybackSpeed(double s) =>
+      s.clamp(minPlaybackSpeed, maxPlaybackSpeed).toDouble();
+
   final int targetCount;
   final bool hapticEnabled;
   final bool continuousPlay;
@@ -38,7 +45,8 @@ class UserSettings {
         continuousPlay: (m['continuous_play'] as int? ?? 0) == 1,
         referralCode: m['referral_code'] as String?,
         onboardingShown: (m['onboarding_shown'] as int? ?? 0) == 1,
-        playbackSpeed: (m['playback_speed'] as num?)?.toDouble() ?? 1.0,
+        playbackSpeed: clampPlaybackSpeed(
+            (m['playback_speed'] as num?)?.toDouble() ?? 1.0),
         fontScale: (m['font_scale'] as num?)?.toDouble() ?? 1.0,
         preferredTrack: m['preferred_track'] as String?,
       );
@@ -60,7 +68,9 @@ class UserSettings {
         continuousPlay: continuousPlay ?? this.continuousPlay,
         referralCode: referralCode ?? this.referralCode,
         onboardingShown: onboardingShown ?? this.onboardingShown,
-        playbackSpeed: playbackSpeed ?? this.playbackSpeed,
+        playbackSpeed: playbackSpeed != null
+            ? clampPlaybackSpeed(playbackSpeed)
+            : clampPlaybackSpeed(this.playbackSpeed),
         fontScale: fontScale ?? this.fontScale,
         preferredTrack:
             clearPreferredTrack ? null : (preferredTrack ?? this.preferredTrack),

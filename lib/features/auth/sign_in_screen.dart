@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import '../../core/supabase_service.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  /// When true (e.g. opened from Progress upsell), starts the Google account
+  /// picker as soon as this route is shown so the user is not asked to tap twice.
+  final bool launchGoogleSignInImmediately;
+
+  const SignInScreen({
+    super.key,
+    this.launchGoogleSignInImmediately = false,
+  });
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -13,10 +20,26 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _loading = false;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.launchGoogleSignInImmediately) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _signIn());
+    }
+  }
+
   Future<void> _signIn() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await SupabaseService.signInWithGoogle();
+      if (!mounted) return;
+      if (SupabaseService.currentUser != null) {
+        Navigator.of(context).pop();
+        return;
+      }
     } catch (e, st) {
       debugPrint('Google sign-in error: $e\n$st');
       if (mounted) {
@@ -36,6 +59,16 @@ class _SignInScreenState extends State<SignInScreen> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
+      appBar: AppBar(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.close_rounded, color: colors.onSurface),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -62,10 +95,13 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Sign in to track your paath',
+                widget.launchGoogleSignInImmediately && _loading
+                    ? 'Opening Google sign-in…'
+                    : 'Sign in to track your paath',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
+                textAlign: TextAlign.center,
               ),
               const Spacer(flex: 2),
               // Google button

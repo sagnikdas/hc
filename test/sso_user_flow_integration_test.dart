@@ -251,6 +251,7 @@ void main() {
         'tapping Sign in with Google in upsell pushes to SignInScreen',
         (tester) async {
       _portraitView(tester);
+      SupabaseService.signInForTest = () async {};
       await tester.pumpWidget(MaterialApp(
         theme: darkTheme,
         darkTheme: darkTheme,

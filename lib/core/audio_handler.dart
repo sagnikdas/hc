@@ -4,6 +4,8 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../data/models/user_settings.dart';
+
 /// Hanuman Chalisa audio handler.
 ///
 /// Extends [BaseAudioHandler] so audio_service can:
@@ -28,7 +30,12 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   double get speed => _player.speed;
   String? get currentAssetPath => _currentAssetPath;
   @override
-  Future<void> setSpeed(double speed) => _player.setSpeed(speed.clamp(0.5, 5.0));
+  Future<void> setSpeed(double speed) => _player.setSpeed(
+        speed.clamp(
+          UserSettings.minPlaybackSpeed,
+          UserSettings.maxPlaybackSpeed,
+        ),
+      );
 
   // ── Initialisation ────────────────────────────────────────────────────────
 

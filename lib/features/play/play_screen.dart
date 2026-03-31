@@ -11,6 +11,7 @@ import '../../core/responsive.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
 import '../../data/models/audio_track.dart';
+import '../../data/models/user_settings.dart';
 
 class PlayScreen extends StatefulWidget {
   final int? initialTarget;
@@ -490,6 +491,16 @@ class _PlayScreenState extends State<PlayScreen> {
     });
   }
 
+  void _dismissControlOverlays() {
+    _volumeTimer?.cancel();
+    _speedTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _showVolume = false;
+      _showSpeed = false;
+    });
+  }
+
   void _onVolumeChanged(double v) {
     setState(() => _volume = v);
     audioHandler?.setVolume(v);
@@ -582,6 +593,13 @@ class _PlayScreenState extends State<PlayScreen> {
                   ],
                 ),
               ),
+              if (_showVolume || _showSpeed)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _dismissControlOverlays,
+                    behavior: HitTestBehavior.opaque,
+                  ),
+                ),
               if (_showVolume) _buildVolumeOverlay(context, cs),
               if (_showSpeed) _buildSpeedOverlay(context, cs),
             ],
@@ -895,9 +913,8 @@ class _PlayScreenState extends State<PlayScreen> {
     return Positioned(
       bottom: overlayBottom,
       right: context.sp(20),
-      child: GestureDetector(
-        onTap: () => setState(() => _showVolume = false),
-        behavior: HitTestBehavior.translucent,
+      child: Material(
+        color: Colors.transparent,
         child: Container(
           width: overlayWidth,
           height: overlayHeight,
@@ -952,9 +969,8 @@ class _PlayScreenState extends State<PlayScreen> {
     return Positioned(
       bottom: overlayBottom,
       left: context.sp(20),
-      child: GestureDetector(
-        onTap: () => setState(() => _showSpeed = false),
-        behavior: HitTestBehavior.translucent,
+      child: Material(
+        color: Colors.transparent,
         child: Container(
           width: overlayWidth,
           height: overlayHeight,
@@ -966,7 +982,7 @@ class _PlayScreenState extends State<PlayScreen> {
           child: Column(
             children: [
               Text(
-                '5×',
+                '${UserSettings.maxPlaybackSpeed.toStringAsFixed(1)}×',
                 style: GoogleFonts.manrope(
                     fontSize: context.sp(10),
                     color: cs.primary,
@@ -989,9 +1005,12 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
                     child: Slider(
-                      value: _speed,
-                      min: 0.5,
-                      max: 5.0,
+                      value: _speed.clamp(
+                        UserSettings.minPlaybackSpeed,
+                        UserSettings.maxPlaybackSpeed,
+                      ),
+                      min: UserSettings.minPlaybackSpeed,
+                      max: UserSettings.maxPlaybackSpeed,
                       onChanged: _onSpeedSlide,
                       onChangeEnd: _onSpeedEnd,
                     ),

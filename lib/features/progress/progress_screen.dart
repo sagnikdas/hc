@@ -590,7 +590,11 @@ class _SignInUpsellCard extends StatelessWidget {
           ),
           SizedBox(height: context.sp(20)),
           GestureDetector(
-            onTap: () => Navigator.of(context).push(slideUpRoute(const SignInScreen())),
+            onTap: () => Navigator.of(context).push(
+                  slideUpRoute(
+                    const SignInScreen(launchGoogleSignInImmediately: true),
+                  ),
+                ),
             child: Container(
               width: double.infinity,
               height: context.sp(48),
