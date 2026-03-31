@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 
 class ProfileFormScreen extends StatefulWidget {
@@ -83,7 +84,7 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
       backgroundColor: colors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+          padding: EdgeInsets.fromLTRB(context.sp(28), context.sp(32), context.sp(28), context.sp(28)),
           child: Form(
             key: _formKey,
             child: Column(
@@ -95,59 +96,59 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: context.sp(6)),
                 Text(
                   'Just once — helps us personalise your experience',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
                 ),
-                const SizedBox(height: 36),
+                SizedBox(height: context.sp(36)),
 
                 _label(context, 'Name'),
-                const SizedBox(height: 8),
+                SizedBox(height: context.sp(8)),
                 TextFormField(
                   controller: _nameCtrl,
                   textCapitalization: TextCapitalization.words,
-                  decoration: _inputDeco('Your name'),
+                  decoration: _inputDeco(context, 'Your name'),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: context.sp(20)),
 
                 _label(context, 'Email'),
-                const SizedBox(height: 8),
+                SizedBox(height: context.sp(8)),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: _inputDeco('you@example.com'),
+                  decoration: _inputDeco(context, 'you@example.com'),
                   validator: (v) => (v == null || !v.contains('@')) ? 'Invalid email' : null,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: context.sp(20)),
 
                 _label(context, 'Mobile number'),
-                const SizedBox(height: 8),
+                SizedBox(height: context.sp(8)),
                 TextFormField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
-                  decoration: _inputDeco('+91 98765 43210'),
+                  decoration: _inputDeco(context, '+91 98765 43210'),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
                     if (v.trim().length < 7) return 'Enter a valid number';
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: context.sp(20)),
 
                 _label(context, 'Date of birth'),
-                const SizedBox(height: 8),
+                SizedBox(height: context.sp(8)),
                 GestureDetector(
                   onTap: _pickDob,
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: EdgeInsets.symmetric(horizontal: context.sp(16), vertical: context.sp(14)),
                     decoration: BoxDecoration(
                       border: Border.all(color: colors.outlineVariant),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(context.sp(12)),
                     ),
                     child: Text(
                       dobLabel,
@@ -158,26 +159,26 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                SizedBox(height: context.sp(40)),
 
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: _saving ? null : _save,
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: context.sp(14)),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(context.sp(12)),
                       ),
                     ),
                     child: _saving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
+                        ? SizedBox(
+                            width: context.sp(20),
+                            height: context.sp(20),
+                            child: const CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Continue', style: TextStyle(fontSize: 15)),
+                        : Text('Continue', style: TextStyle(fontSize: context.sp(15))),
                   ),
                 ),
               ],
@@ -196,16 +197,16 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
             ),
       );
 
-  InputDecoration _inputDeco(String hint) => InputDecoration(
+  InputDecoration _inputDeco(BuildContext context, String hint) => InputDecoration(
         hintText: hint,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.sp(12)),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.sp(12)),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: EdgeInsets.symmetric(horizontal: context.sp(16), vertical: context.sp(14)),
       );
 }

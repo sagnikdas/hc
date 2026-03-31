@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -71,21 +72,21 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: EdgeInsets.symmetric(horizontal: context.sp(32)),
           child: Column(
             children: [
               const Spacer(flex: 3),
               // Icon
               Container(
-                width: 88,
-                height: 88,
+                width: context.sp(88),
+                height: context.sp(88),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colors.primaryContainer.withValues(alpha: 0.4),
                 ),
-                child: Icon(Icons.self_improvement, size: 48, color: colors.primary),
+                child: Icon(Icons.self_improvement, size: context.sp(48), color: colors.primary),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: context.sp(24)),
               Text(
                 'Hanuman Chalisa',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -93,7 +94,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontWeight: FontWeight.w500,
                     ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: context.sp(8)),
               Text(
                 widget.launchGoogleSignInImmediately && _loading
                     ? 'Opening Google sign-in…'
@@ -111,24 +112,24 @@ class _SignInScreenState extends State<SignInScreen> {
                       onPressed: _signIn,
                       icon: Image.network(
                         'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                        width: 20,
-                        height: 20,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.login, size: 20),
+                        width: context.sp(20),
+                        height: context.sp(20),
+                        errorBuilder: (context, error, stackTrace) => Icon(Icons.login, size: context.sp(20)),
                       ),
                       label: const Text('Continue with Google'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: EdgeInsets.symmetric(horizontal: context.sp(24), vertical: context.sp(14)),
                         side: BorderSide(color: colors.outlineVariant),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(context.sp(12)),
                         ),
                         foregroundColor: colors.onSurface,
-                        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                        textStyle: TextStyle(fontSize: context.sp(15), fontWeight: FontWeight.w500),
                       ),
                     ),
               if (_error != null) ...[
-                const SizedBox(height: 16),
-                Text(_error!, style: TextStyle(color: colors.error, fontSize: 13)),
+                SizedBox(height: context.sp(16)),
+                Text(_error!, style: TextStyle(color: colors.error, fontSize: context.sp(13))),
               ],
               const Spacer(flex: 3),
               Text(
@@ -138,7 +139,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: context.sp(16)),
             ],
           ),
         ),

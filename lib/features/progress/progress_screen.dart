@@ -685,7 +685,7 @@ class _WeeklyCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: context.sp(8), vertical: context.sp(4)),
                   decoration: BoxDecoration(
                       color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4)),
+                      borderRadius: BorderRadius.circular(context.sp(4))),
                   child: Text('WEEKLY',
                       style: GoogleFonts.manrope(
                           fontSize: context.sp(9),

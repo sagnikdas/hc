@@ -248,9 +248,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Positioned(
-              left: 24,
-              right: 24,
-              bottom: 24,
+              left: context.sp(24),
+              right: context.sp(24),
+              bottom: context.sp(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,

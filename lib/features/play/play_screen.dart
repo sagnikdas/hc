@@ -186,7 +186,7 @@ class _PlayScreenState extends State<PlayScreen> {
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            padding: EdgeInsets.fromLTRB(ctx.sp(20), ctx.sp(16), ctx.sp(20), ctx.sp(20)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,11 +195,11 @@ class _PlayScreenState extends State<PlayScreen> {
                   'Choose Recitation',
                   style: GoogleFonts.notoSerif(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: ctx.sp(18),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: ctx.sp(16)),
                 for (final track in kAudioTracks) ...[
                   _TrackPickerTile(
                     track: track,
@@ -210,7 +210,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       _switchTrack(track);
                     },
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: ctx.sp(8)),
                 ],
               ],
             ),
@@ -296,7 +296,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 colors: [
                   cs.surfaceContainerLow,
                   cs.surfaceContainer,
-                  cs.surfaceContainerLow
+                  cs.surfaceContainerLow,
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -308,14 +308,14 @@ class _PlayScreenState extends State<PlayScreen> {
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: EdgeInsets.fromLTRB(ctx.sp(20), ctx.sp(16), ctx.sp(20), ctx.sp(20)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Decorative saffron/gold stripe.
                   Container(
-                    height: 10,
+                    height: ctx.sp(10),
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -326,13 +326,13 @@ class _PlayScreenState extends State<PlayScreen> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: ctx.sp(14)),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 64,
-                        height: 64,
+                        width: ctx.sp(64),
+                        height: ctx.sp(64),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
@@ -349,18 +349,18 @@ class _PlayScreenState extends State<PlayScreen> {
                         child: Center(
                           child: Image.asset(
                             'assets/images/hanumanji_icon.png',
-                            width: 38,
-                            height: 38,
+                            width: ctx.sp(38),
+                            height: ctx.sp(38),
                             fit: BoxFit.contain,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      SizedBox(width: ctx.sp(14)),
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ctx.sp(12),
+                            vertical: ctx.sp(8),
                           ),
                           decoration: BoxDecoration(
                             color: cs.primaryContainer.withValues(alpha: 0.96),
@@ -376,7 +376,7 @@ class _PlayScreenState extends State<PlayScreen> {
                           child: Text(
                             'Milestone: $count',
                             style: GoogleFonts.notoSerif(
-                              fontSize: 16,
+                              fontSize: ctx.sp(16),
                               fontWeight: FontWeight.w700,
                               color: cs.onPrimaryContainer,
                             ),
@@ -385,26 +385,26 @@ class _PlayScreenState extends State<PlayScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: ctx.sp(14)),
                   Text(
                     'Milestone complete!',
                     style: GoogleFonts.notoSerif(
-                      fontSize: 22,
+                      fontSize: ctx.sp(22),
                       color: cs.secondary,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: ctx.sp(8)),
                   Text(
                     'You have completed $count recitations today.',
                     style: GoogleFonts.manrope(
-                      fontSize: 14,
+                      fontSize: ctx.sp(14),
                       color: cs.onSurface.withValues(alpha: 0.86),
                       height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: ctx.sp(16)),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -412,9 +412,9 @@ class _PlayScreenState extends State<PlayScreen> {
                         backgroundColor: cs.primary,
                         foregroundColor: cs.onPrimary,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: ctx.sp(14)),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(ctx.sp(14)),
                         ),
                       ),
                       onPressed: () async {
@@ -1220,10 +1220,10 @@ class _TrackPickerTile extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.sp(12)),
           border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
         ),
         child: Row(
@@ -1231,9 +1231,9 @@ class _TrackPickerTile extends StatelessWidget {
             Icon(
               _icons[track.id] ?? Icons.music_note_rounded,
               color: selected ? cs.primary : Colors.white54,
-              size: 20,
+              size: context.sp(20),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: context.sp(12)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1242,7 +1242,7 @@ class _TrackPickerTile extends StatelessWidget {
                     track.name,
                     style: GoogleFonts.notoSerif(
                       color: selected ? cs.primary : Colors.white,
-                      fontSize: 14,
+                      fontSize: context.sp(14),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1250,14 +1250,14 @@ class _TrackPickerTile extends StatelessWidget {
                     track.description,
                     style: GoogleFonts.manrope(
                       color: Colors.white54,
-                      fontSize: 12,
+                      fontSize: context.sp(12),
                     ),
                   ),
                 ],
               ),
             ),
             if (selected)
-              Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
+              Icon(Icons.check_circle_rounded, color: cs.primary, size: context.sp(20)),
           ],
         ),
       ),

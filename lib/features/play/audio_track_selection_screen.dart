@@ -69,9 +69,9 @@ class _AudioTrackSelectionScreenState
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
             color: Colors.white70,
-            iconSize: 20,
+            iconSize: context.sp(20),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: context.sp(4)),
           Text(
             'Choose Your Recitation',
             style: GoogleFonts.notoSerif(
@@ -87,7 +87,7 @@ class _AudioTrackSelectionScreenState
 
   Widget _buildTrackList(ColorScheme cs) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: context.sp(20)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -96,18 +96,18 @@ class _AudioTrackSelectionScreenState
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               color: Colors.white54,
-              fontSize: 13,
+              fontSize: context.sp(13),
               height: 1.5,
             ),
           ),
-          SizedBox(height: 32),
+          SizedBox(height: context.sp(32)),
           for (final track in kAudioTracks) ...[
             _TrackCard(
               track: track,
               selected: _selectedId == track.id,
               onTap: () => setState(() => _selectedId = track.id),
             ),
-            SizedBox(height: 12),
+            SizedBox(height: context.sp(12)),
           ],
         ],
       ),
@@ -117,31 +117,31 @@ class _AudioTrackSelectionScreenState
   Widget _buildBottomBar(ColorScheme cs) {
     final ready = _selectedId != null;
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+      padding: EdgeInsets.fromLTRB(context.sp(24), context.sp(8), context.sp(24), context.sp(24)),
       child: SizedBox(
         width: double.infinity,
-        height: 52,
+        height: context.sp(52),
         child: FilledButton(
           onPressed: ready ? _onBegin : null,
           style: FilledButton.styleFrom(
             backgroundColor: cs.primary,
             disabledBackgroundColor: cs.primary.withValues(alpha: 0.25),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(context.sp(14)),
             ),
           ),
           child: _saving
               ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
+                  width: context.sp(20),
+                  height: context.sp(20),
+                  child: const CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.black),
                 )
               : Text(
                   'Begin',
                   style: GoogleFonts.manrope(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: context.sp(16),
                     color: Colors.black,
                   ),
                 ),
@@ -179,17 +179,17 @@ class _TrackCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(context.sp(16)),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(context.sp(14)),
           border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: context.sp(44),
+              height: context.sp(44),
               decoration: BoxDecoration(
                 color: selected
                     ? cs.primary.withValues(alpha: 0.2)
@@ -199,10 +199,10 @@ class _TrackCard extends StatelessWidget {
               child: Icon(
                 _icons[track.id] ?? Icons.music_note_rounded,
                 color: selected ? cs.primary : Colors.white54,
-                size: 22,
+                size: context.sp(22),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: context.sp(14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,7 +215,7 @@ class _TrackCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: context.sp(2)),
                   Text(
                     track.description,
                     style: GoogleFonts.manrope(
@@ -226,11 +226,11 @@ class _TrackCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: context.sp(8)),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 20,
-              height: 20,
+              width: context.sp(20),
+              height: context.sp(20),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -240,7 +240,7 @@ class _TrackCard extends StatelessWidget {
                 color: selected ? cs.primary : Colors.transparent,
               ),
               child: selected
-                  ? const Icon(Icons.check, color: Colors.black, size: 12)
+                  ? Icon(Icons.check, color: Colors.black, size: context.sp(12))
                   : null,
             ),
           ],
