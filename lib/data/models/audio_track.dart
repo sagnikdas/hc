@@ -6,12 +6,23 @@ class AudioTrack {
   final String assetPath;
   final String lyricsPath;
 
+  /// Maps JSON cue times onto playback clock. `1.0` = no change.
+  /// Values below 1 (e.g. 0.74) **delay** each line boundary on the timeline so the
+  /// highlight does not run ahead of chant-style recordings where line starts in JSON
+  /// pack slightly early relative to heard audio.
+  final double lyricSyncCurveExponent;
+
+  /// Shifts the clock used **only** for lyric lookup (positive = treat playback as earlier).
+  final Duration lyricSyncClockLead;
+
   const AudioTrack({
     required this.id,
     required this.name,
     required this.description,
     required this.assetPath,
     required this.lyricsPath,
+    this.lyricSyncCurveExponent = 1.0,
+    this.lyricSyncClockLead = Duration.zero,
   });
 }
 
@@ -30,6 +41,8 @@ const List<AudioTrack> kAudioTracks = [
     description: 'Sacred chant · male voice',
     assetPath: 'assets/audio/hc_male_final.mp3',
     lyricsPath: 'assets/lyrics/hc_male.json',
+    lyricSyncCurveExponent: 0.86,
+    lyricSyncClockLead: Duration(milliseconds: 220),
   ),
   AudioTrack(
     id: 'female',
@@ -37,6 +50,8 @@ const List<AudioTrack> kAudioTracks = [
     description: 'Sacred chant · female voice',
     assetPath: 'assets/audio/hc_female_final.mp3',
     lyricsPath: 'assets/lyrics/hc_female.json',
+    lyricSyncCurveExponent: 0.91,
+    lyricSyncClockLead: Duration(milliseconds: 175),
   ),
 ];
 

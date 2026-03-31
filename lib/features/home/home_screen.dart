@@ -357,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
         isRecitation: false,
       ),
       (
-        asset: 'assets/audio/voice_1.mp3',
+        asset: '',
         title: 'Voice Recitation',
         subtitle: 'Sacred Chant',
         icon: Icons.record_voice_over_rounded,

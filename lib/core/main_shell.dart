@@ -123,7 +123,13 @@ class _MiniPlayer extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(slideUpRoute(const PlayScreen())),
+      onTap: () async {
+        final settings = await AppRepository.instance.getSettings();
+        if (!context.mounted) return;
+        Navigator.of(context).push(
+          slideUpRoute(PlayScreen(initialTrackId: settings.preferredTrack)),
+        );
+      },
       child: Container(
         color: const Color(0xFF1C1B1B),
         child: Column(

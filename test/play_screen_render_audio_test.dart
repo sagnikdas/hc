@@ -64,6 +64,7 @@ void main() {
     when(() => handler.playing).thenReturn(false);
     when(() => handler.volume).thenReturn(1.0);
     when(() => handler.speed).thenReturn(1.0);
+    when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_real.mp3');
     when(() => handler.play()).thenAnswer((_) async {});
     when(() => handler.pause()).thenAnswer((_) async {});
     when(() => handler.seek(any())).thenAnswer((_) async {});
@@ -107,18 +108,26 @@ void main() {
       verify(() => handler.play()).called(1);
     });
 
-    testWidgets('uses initialVoice asset when provided', (tester) async {
-      const voice = 'assets/audio/voice_1.mp3';
+    testWidgets('uses initialVoice track id when provided', (tester) async {
+      const voice = 'male';
       await pump(tester, initialVoice: voice);
       final captured = verify(() => handler.loadVoice(captureAny())).captured;
-      expect(captured.last, voice);
+      expect(captured.last, 'assets/audio/hc_male_final.mp3');
     });
 
-    testWidgets('loadVoice and play are skipped when audio already loaded (>0 duration)', (tester) async {
+    testWidgets('loadVoice and play are skipped when matching audio is already loaded (>0 duration)', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
       await pump(tester);
       verifyNever(() => handler.loadVoice(any()));
       verifyNever(() => handler.play());
+    });
+
+    testWidgets('reloads and plays when loaded audio does not match selected track', (tester) async {
+      when(() => handler.duration).thenReturn(const Duration(minutes: 10));
+      when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_real.mp3');
+      await pump(tester, initialVoice: 'male');
+      verify(() => handler.loadVoice('assets/audio/hc_male_final.mp3')).called(1);
+      verify(() => handler.play()).called(1);
     });
 
     testWidgets('initialises via listener when handler is null at widget build time', (tester) async {

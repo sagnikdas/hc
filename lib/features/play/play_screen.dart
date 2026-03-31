@@ -118,13 +118,18 @@ class _PlayScreenState extends State<PlayScreen> {
   Future<void> _loadAudio() async {
     try {
       final handler = audioHandler!;
-      // If audio is already loaded (e.g. returning via mini-player), skip
-      // reloading so playback continues uninterrupted.
-      if (handler.duration > Duration.zero) {
+      await lyricsService.loadTrack(
+        _currentTrack.lyricsPath,
+        lyricSyncCurveExponent: _currentTrack.lyricSyncCurveExponent,
+      );
+      // If audio is already loaded, only reuse it when it matches the
+      // selected track. Otherwise, force-load the selected track to keep
+      // audio and lyrics aligned.
+      if (handler.duration > Duration.zero &&
+          handler.currentAssetPath == _currentTrack.assetPath) {
         if (mounted) setState(() => _loaded = true);
         return;
       }
-      await lyricsService.loadTrack(_currentTrack.lyricsPath);
       await handler.loadVoice(_currentTrack.assetPath);
       if (!mounted) return;
       setState(() => _loaded = true);
@@ -145,7 +150,10 @@ class _PlayScreenState extends State<PlayScreen> {
     });
     final s = await AppRepository.instance.getSettings();
     await AppRepository.instance.saveSettings(s.copyWith(preferredTrack: newTrack.id));
-    await lyricsService.loadTrack(newTrack.lyricsPath);
+    await lyricsService.loadTrack(
+      newTrack.lyricsPath,
+      lyricSyncCurveExponent: newTrack.lyricSyncCurveExponent,
+    );
     await audioHandler!.loadVoice(newTrack.assetPath);
     if (!mounted) return;
     await audioHandler!.seek(Duration.zero);
@@ -564,7 +572,9 @@ class _PlayScreenState extends State<PlayScreen> {
                     // Lyrics panel manages its own position subscription.
                     Expanded(
                       child: _LyricsPanel(
+                        key: ValueKey<String>(_currentTrack.id),
                         positionStream: handler.positionStream,
+                        lyricSyncClockLead: _currentTrack.lyricSyncClockLead,
                         cs: cs,
                       ),
                     ),
@@ -1228,8 +1238,14 @@ class _TrackPickerTile extends StatelessWidget {
 // not on every position tick.
 class _LyricsPanel extends StatefulWidget {
   final Stream<Duration> positionStream;
+  final Duration lyricSyncClockLead;
   final ColorScheme cs;
-  const _LyricsPanel({required this.positionStream, required this.cs});
+  const _LyricsPanel({
+    super.key,
+    required this.positionStream,
+    required this.lyricSyncClockLead,
+    required this.cs,
+  });
 
   @override
   State<_LyricsPanel> createState() => _LyricsPanelState();
@@ -1252,7 +1268,8 @@ class _LyricsPanelState extends State<_LyricsPanel> {
   @override
   void didUpdateWidget(_LyricsPanel old) {
     super.didUpdateWidget(old);
-    if (old.positionStream != widget.positionStream) {
+    if (old.positionStream != widget.positionStream ||
+        old.lyricSyncClockLead != widget.lyricSyncClockLead) {
       _positionSub?.cancel();
       _positionSub = widget.positionStream.listen(_onPosition);
     }
@@ -1266,7 +1283,10 @@ class _LyricsPanelState extends State<_LyricsPanel> {
   }
 
   void _onPosition(Duration pos) {
-    final idx = lyricsService.currentLineIndex(pos);
+    final shifted = pos - widget.lyricSyncClockLead;
+    final forLyrics =
+        shifted.isNegative ? Duration.zero : shifted;
+    final idx = lyricsService.currentLineIndex(forLyrics);
     if (idx == _currentIdx) return; // no line change — skip rebuild entirely
     setState(() => _currentIdx = idx);
     WidgetsBinding.instance
