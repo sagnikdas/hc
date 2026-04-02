@@ -175,8 +175,9 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
                         ? SizedBox(
                             width: context.sp(20),
                             height: context.sp(20),
-                            child: const CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context).colorScheme.onPrimary),
                           )
                         : Text('Continue', style: TextStyle(fontSize: context.sp(15))),
                   ),
@@ -197,16 +198,19 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
             ),
       );
 
-  InputDecoration _inputDeco(BuildContext context, String hint) => InputDecoration(
+  InputDecoration _inputDeco(BuildContext context, String hint) {
+    final outline = Theme.of(context).colorScheme.outlineVariant;
+    return InputDecoration(
         hintText: hint,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(context.sp(12)),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(context.sp(12)),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: outline),
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: context.sp(16), vertical: context.sp(14)),
-      );
+    );
+  }
 }
