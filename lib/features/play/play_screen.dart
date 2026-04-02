@@ -246,6 +246,7 @@ class _PlayScreenState extends State<PlayScreen> {
         HapticFeedback.heavyImpact();
       }
     } else {
+      if (!_continuousPlay) await audioHandler!.pause();
       await audioHandler!.seek(Duration.zero);
       if (_continuousPlay) await audioHandler!.play();
       if (mounted) setState(() => _completionHandled = false);
@@ -308,7 +309,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 width: 0.8,
               ),
             ),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(ctx.sp(20), ctx.sp(16), ctx.sp(20), ctx.sp(20)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
