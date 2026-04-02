@@ -42,10 +42,11 @@ class _AudioTrackSelectionScreenState
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: const Color(0xFF131313),
+        backgroundColor: cs.surface,
         body: SafeArea(
           child: Column(
             children: [
@@ -68,14 +69,14 @@ class _AudioTrackSelectionScreenState
           IconButton(
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            color: Colors.white70,
+            color: Theme.of(context).colorScheme.onSurface,
             iconSize: context.sp(20),
           ),
           SizedBox(width: context.sp(4)),
           Text(
             'Choose Your Recitation',
             style: GoogleFonts.notoSerif(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: context.sp(18),
               fontWeight: FontWeight.w600,
             ),
@@ -95,7 +96,7 @@ class _AudioTrackSelectionScreenState
             'Select the audio that resonates with you.\nYou can change it anytime during playback.',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
-              color: Colors.white54,
+              color: cs.onSurfaceVariant,
               fontSize: context.sp(13),
               height: 1.5,
             ),
@@ -134,15 +135,15 @@ class _AudioTrackSelectionScreenState
               ? SizedBox(
                   width: context.sp(20),
                   height: context.sp(20),
-                  child: const CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.black),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: cs.onPrimary),
                 )
               : Text(
                   'Begin',
                   style: GoogleFonts.manrope(
                     fontWeight: FontWeight.w700,
                     fontSize: context.sp(16),
-                    color: Colors.black,
+                    color: cs.onPrimary,
                   ),
                 ),
         ),
@@ -171,9 +172,9 @@ class _TrackCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final borderColor = selected ? cs.primary : Colors.white12;
+    final borderColor = selected ? cs.primary : cs.outlineVariant;
     final bgColor =
-        selected ? cs.primary.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.04);
+        selected ? cs.primary.withValues(alpha: 0.08) : cs.surfaceContainerLow;
 
     return GestureDetector(
       onTap: onTap,
@@ -193,12 +194,12 @@ class _TrackCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected
                     ? cs.primary.withValues(alpha: 0.2)
-                    : Colors.white.withValues(alpha: 0.06),
+                    : cs.surfaceContainerHigh,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _icons[track.id] ?? Icons.music_note_rounded,
-                color: selected ? cs.primary : Colors.white54,
+                color: selected ? cs.primary : cs.onSurfaceVariant,
                 size: context.sp(22),
               ),
             ),
@@ -210,7 +211,7 @@ class _TrackCard extends StatelessWidget {
                   Text(
                     track.name,
                     style: GoogleFonts.notoSerif(
-                      color: selected ? cs.primary : Colors.white,
+                      color: selected ? cs.primary : cs.onSurface,
                       fontSize: context.sp(15),
                       fontWeight: FontWeight.w600,
                     ),
@@ -219,7 +220,7 @@ class _TrackCard extends StatelessWidget {
                   Text(
                     track.description,
                     style: GoogleFonts.manrope(
-                      color: Colors.white54,
+                      color: cs.onSurfaceVariant,
                       fontSize: context.sp(12),
                     ),
                   ),
@@ -234,13 +235,13 @@ class _TrackCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected ? cs.primary : Colors.white30,
+                  color: selected ? cs.primary : cs.outlineVariant,
                   width: 1.5,
                 ),
                 color: selected ? cs.primary : Colors.transparent,
               ),
               child: selected
-                  ? Icon(Icons.check, color: Colors.black, size: context.sp(12))
+                  ? Icon(Icons.check, color: cs.onPrimary, size: context.sp(12))
                   : null,
             ),
           ],
