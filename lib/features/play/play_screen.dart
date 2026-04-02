@@ -179,7 +179,7 @@ class _PlayScreenState extends State<PlayScreen> {
     final cs = Theme.of(context).colorScheme;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -194,7 +194,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 Text(
                   'Choose Recitation',
                   style: GoogleFonts.notoSerif(
-                    color: Colors.white,
+                    color: cs.onSurface,
                     fontSize: ctx.sp(18),
                     fontWeight: FontWeight.w600,
                   ),
@@ -283,7 +283,7 @@ class _PlayScreenState extends State<PlayScreen> {
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -556,9 +556,9 @@ class _PlayScreenState extends State<PlayScreen> {
       valueListenable: audioHandlerNotifier,
       builder: (context, handler, child) {
         if (handler == null) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF131313),
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
         return _buildPlayer(context, handler);
@@ -582,7 +582,7 @@ class _PlayScreenState extends State<PlayScreen> {
         final isPlaying =
             (ps?.playing ?? false) && ps?.processingState != ProcessingState.completed;
         return Scaffold(
-          backgroundColor: const Color(0xFF131313),
+          backgroundColor: cs.surface,
           body: Stack(
             fit: StackFit.expand,
             children: [
@@ -713,7 +713,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? cs.primary
-                            : const Color(0xFF2A2A2A),
+                            : cs.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(100),
                         boxShadow: isSelected
                             ? [
@@ -750,7 +750,7 @@ class _PlayScreenState extends State<PlayScreen> {
               padding: EdgeInsets.symmetric(
                   horizontal: context.sp(12), vertical: context.sp(6)),
               decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A),
+                color: cs.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Row(
@@ -803,7 +803,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape:
                           RoundSliderOverlayShape(overlayRadius: context.sp(12)),
                       activeTrackColor: cs.secondary,
-                      inactiveTrackColor: const Color(0xFF353534),
+                      inactiveTrackColor: cs.surfaceContainerHighest,
                       thumbColor: cs.secondary,
                       overlayColor: cs.secondary.withValues(alpha: 0.2),
                     ),
@@ -932,7 +932,7 @@ class _PlayScreenState extends State<PlayScreen> {
           width: overlayWidth,
           height: overlayHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+            color: cs.surfaceContainerLow.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(100),
           ),
           padding: EdgeInsets.symmetric(vertical: context.sp(12)),
@@ -951,7 +951,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape: RoundSliderOverlayShape(
                           overlayRadius: context.sp(12)),
                       activeTrackColor: cs.primary,
-                      inactiveTrackColor: const Color(0xFF353534),
+                      inactiveTrackColor: cs.surfaceContainerHighest,
                       thumbColor: cs.primary,
                       overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
@@ -988,7 +988,7 @@ class _PlayScreenState extends State<PlayScreen> {
           width: overlayWidth,
           height: overlayHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+            color: cs.surfaceContainerLow.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(100),
           ),
           padding: EdgeInsets.symmetric(vertical: context.sp(12)),
@@ -1013,7 +1013,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape: RoundSliderOverlayShape(
                           overlayRadius: context.sp(12)),
                       activeTrackColor: cs.primary,
-                      inactiveTrackColor: const Color(0xFF353534),
+                      inactiveTrackColor: cs.surfaceContainerHighest,
                       thumbColor: cs.primary,
                       overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
@@ -1079,9 +1079,9 @@ class _BackgroundLayer extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF131313).withValues(alpha: 0.5),
+                cs.surface.withValues(alpha: 0.5),
                 Colors.transparent,
-                const Color(0xFF131313),
+                cs.surface,
               ],
               stops: const [0.0, 0.3, 1.0],
             ),
@@ -1128,7 +1128,7 @@ class _ControlButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: active
               ? cs.primary.withValues(alpha: 0.2)
-              : const Color(0xFF1C1B1B),
+              : cs.surfaceContainerLow,
         ),
         child: Icon(
           icon,
@@ -1172,7 +1172,7 @@ class _SpeedButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: active
               ? cs.primary.withValues(alpha: 0.2)
-              : const Color(0xFF1C1B1B),
+              : cs.surfaceContainerLow,
         ),
         alignment: Alignment.center,
         child: Text(
@@ -1211,10 +1211,10 @@ class _TrackPickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = selected ? cs.primary : Colors.white12;
+    final borderColor = selected ? cs.primary : cs.outlineVariant;
     final bgColor = selected
         ? cs.primary.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.04);
+        : cs.surfaceContainerLow;
 
     return GestureDetector(
       onTap: onTap,
@@ -1230,7 +1230,7 @@ class _TrackPickerTile extends StatelessWidget {
           children: [
             Icon(
               _icons[track.id] ?? Icons.music_note_rounded,
-              color: selected ? cs.primary : Colors.white54,
+              color: selected ? cs.primary : cs.onSurfaceVariant,
               size: context.sp(20),
             ),
             SizedBox(width: context.sp(12)),
@@ -1241,7 +1241,7 @@ class _TrackPickerTile extends StatelessWidget {
                   Text(
                     track.name,
                     style: GoogleFonts.notoSerif(
-                      color: selected ? cs.primary : Colors.white,
+                      color: selected ? cs.primary : cs.onSurface,
                       fontSize: context.sp(14),
                       fontWeight: FontWeight.w600,
                     ),
@@ -1249,7 +1249,7 @@ class _TrackPickerTile extends StatelessWidget {
                   Text(
                     track.description,
                     style: GoogleFonts.manrope(
-                      color: Colors.white54,
+                      color: cs.onSurfaceVariant,
                       fontSize: context.sp(12),
                     ),
                   ),
@@ -1436,7 +1436,7 @@ class _LangToggle extends StatelessWidget {
     return Container(
       height: context.sp(28),
       decoration: BoxDecoration(
-        color: const Color(0xFF252424),
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(context.sp(14)),
       ),
       child: Row(
@@ -1470,7 +1470,7 @@ class _LangToggle extends StatelessWidget {
             fontSize: context.sp(11),
             fontWeight: FontWeight.w600,
             color: selected
-                ? const Color(0xFF131313)
+                ? cs.onPrimary
                 : cs.onSurface.withValues(alpha: 0.45),
           ),
         ),
