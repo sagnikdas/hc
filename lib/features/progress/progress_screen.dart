@@ -868,7 +868,7 @@ class _SessionTile extends StatelessWidget {
           Container(
             width: context.sp(38),
             height: context.sp(38),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
                 shape: BoxShape.circle, color: cs.surfaceContainerHighest),
             child:
                 Icon(Icons.history_rounded, color: cs.primary, size: context.sp(18)),

@@ -281,9 +281,10 @@ class _PlayScreenState extends State<PlayScreen> {
         'Jai Hanuman! I completed $count Hanuman Chalisa recitations today.\n\n'
         'Join me on this daily sankalp. Use my referral code: $referralCode';
 
+    final sheetCs = Theme.of(context).colorScheme;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: cs.surfaceContainerLow,
+      backgroundColor: sheetCs.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
