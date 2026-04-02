@@ -198,6 +198,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeroCard(BuildContext context, ColorScheme cs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final imageBlendColor = isDark
+        ? Colors.black.withValues(alpha: 0.5)
+        : cs.primary.withValues(alpha: 0.35);
+    final imageBlendMode = isDark ? BlendMode.darken : BlendMode.srcOver;
+    final gradientEndColor = isDark
+        ? Colors.black.withValues(alpha: 0.9)
+        : cs.primary.withValues(alpha: 0.92);
+    final textOnHero = isDark ? cs.onSurface : cs.onPrimary;
+    final subTextOnHero = isDark
+        ? cs.onSurfaceVariant.withValues(alpha: 0.8)
+        : cs.onPrimary.withValues(alpha: 0.78);
+    final labelOnHero = isDark ? cs.secondary : cs.onPrimary.withValues(alpha: 0.72);
+
     return GestureDetector(
       onTap: () => _openPlay(),
       child: Container(
@@ -213,8 +227,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Image.asset(
               _sessionHeroBackgroundAsset ?? 'assets/images/hanuman_hero.png',
               fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.5),
-              colorBlendMode: BlendMode.darken,
+              color: imageBlendColor,
+              colorBlendMode: imageBlendMode,
               errorBuilder: (context, error, stack) => Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -241,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.9)
+                    gradientEndColor,
                   ],
                   stops: const [0.3, 1.0],
                 ),
@@ -259,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "TODAY'S SANKALPA",
                     style: GoogleFonts.manrope(
                       fontSize: context.sp(9),
-                      color: cs.secondary,
+                      color: labelOnHero,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2.5,
                     ),
@@ -268,14 +282,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'Begin your sacred\nrecitation',
                     style: GoogleFonts.notoSerif(
-                        fontSize: context.sp(26), color: cs.onSurface, height: 1.2),
+                        fontSize: context.sp(26), color: textOnHero, height: 1.2),
                   ),
                   SizedBox(height: context.sp(6)),
                   Text(
                     'Focus your mind and find peace through\nthe verses of devotion.',
                     style: GoogleFonts.manrope(
                       fontSize: context.sp(12),
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                      color: subTextOnHero,
                       height: 1.5,
                     ),
                   ),
