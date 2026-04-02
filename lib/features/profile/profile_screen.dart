@@ -926,6 +926,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+            border: Border.all(color: Colors.white, width: context.sp(1.5)),
             boxShadow: [
               BoxShadow(
                 color: cs.primaryContainer.withValues(alpha: 0.25),

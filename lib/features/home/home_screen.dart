@@ -301,6 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(100),
                       gradient: LinearGradient(
                           colors: [cs.primary, cs.primaryContainer]),
+                      border: Border.all(
+                          color: Colors.white, width: context.sp(1.5)),
                       boxShadow: [
                         BoxShadow(
                           color: cs.primaryContainer.withValues(alpha: 0.35),

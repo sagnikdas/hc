@@ -1055,10 +1055,9 @@ class _BackgroundLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gradientTopColor = isDark
-        ? cs.surface.withValues(alpha: 0.5)
-        : cs.primary.withValues(alpha: 0.55);
-    final gradientBottomColor = isDark ? cs.surface : cs.primary.withValues(alpha: 0.92);
+    final gradientColor = isDark ? cs.primaryContainer : cs.primary;
+    final gradientTopColor = gradientColor.withValues(alpha: 0.55);
+    final gradientBottomColor = gradientColor.withValues(alpha: 0.92);
 
     return Stack(
       fit: StackFit.expand,
