@@ -100,14 +100,18 @@ void main() {
       await pump(tester);
       await tester.tap(find.text('1×'));
       await tester.pump();
-      expect(find.text('5×'), findsOneWidget);
+      // Overlay is open: max-speed label visible, Slider present.
+      expect(find.text('1.5×'), findsOneWidget);
+      expect(find.byType(Slider), findsWidgets);
+      // Drag slider to a mid-range value; speed button label updates.
       final slider = tester.widget<Slider>(find.byType(Slider).last);
-      slider.onChanged?.call(2.0);
+      slider.onChanged?.call(1.2);
       await tester.pump();
-      expect(find.text('2×'), findsOneWidget);
-      await tester.tap(find.text('2×'));
+      expect(find.text('1.2×'), findsOneWidget);
+      // Tapping the speed button (behind Positioned.fill) dismisses overlay.
+      await tester.tap(find.text('1.2×'));
       await tester.pump();
-      expect(find.text('5×'), findsNothing);
+      expect(find.text('1.5×'), findsNothing);
     });
   });
 

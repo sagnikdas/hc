@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../play/audio_track_selection_screen.dart';
 import '../play/play_screen.dart';
 import '../recitation/recitation_screen.dart';
 import '../../core/transitions.dart';
@@ -105,6 +106,22 @@ class _HomeScreenState extends State<HomeScreen> {
         .then((_) => _loadStats());
   }
 
+  Future<void> _openChalisaTile() async {
+    final settings = await AppRepository.instance.getSettings();
+    if (!mounted) return;
+    if (settings.preferredTrack == null) {
+      // First time — show track selection screen.
+      Navigator.of(context)
+          .push(slideUpRoute(const AudioTrackSelectionScreen()))
+          .then((_) => _loadStats());
+    } else {
+      // Returning user — play directly with saved preference.
+      Navigator.of(context)
+          .push(slideUpRoute(PlayScreen(initialTrackId: settings.preferredTrack)))
+          .then((_) => _loadStats());
+    }
+  }
+
   void _openRecitation() {
     Navigator.of(context).push(slideUpRoute(const RecitationScreen()));
   }
@@ -125,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _loadStats,
         color: cs.primary,
-        backgroundColor: const Color(0xFF1C1B1B),
+        backgroundColor: cs.surfaceContainerLow,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(context, cs)),
@@ -155,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+          colors: [cs.surfaceContainerLow, cs.surface.withValues(alpha: 0)],
         ),
       ),
       child: Row(
@@ -181,13 +198,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeroCard(BuildContext context, ColorScheme cs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final imageBlendColor = isDark
+        ? Colors.black.withValues(alpha: 0.5)
+        : cs.primary.withValues(alpha: 0.35);
+    final imageBlendMode = isDark ? BlendMode.darken : BlendMode.srcOver;
+    final gradientEndColor = isDark
+        ? Colors.black.withValues(alpha: 0.9)
+        : cs.primary.withValues(alpha: 0.92);
+    final textOnHero = isDark ? cs.onSurface : cs.onPrimary;
+    final subTextOnHero = isDark
+        ? cs.onSurfaceVariant.withValues(alpha: 0.8)
+        : cs.onPrimary.withValues(alpha: 0.78);
+    final labelOnHero = isDark ? cs.secondary : cs.onPrimary.withValues(alpha: 0.72);
+
     return GestureDetector(
       onTap: () => _openPlay(),
       child: Container(
         height: context.sp(360),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(32),
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -196,15 +227,15 @@ class _HomeScreenState extends State<HomeScreen> {
             Image.asset(
               _sessionHeroBackgroundAsset ?? 'assets/images/hanuman_hero.png',
               fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.5),
-              colorBlendMode: BlendMode.darken,
+              color: imageBlendColor,
+              colorBlendMode: imageBlendMode,
               errorBuilder: (context, error, stack) => Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF2A2A2A),
+                      cs.surfaceContainerHigh,
                       cs.primaryContainer.withValues(alpha: 0.3)
                     ],
                   ),
@@ -224,16 +255,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF131313).withValues(alpha: 0.95)
+                    gradientEndColor,
                   ],
                   stops: const [0.3, 1.0],
                 ),
               ),
             ),
             Positioned(
-              left: 24,
-              right: 24,
-              bottom: 24,
+              left: context.sp(24),
+              right: context.sp(24),
+              bottom: context.sp(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -242,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "TODAY'S SANKALPA",
                     style: GoogleFonts.manrope(
                       fontSize: context.sp(9),
-                      color: cs.secondary,
+                      color: labelOnHero,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2.5,
                     ),
@@ -251,14 +282,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'Begin your sacred\nrecitation',
                     style: GoogleFonts.notoSerif(
-                        fontSize: context.sp(26), color: cs.onSurface, height: 1.2),
+                        fontSize: context.sp(26), color: textOnHero, height: 1.2),
                   ),
                   SizedBox(height: context.sp(6)),
                   Text(
                     'Focus your mind and find peace through\nthe verses of devotion.',
                     style: GoogleFonts.manrope(
                       fontSize: context.sp(12),
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                      color: subTextOnHero,
                       height: 1.5,
                     ),
                   ),
@@ -270,6 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(100),
                       gradient: LinearGradient(
                           colors: [cs.primary, cs.primaryContainer]),
+                      border: Border.all(
+                          color: Colors.white, width: context.sp(1.5)),
                       boxShadow: [
                         BoxShadow(
                           color: cs.primaryContainer.withValues(alpha: 0.35),
@@ -340,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
         isRecitation: false,
       ),
       (
-        asset: 'assets/audio/voice_1.mp3',
+        asset: '',
         title: 'Voice Recitation',
         subtitle: 'Sacred Chant',
         icon: Icons.record_voice_over_rounded,
@@ -363,11 +396,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: GestureDetector(
                   onTap: () => tracks[i].isRecitation
                       ? _openRecitation()
-                      : _openPlay(assetPath: tracks[i].asset),
+                      : _openChalisaTile(),
                   child: Container(
                     padding: EdgeInsets.all(context.sp(16)),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1C1B1B),
+                      color: cs.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(context.sp(20)),
                       border: Border.all(
                         color: cs.outlineVariant.withValues(alpha: 0.08),
@@ -444,7 +477,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(context.sp(20)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(24)),
       ),
       child: Column(
@@ -512,7 +545,7 @@ class _AppDrawer extends StatelessWidget {
     final avatarUrl = user?.userMetadata?['avatar_url'] as String?;
 
     return Drawer(
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surface,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -616,6 +649,7 @@ class _AppDrawer extends StatelessWidget {
                       gradient: LinearGradient(
                           colors: [cs.primary, cs.primaryContainer]),
                       borderRadius: BorderRadius.circular(context.sp(12)),
+                      border: Border.all(color: Colors.white, width: context.sp(1.5)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

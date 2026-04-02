@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
+import 'core/theme_notifier.dart';
 import 'core/audio_handler.dart';
 import 'core/font_scale_notifier.dart';
 import 'core/lyrics_service.dart';
@@ -22,6 +23,17 @@ final lyricsService = LyricsService();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey);
+
+  // Load theme + font scale before the first frame so there is no
+  // dark-flash on launch when the user has saved a different theme.
+  try {
+    final settings = await AppRepository.instance.getSettings();
+    themeModeNotifier.value = ThemeMode.values[settings.themeMode.clamp(0, 2)];
+    fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
+  } catch (e) {
+    debugPrint('Pre-launch settings load failed: $e');
+  }
+
   runApp(const HanumanChalisaApp());
   unawaited(_initServices());
 }
@@ -30,6 +42,7 @@ Future<void> _initServices() async {
   // Init notifications (timezone data, plugin registration).
   try {
     await NotificationService.init();
+    await NotificationService.consumeNotificationLaunchNavigation();
   } catch (e) {
     debugPrint('NotificationService init failed: $e');
   }
@@ -57,14 +70,12 @@ Future<void> _initServices() async {
     }
   });
 
-  // Load global UI settings (e.g. font scale) after launch.
+  // Apply notification schedule (settings already loaded pre-launch).
   try {
     final settings = await AppRepository.instance.getSettings();
-    // Clamp to avoid pathological values in the DB (e.g. 0) which can make
-    // all text effectively invisible and look like a black screen.
-    fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
+    unawaited(NotificationService.applyReminderSchedule(settings));
   } catch (e) {
-    debugPrint('Font scale init failed: $e');
+    debugPrint('Notification schedule init failed: $e');
   }
 }
 
@@ -73,24 +84,29 @@ class HanumanChalisaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Hanuman Chalisa',
-      debugShowCheckedModeBanner: false,
-      theme: darkTheme,
-      darkTheme: darkTheme,
-      themeMode: ThemeMode.dark,
-      home: ValueListenableBuilder<double>(
-        valueListenable: fontScaleNotifier,
-        builder: (context, scale, _) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              // Flutter deprecates `textScaleFactor` in favor of `textScaler`.
-              textScaler: TextScaler.linear(scale),
-            ),
-            child: const AuthGate(),
-          );
-        },
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Hanuman Chalisa',
+          debugShowCheckedModeBanner: false,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: themeMode,
+          home: ValueListenableBuilder<double>(
+            valueListenable: fontScaleNotifier,
+            builder: (context, scale, _) {
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  // Flutter deprecates `textScaleFactor` in favor of `textScaler`.
+                  textScaler: TextScaler.linear(scale),
+                ),
+                child: const AuthGate(),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

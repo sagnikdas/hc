@@ -4,6 +4,8 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../data/models/user_settings.dart';
+
 /// Hanuman Chalisa audio handler.
 ///
 /// Extends [BaseAudioHandler] so audio_service can:
@@ -14,6 +16,7 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   final _player = AudioPlayer();
   StreamSubscription? _playbackEventSub;
   StreamSubscription? _durationSub;
+  String? _currentAssetPath;
 
   // ── Public API used by PlayScreen ─────────────────────────────────────────
 
@@ -25,8 +28,14 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   double get volume => _player.volume;
   Future<void> setVolume(double v) => _player.setVolume(v.clamp(0.0, 1.0));
   double get speed => _player.speed;
+  String? get currentAssetPath => _currentAssetPath;
   @override
-  Future<void> setSpeed(double speed) => _player.setSpeed(speed.clamp(0.5, 5.0));
+  Future<void> setSpeed(double speed) => _player.setSpeed(
+        speed.clamp(
+          UserSettings.minPlaybackSpeed,
+          UserSettings.maxPlaybackSpeed,
+        ),
+      );
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -61,6 +70,7 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
 
   Future<void> loadVoice(String assetPath) async {
     await _player.setAudioSource(AudioSource.asset(assetPath));
+    _currentAssetPath = assetPath;
   }
 
   // ── BaseAudioHandler overrides ────────────────────────────────────────────

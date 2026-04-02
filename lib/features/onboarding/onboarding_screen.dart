@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/main_shell.dart';
 import '../../core/notification_service.dart';
+import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
 
@@ -44,7 +45,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() => _starting = true);
     await AppRepository.instance.markOnboardingShown();
     await NotificationService.requestPermissions();
-    await NotificationService.scheduleDailyReminders();
+    final settings = await AppRepository.instance.getSettings();
+    await NotificationService.applyReminderSchedule(settings);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShell()),
@@ -105,7 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surface,
       body: FadeTransition(
         opacity: _fadeIn,
         child: SafeArea(
@@ -116,26 +118,26 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               Text(
                 'ॐ',
                 style: GoogleFonts.notoSerif(
-                  fontSize: 72,
+                  fontSize: context.sp(72),
                   color: cs.primary,
                   height: 1,
                 ),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: context.sp(28)),
               // Title
               Text(
                 'Hanuman Chalisa',
                 style: GoogleFonts.notoSerif(
-                  fontSize: 30,
+                  fontSize: context.sp(30),
                   color: cs.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: context.sp(10)),
               Text(
                 'Your daily companion for devotion',
                 style: GoogleFonts.manrope(
-                  fontSize: 14,
+                  fontSize: context.sp(14),
                   color: cs.onSurfaceVariant,
                   fontWeight: FontWeight.w300,
                 ),
@@ -143,7 +145,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               const Spacer(flex: 1),
               // Feature cards
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: EdgeInsets.symmetric(horizontal: context.sp(32)),
                 child: Column(
                   children: [
                     _FeatureTile(
@@ -152,14 +154,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       subtitle: 'Count completions, build streaks, see your progress.',
                       cs: cs,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: context.sp(12)),
                     _FeatureTile(
                       icon: Icons.wifi_off_rounded,
                       title: 'Works Offline',
                       subtitle: 'Listen and chant anytime — no internet needed.',
                       cs: cs,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: context.sp(12)),
                     _FeatureTile(
                       icon: Icons.people_rounded,
                       title: 'Community Leaderboard',
@@ -172,27 +174,27 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               const Spacer(flex: 2),
               // WhatsApp / share CTA
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: EdgeInsets.symmetric(horizontal: context.sp(32)),
                 child: GestureDetector(
                   onTap: _onShare,
                   child: Container(
                     width: size.width,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: context.sp(14)),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: cs.primary.withValues(alpha: 0.4),
                       ),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(context.sp(14)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.share_rounded, color: cs.primary, size: 20),
-                        const SizedBox(width: 10),
+                        Icon(Icons.share_rounded, color: cs.primary, size: context.sp(20)),
+                        SizedBox(width: context.sp(10)),
                         Text(
                           'Invite devotees via WhatsApp',
                           style: GoogleFonts.manrope(
-                            fontSize: 14,
+                            fontSize: context.sp(14),
                             color: cs.primary,
                             fontWeight: FontWeight.w500,
                           ),
@@ -202,22 +204,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: context.sp(14)),
               // Sign in with Google (primary CTA)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: EdgeInsets.symmetric(horizontal: context.sp(32)),
                 child: GestureDetector(
                   onTap: (_signingIn || _starting) ? null : _onSignInWithGoogle,
                   child: Container(
                     width: size.width,
-                    height: 56,
+                    height: context.sp(56),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [cs.primary, cs.primaryContainer],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(context.sp(14)),
+                      border: Border.all(color: Colors.white, width: context.sp(1.5)),
                       boxShadow: [
                         BoxShadow(
                           color: cs.primary.withValues(alpha: 0.35),
@@ -228,10 +231,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     ),
                     child: Center(
                       child: (_signingIn || _starting)
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
+                          ? SizedBox(
+                              width: context.sp(22),
+                              height: context.sp(22),
+                              child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.white,
                               ),
@@ -240,28 +243,28 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
-                                  width: 22,
-                                  height: 22,
+                                  width: context.sp(22),
+                                  height: context.sp(22),
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Colors.white,
                                   ),
-                                  child: const Center(
+                                  child: Center(
                                     child: Text(
                                       'G',
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: context.sp(13),
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4285F4),
+                                        color: const Color(0xFF4285F4),
                                       ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+                                SizedBox(width: context.sp(10)),
                                 Text(
                                   'Continue with Google',
                                   style: GoogleFonts.notoSerif(
-                                    fontSize: 17,
+                                    fontSize: context.sp(17),
                                     fontWeight: FontWeight.w700,
                                     color: cs.onPrimary,
                                   ),
@@ -273,13 +276,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
               ),
               if (_signInError != null) ...[
-                const SizedBox(height: 8),
+                SizedBox(height: context.sp(8)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: EdgeInsets.symmetric(horizontal: context.sp(32)),
                   child: Text(
                     _signInError!,
                     style: GoogleFonts.manrope(
-                      fontSize: 12,
+                      fontSize: context.sp(12),
                       color: Theme.of(context).colorScheme.error,
                     ),
                     textAlign: TextAlign.center,
@@ -289,18 +292,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               // Skip for now (secondary)
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  32, 4, 32, MediaQuery.of(context).padding.bottom + 20,
+                  context.sp(32), context.sp(4), context.sp(32), MediaQuery.of(context).padding.bottom + context.sp(20),
                 ),
                 child: GestureDetector(
                   onTap: (_signingIn || _starting) ? null : _onSkip,
                   child: SizedBox(
                     width: size.width,
-                    height: 44,
+                    height: context.sp(44),
                     child: Center(
                       child: Text(
                         'Skip for now',
                         style: GoogleFonts.manrope(
-                          fontSize: 13,
+                          fontSize: context.sp(13),
                           color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                           decoration: TextDecoration.underline,
@@ -338,15 +341,15 @@ class _FeatureTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: context.sp(40),
+          height: context.sp(40),
           decoration: BoxDecoration(
             color: cs.primary.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: cs.primary, size: 20),
+          child: Icon(icon, color: cs.primary, size: context.sp(20)),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: context.sp(14)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,16 +357,16 @@ class _FeatureTile extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.manrope(
-                  fontSize: 13,
+                  fontSize: context.sp(13),
                   fontWeight: FontWeight.w600,
                   color: cs.onSurface,
                 ),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: context.sp(2)),
               Text(
                 subtitle,
                 style: GoogleFonts.manrope(
-                  fontSize: 11,
+                  fontSize: context.sp(11),
                   color: cs.onSurfaceVariant,
                   height: 1.5,
                 ),

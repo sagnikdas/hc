@@ -29,7 +29,7 @@ class _RecitationScreenState extends State<RecitationScreen> {
     final hasTransliteration = lines.any((l) => l.transliteration != null);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: cs.surface,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -176,6 +176,11 @@ class _RecitationBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradientColor = isDark ? cs.primaryContainer : cs.primary;
+    final gradientTopColor = gradientColor.withValues(alpha: 0.55);
+    final gradientBottomColor = gradientColor.withValues(alpha: 0.92);
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -201,9 +206,9 @@ class _RecitationBackground extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF131313).withValues(alpha: 0.5),
+                gradientTopColor,
                 Colors.transparent,
-                const Color(0xFF131313),
+                gradientBottomColor,
               ],
               stops: const [0.0, 0.3, 1.0],
             ),
@@ -243,7 +248,7 @@ class _LangToggle extends StatelessWidget {
     return Container(
       height: context.sp(28),
       decoration: BoxDecoration(
-        color: const Color(0xFF252424),
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(context.sp(14)),
       ),
       child: Row(
@@ -281,7 +286,7 @@ class _LangToggle extends StatelessWidget {
             fontSize: context.sp(11),
             fontWeight: FontWeight.w600,
             color: selected
-                ? const Color(0xFF131313)
+                ? cs.onPrimary
                 : cs.onSurface.withValues(alpha: 0.45),
           ),
         ),

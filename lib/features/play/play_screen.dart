@@ -10,10 +10,17 @@ import '../../core/audio_handler.dart';
 import '../../core/responsive.dart';
 import '../../data/repositories/app_repository.dart';
 import '../../data/models/play_session.dart';
+import '../../data/models/audio_track.dart';
+import '../../data/models/user_settings.dart';
 
 class PlayScreen extends StatefulWidget {
   final int? initialTarget;
   final String? initialVoice;
+  final String? initialTrackId;
+
+  /// When true (e.g. opened from a reminder tap), start playback from the
+  /// beginning once audio is ready, including when the same track is cached.
+  final bool beginPaathImmediately;
   @visibleForTesting
   final Set<int>? debugMilestones;
   @visibleForTesting
@@ -24,6 +31,8 @@ class PlayScreen extends StatefulWidget {
     super.key,
     this.initialTarget,
     this.initialVoice,
+    this.initialTrackId,
+    this.beginPaathImmediately = false,
     this.debugMilestones,
     this.debugReferralCodeProvider,
     this.debugSaveSessionOverride,
@@ -34,10 +43,11 @@ class PlayScreen extends StatefulWidget {
 }
 
 class _PlayScreenState extends State<PlayScreen> {
-  static const _defaultAudioAsset = 'assets/audio/hc_real.mp3';
   static const _quickCounts = [1, 11, 21, 108];
   // Milestone bottom-sheet triggers.
   static const _milestones = {11, 21, 108};
+
+  late AudioTrack _currentTrack;
   Set<int> get _activeMilestones => widget.debugMilestones ?? _milestones;
 
   // Guard: _initAudio must only wire up once even if handler becomes ready
@@ -64,6 +74,7 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   void initState() {
     super.initState();
+    _currentTrack = trackById(widget.initialTrackId ?? widget.initialVoice);
     // Defer to avoid setState-during-build on the parent MainShell.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       isPlayScreenOpen.value = true;
@@ -113,20 +124,100 @@ class _PlayScreenState extends State<PlayScreen> {
   Future<void> _loadAudio() async {
     try {
       final handler = audioHandler!;
-      // If audio is already loaded (e.g. returning via mini-player), skip
-      // reloading so playback continues uninterrupted.
-      if (handler.duration > Duration.zero) {
+      await lyricsService.loadTrack(
+        _currentTrack.lyricsPath,
+        lyricSyncCurveExponent: _currentTrack.lyricSyncCurveExponent,
+      );
+      // If audio is already loaded, only reuse it when it matches the
+      // selected track. Otherwise, force-load the selected track to keep
+      // audio and lyrics aligned.
+      if (handler.duration > Duration.zero &&
+          handler.currentAssetPath == _currentTrack.assetPath) {
         if (mounted) setState(() => _loaded = true);
+        if (widget.beginPaathImmediately) {
+          try {
+            await handler.seek(Duration.zero);
+            await handler.play();
+          } catch (e) {
+            debugPrint('beginPaathImmediately: $e');
+          }
+        }
         return;
       }
-      final asset = widget.initialVoice ?? _defaultAudioAsset;
-      await handler.loadVoice(asset);
+      await handler.loadVoice(_currentTrack.assetPath);
       if (!mounted) return;
       setState(() => _loaded = true);
       await handler.play();
     } catch (e) {
       debugPrint('Audio load failed: $e');
     }
+  }
+
+  Future<void> _switchTrack(AudioTrack newTrack) async {
+    if (newTrack.id == _currentTrack.id) return;
+    setState(() {
+      _currentTrack = newTrack;
+      _completedCount = 0;
+      _seekForwardThisRound = false;
+      _completionHandled = false;
+      _shownMilestones.clear();
+    });
+    final s = await AppRepository.instance.getSettings();
+    await AppRepository.instance.saveSettings(s.copyWith(preferredTrack: newTrack.id));
+    await lyricsService.loadTrack(
+      newTrack.lyricsPath,
+      lyricSyncCurveExponent: newTrack.lyricSyncCurveExponent,
+    );
+    await audioHandler!.loadVoice(newTrack.assetPath);
+    if (!mounted) return;
+    await audioHandler!.seek(Duration.zero);
+    await audioHandler!.play();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showTrackPicker() async {
+    final cs = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: cs.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(ctx.sp(20), ctx.sp(16), ctx.sp(20), ctx.sp(20)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Choose Recitation',
+                  style: GoogleFonts.notoSerif(
+                    color: cs.onSurface,
+                    fontSize: ctx.sp(18),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: ctx.sp(16)),
+                for (final track in kAudioTracks) ...[
+                  _TrackPickerTile(
+                    track: track,
+                    selected: track.id == _currentTrack.id,
+                    cs: cs,
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      _switchTrack(track);
+                    },
+                  ),
+                  SizedBox(height: ctx.sp(8)),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _onPlayerState(PlayerState state) {
@@ -155,6 +246,7 @@ class _PlayScreenState extends State<PlayScreen> {
         HapticFeedback.heavyImpact();
       }
     } else {
+      if (!_continuousPlay) await audioHandler!.pause();
       await audioHandler!.seek(Duration.zero);
       if (_continuousPlay) await audioHandler!.play();
       if (mounted) setState(() => _completionHandled = false);
@@ -190,9 +282,10 @@ class _PlayScreenState extends State<PlayScreen> {
         'Jai Hanuman! I completed $count Hanuman Chalisa recitations today.\n\n'
         'Join me on this daily sankalp. Use my referral code: $referralCode';
 
+    final sheetCs = Theme.of(context).colorScheme;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF131313),
+      backgroundColor: sheetCs.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -205,7 +298,7 @@ class _PlayScreenState extends State<PlayScreen> {
                 colors: [
                   cs.surfaceContainerLow,
                   cs.surfaceContainer,
-                  cs.surfaceContainerLow
+                  cs.surfaceContainerLow,
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -216,15 +309,15 @@ class _PlayScreenState extends State<PlayScreen> {
                 width: 0.8,
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(ctx.sp(20), ctx.sp(16), ctx.sp(20), ctx.sp(20)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Decorative saffron/gold stripe.
                   Container(
-                    height: 10,
+                    height: ctx.sp(10),
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -235,13 +328,13 @@ class _PlayScreenState extends State<PlayScreen> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: ctx.sp(14)),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 64,
-                        height: 64,
+                        width: ctx.sp(64),
+                        height: ctx.sp(64),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
@@ -258,18 +351,18 @@ class _PlayScreenState extends State<PlayScreen> {
                         child: Center(
                           child: Image.asset(
                             'assets/images/hanumanji_icon.png',
-                            width: 38,
-                            height: 38,
+                            width: ctx.sp(38),
+                            height: ctx.sp(38),
                             fit: BoxFit.contain,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      SizedBox(width: ctx.sp(14)),
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ctx.sp(12),
+                            vertical: ctx.sp(8),
                           ),
                           decoration: BoxDecoration(
                             color: cs.primaryContainer.withValues(alpha: 0.96),
@@ -285,7 +378,7 @@ class _PlayScreenState extends State<PlayScreen> {
                           child: Text(
                             'Milestone: $count',
                             style: GoogleFonts.notoSerif(
-                              fontSize: 16,
+                              fontSize: ctx.sp(16),
                               fontWeight: FontWeight.w700,
                               color: cs.onPrimaryContainer,
                             ),
@@ -294,26 +387,26 @@ class _PlayScreenState extends State<PlayScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: ctx.sp(14)),
                   Text(
                     'Milestone complete!',
                     style: GoogleFonts.notoSerif(
-                      fontSize: 22,
+                      fontSize: ctx.sp(22),
                       color: cs.secondary,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: ctx.sp(8)),
                   Text(
                     'You have completed $count recitations today.',
                     style: GoogleFonts.manrope(
-                      fontSize: 14,
+                      fontSize: ctx.sp(14),
                       color: cs.onSurface.withValues(alpha: 0.86),
                       height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: ctx.sp(16)),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -321,9 +414,10 @@ class _PlayScreenState extends State<PlayScreen> {
                         backgroundColor: cs.primary,
                         foregroundColor: cs.onPrimary,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: ctx.sp(14)),
+                        side: BorderSide(color: Colors.white, width: ctx.sp(1.5)),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(ctx.sp(14)),
                         ),
                       ),
                       onPressed: () async {
@@ -413,6 +507,16 @@ class _PlayScreenState extends State<PlayScreen> {
     });
   }
 
+  void _dismissControlOverlays() {
+    _volumeTimer?.cancel();
+    _speedTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _showVolume = false;
+      _showSpeed = false;
+    });
+  }
+
   void _onVolumeChanged(double v) {
     setState(() => _volume = v);
     audioHandler?.setVolume(v);
@@ -455,9 +559,9 @@ class _PlayScreenState extends State<PlayScreen> {
       valueListenable: audioHandlerNotifier,
       builder: (context, handler, child) {
         if (handler == null) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF131313),
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
         return _buildPlayer(context, handler);
@@ -481,7 +585,7 @@ class _PlayScreenState extends State<PlayScreen> {
         final isPlaying =
             (ps?.playing ?? false) && ps?.processingState != ProcessingState.completed;
         return Scaffold(
-          backgroundColor: const Color(0xFF131313),
+          backgroundColor: cs.surface,
           body: Stack(
             fit: StackFit.expand,
             children: [
@@ -495,7 +599,9 @@ class _PlayScreenState extends State<PlayScreen> {
                     // Lyrics panel manages its own position subscription.
                     Expanded(
                       child: _LyricsPanel(
+                        key: ValueKey<String>(_currentTrack.id),
                         positionStream: handler.positionStream,
+                        lyricSyncClockLead: _currentTrack.lyricSyncClockLead,
                         cs: cs,
                       ),
                     ),
@@ -503,6 +609,13 @@ class _PlayScreenState extends State<PlayScreen> {
                   ],
                 ),
               ),
+              if (_showVolume || _showSpeed)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _dismissControlOverlays,
+                    behavior: HitTestBehavior.opaque,
+                  ),
+                ),
               if (_showVolume) _buildVolumeOverlay(context, cs),
               if (_showSpeed) _buildSpeedOverlay(context, cs),
             ],
@@ -563,7 +676,7 @@ class _PlayScreenState extends State<PlayScreen> {
                   '$_completedCount',
                   style: GoogleFonts.notoSerif(
                     fontSize: context.sp(42),
-                    color: done ? cs.secondary : cs.primary,
+                    color: done ? cs.secondary : cs.onPrimary,
                     height: 1,
                   ),
                 ),
@@ -603,7 +716,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? cs.primary
-                            : const Color(0xFF2A2A2A),
+                            : cs.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(100),
                         boxShadow: isSelected
                             ? [
@@ -631,7 +744,47 @@ class _PlayScreenState extends State<PlayScreen> {
             ),
           ),
 
-          SizedBox(height: context.sp(14)),
+          SizedBox(height: context.sp(10)),
+
+          // ── Track switcher chip ───────────────────────────────────────
+          GestureDetector(
+            onTap: _showTrackPicker,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: context.sp(12), vertical: context.sp(6)),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.music_note_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: context.sp(13)),
+                  SizedBox(width: context.sp(5)),
+                  Text(
+                    _currentTrack.name,
+                    style: GoogleFonts.manrope(
+                      fontSize: context.sp(11),
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  SizedBox(width: context.sp(4)),
+                  Icon(Icons.expand_more_rounded,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.6),
+                      size: context.sp(14)),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: context.sp(10)),
 
           // ── Progress bar + time — isolated StreamBuilder, ~1fps ───────
           StreamBuilder<Duration>(
@@ -653,7 +806,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape:
                           RoundSliderOverlayShape(overlayRadius: context.sp(12)),
                       activeTrackColor: cs.secondary,
-                      inactiveTrackColor: const Color(0xFF353534),
+                      inactiveTrackColor: cs.surfaceContainerHighest,
                       thumbColor: cs.secondary,
                       overlayColor: cs.secondary.withValues(alpha: 0.2),
                     ),
@@ -776,14 +929,13 @@ class _PlayScreenState extends State<PlayScreen> {
     return Positioned(
       bottom: overlayBottom,
       right: context.sp(20),
-      child: GestureDetector(
-        onTap: () => setState(() => _showVolume = false),
-        behavior: HitTestBehavior.translucent,
+      child: Material(
+        color: Colors.transparent,
         child: Container(
           width: overlayWidth,
           height: overlayHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+            color: cs.surfaceContainerLow.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(100),
           ),
           padding: EdgeInsets.symmetric(vertical: context.sp(12)),
@@ -802,7 +954,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape: RoundSliderOverlayShape(
                           overlayRadius: context.sp(12)),
                       activeTrackColor: cs.primary,
-                      inactiveTrackColor: const Color(0xFF353534),
+                      inactiveTrackColor: cs.surfaceContainerHighest,
                       thumbColor: cs.primary,
                       overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
@@ -833,21 +985,20 @@ class _PlayScreenState extends State<PlayScreen> {
     return Positioned(
       bottom: overlayBottom,
       left: context.sp(20),
-      child: GestureDetector(
-        onTap: () => setState(() => _showSpeed = false),
-        behavior: HitTestBehavior.translucent,
+      child: Material(
+        color: Colors.transparent,
         child: Container(
           width: overlayWidth,
           height: overlayHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+            color: cs.surfaceContainerLow.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(100),
           ),
           padding: EdgeInsets.symmetric(vertical: context.sp(12)),
           child: Column(
             children: [
               Text(
-                '5×',
+                '${UserSettings.maxPlaybackSpeed.toStringAsFixed(1)}×',
                 style: GoogleFonts.manrope(
                     fontSize: context.sp(10),
                     color: cs.primary,
@@ -865,14 +1016,17 @@ class _PlayScreenState extends State<PlayScreen> {
                       overlayShape: RoundSliderOverlayShape(
                           overlayRadius: context.sp(12)),
                       activeTrackColor: cs.primary,
-                      inactiveTrackColor: const Color(0xFF353534),
+                      inactiveTrackColor: cs.surfaceContainerHighest,
                       thumbColor: cs.primary,
                       overlayColor: cs.primary.withValues(alpha: 0.2),
                     ),
                     child: Slider(
-                      value: _speed,
-                      min: 0.5,
-                      max: 5.0,
+                      value: _speed.clamp(
+                        UserSettings.minPlaybackSpeed,
+                        UserSettings.maxPlaybackSpeed,
+                      ),
+                      min: UserSettings.minPlaybackSpeed,
+                      max: UserSettings.maxPlaybackSpeed,
                       onChanged: _onSpeedSlide,
                       onChangeEnd: _onSpeedEnd,
                     ),
@@ -902,6 +1056,11 @@ class _BackgroundLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradientColor = isDark ? cs.primaryContainer : cs.primary;
+    final gradientTopColor = gradientColor.withValues(alpha: 0.55);
+    final gradientBottomColor = gradientColor.withValues(alpha: 0.68);
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -928,9 +1087,9 @@ class _BackgroundLayer extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF131313).withValues(alpha: 0.5),
+                gradientTopColor,
                 Colors.transparent,
-                const Color(0xFF131313),
+                gradientBottomColor,
               ],
               stops: const [0.0, 0.3, 1.0],
             ),
@@ -975,17 +1134,26 @@ class _ControlButton extends StatelessWidget {
         height: context.sp(44),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active
-              ? cs.primary.withValues(alpha: 0.2)
-              : const Color(0xFF1C1B1B),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [cs.primary, cs.primaryContainer],
+          ),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: cs.primaryContainer.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         child: Icon(
           icon,
-          color: active
-              ? cs.primary
-              : onTap != null
-                  ? cs.onSurfaceVariant
-                  : cs.onSurfaceVariant.withValues(alpha: 0.3),
+          color: onTap != null
+              ? cs.onPrimary
+              : cs.onPrimary.withValues(alpha: 0.35),
           size: context.sp(20),
         ),
       ),
@@ -1019,9 +1187,20 @@ class _SpeedButton extends StatelessWidget {
         height: context.sp(44),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active
-              ? cs.primary.withValues(alpha: 0.2)
-              : const Color(0xFF1C1B1B),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [cs.primary, cs.primaryContainer],
+          ),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: cs.primaryContainer.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         alignment: Alignment.center,
         child: Text(
@@ -1029,9 +1208,85 @@ class _SpeedButton extends StatelessWidget {
           style: GoogleFonts.manrope(
             fontSize: context.sp(11),
             fontWeight: FontWeight.w700,
-            color: active ? cs.primary : cs.onSurfaceVariant,
+            color: cs.onPrimary,
             letterSpacing: 0.3,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Track picker tile (used inside modal bottom sheet) ─────────────────────────
+class _TrackPickerTile extends StatelessWidget {
+  final AudioTrack track;
+  final bool selected;
+  final ColorScheme cs;
+  final VoidCallback onTap;
+
+  const _TrackPickerTile({
+    required this.track,
+    required this.selected,
+    required this.cs,
+    required this.onTap,
+  });
+
+  static const _icons = {
+    'traditional': Icons.surround_sound_rounded,
+    'male': Icons.record_voice_over_rounded,
+    'female': Icons.mic_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = selected ? cs.primary : cs.outlineVariant;
+    final bgColor = selected
+        ? cs.primary.withValues(alpha: 0.08)
+        : cs.surfaceContainerLow;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(context.sp(12)),
+          border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _icons[track.id] ?? Icons.music_note_rounded,
+              color: selected ? cs.primary : cs.onSurfaceVariant,
+              size: context.sp(20),
+            ),
+            SizedBox(width: context.sp(12)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    track.name,
+                    style: GoogleFonts.notoSerif(
+                      color: selected ? cs.primary : cs.onSurface,
+                      fontSize: context.sp(14),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    track.description,
+                    style: GoogleFonts.manrope(
+                      color: cs.onSurfaceVariant,
+                      fontSize: context.sp(12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_circle_rounded, color: cs.primary, size: context.sp(20)),
+          ],
         ),
       ),
     );
@@ -1043,8 +1298,14 @@ class _SpeedButton extends StatelessWidget {
 // not on every position tick.
 class _LyricsPanel extends StatefulWidget {
   final Stream<Duration> positionStream;
+  final Duration lyricSyncClockLead;
   final ColorScheme cs;
-  const _LyricsPanel({required this.positionStream, required this.cs});
+  const _LyricsPanel({
+    super.key,
+    required this.positionStream,
+    required this.lyricSyncClockLead,
+    required this.cs,
+  });
 
   @override
   State<_LyricsPanel> createState() => _LyricsPanelState();
@@ -1067,7 +1328,8 @@ class _LyricsPanelState extends State<_LyricsPanel> {
   @override
   void didUpdateWidget(_LyricsPanel old) {
     super.didUpdateWidget(old);
-    if (old.positionStream != widget.positionStream) {
+    if (old.positionStream != widget.positionStream ||
+        old.lyricSyncClockLead != widget.lyricSyncClockLead) {
       _positionSub?.cancel();
       _positionSub = widget.positionStream.listen(_onPosition);
     }
@@ -1081,7 +1343,10 @@ class _LyricsPanelState extends State<_LyricsPanel> {
   }
 
   void _onPosition(Duration pos) {
-    final idx = lyricsService.currentLineIndex(pos);
+    final shifted = pos - widget.lyricSyncClockLead;
+    final forLyrics =
+        shifted.isNegative ? Duration.zero : shifted;
+    final idx = lyricsService.currentLineIndex(forLyrics);
     if (idx == _currentIdx) return; // no line change — skip rebuild entirely
     setState(() => _currentIdx = idx);
     WidgetsBinding.instance
@@ -1199,7 +1464,7 @@ class _LangToggle extends StatelessWidget {
     return Container(
       height: context.sp(28),
       decoration: BoxDecoration(
-        color: const Color(0xFF252424),
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(context.sp(14)),
       ),
       child: Row(
@@ -1233,7 +1498,7 @@ class _LangToggle extends StatelessWidget {
             fontSize: context.sp(11),
             fontWeight: FontWeight.w600,
             color: selected
-                ? const Color(0xFF131313)
+                ? cs.onPrimary
                 : cs.onSurface.withValues(alpha: 0.45),
           ),
         ),

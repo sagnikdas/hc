@@ -17,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:hanuman_chalisa/core/font_scale_notifier.dart';
 import 'package:hanuman_chalisa/core/main_shell.dart';
+import 'package:hanuman_chalisa/core/reminder_navigation.dart';
 import 'package:hanuman_chalisa/core/supabase_service.dart';
 import 'package:hanuman_chalisa/core/theme.dart';
 import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
@@ -76,6 +77,7 @@ void _setUp() {
   isPlayScreenOpen.value = false;
   audioHandlerNotifier.value = null;
   fontScaleNotifier.value = 1.0;
+  reminderNotificationTapVersion.value = 0;
 }
 
 // ---------------------------------------------------------------------------

@@ -112,7 +112,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       body: RefreshIndicator(
         onRefresh: _loadData,
         color: cs.primary,
-        backgroundColor: const Color(0xFF1C1B1B),
+        backgroundColor: cs.surfaceContainerLow,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(context, cs)),
@@ -161,7 +161,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+          colors: [cs.surfaceContainerLow, cs.surface.withValues(alpha: 0)],
         ),
       ),
       child: Row(
@@ -196,7 +196,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Container(
       padding: EdgeInsets.all(context.sp(24)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(28)),
       ),
       child: Column(
@@ -245,7 +245,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(2),
                       color: o == 0
-                          ? const Color(0xFF353534)
+                          ? cs.surfaceContainerHighest
                           : cs.primary.withValues(alpha: o),
                     ),
                   )),
@@ -308,7 +308,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       width: ctx.sp(120),
                       padding: EdgeInsets.all(ctx.sp(14)),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A2A),
+                        color: cs.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(ctx.sp(16)),
                       ),
                       child: Column(
@@ -321,7 +321,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                               shape: BoxShape.circle,
                               color: m.unlocked
                                   ? cs.primary.withValues(alpha: 0.15)
-                                  : const Color(0xFF353534),
+                                  : cs.surfaceContainerHighest,
                             ),
                             child: Icon(
                               m.icon,
@@ -373,7 +373,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     if (!context.mounted) return;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1B1B),
+      backgroundColor: cs.surfaceContainerLow,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(context.sp(24)))),
       isScrollControlled: true,
@@ -524,7 +524,7 @@ class _SignInUpsellCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(context.sp(24)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(24)),
         border: Border.all(
           color: cs.primary.withValues(alpha: 0.25),
@@ -590,7 +590,11 @@ class _SignInUpsellCard extends StatelessWidget {
           ),
           SizedBox(height: context.sp(20)),
           GestureDetector(
-            onTap: () => Navigator.of(context).push(slideUpRoute(const SignInScreen())),
+            onTap: () => Navigator.of(context).push(
+                  slideUpRoute(
+                    const SignInScreen(launchGoogleSignInImmediately: true),
+                  ),
+                ),
             child: Container(
               width: double.infinity,
               height: context.sp(48),
@@ -601,6 +605,7 @@ class _SignInUpsellCard extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(context.sp(12)),
+                border: Border.all(color: Colors.white, width: context.sp(1.5)),
               ),
               child: Center(
                 child: Text(
@@ -668,7 +673,7 @@ class _WeeklyCard extends StatelessWidget {
       return Container(
         padding: EdgeInsets.all(context.sp(22)),
         decoration: BoxDecoration(
-            color: const Color(0xFF1C1B1B),
+            color: cs.surfaceContainerLow,
             borderRadius: BorderRadius.circular(context.sp(16))),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -681,7 +686,7 @@ class _WeeklyCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: context.sp(8), vertical: context.sp(4)),
                   decoration: BoxDecoration(
                       color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4)),
+                      borderRadius: BorderRadius.circular(context.sp(4))),
                   child: Text('WEEKLY',
                       style: GoogleFonts.manrope(
                           fontSize: context.sp(9),
@@ -720,7 +725,7 @@ class _WeeklyCard extends StatelessWidget {
                                 ? cs.primary
                                 : count > 0
                                     ? cs.primary.withValues(alpha: 0.6)
-                                    : const Color(0xFF353534),
+                                    : cs.surfaceContainerHighest,
                             borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(3)),
                           ),
@@ -783,7 +788,7 @@ class _StreakCard extends StatelessWidget {
     return Builder(builder: (context) => Container(
       padding: EdgeInsets.all(context.sp(22)),
       decoration: BoxDecoration(
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(context.sp(16))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,7 +835,7 @@ class _StreakCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(100),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: const Color(0xFF353534),
+              backgroundColor: cs.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation(cs.primary),
               minHeight: context.sp(4),
             ),
@@ -857,15 +862,15 @@ class _SessionTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(context.sp(14)),
       decoration: BoxDecoration(
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(context.sp(16))),
       child: Row(
         children: [
           Container(
             width: context.sp(38),
             height: context.sp(38),
-            decoration: const BoxDecoration(
-                shape: BoxShape.circle, color: Color(0xFF353534)),
+            decoration: BoxDecoration(
+                shape: BoxShape.circle, color: cs.surfaceContainerHighest),
             child:
                 Icon(Icons.history_rounded, color: cs.primary, size: context.sp(18)),
           ),
@@ -932,7 +937,7 @@ class _HeatmapGrid extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(2),
             color: opacity == 0
-                ? const Color(0xFF353534)
+                ? cs.surfaceContainerHighest
                 : cs.primary.withValues(alpha: opacity),
           ),
         );

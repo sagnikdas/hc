@@ -18,6 +18,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:hanuman_chalisa/core/font_scale_notifier.dart';
+import 'package:hanuman_chalisa/core/notification_service.dart';
 import 'package:hanuman_chalisa/core/supabase_service.dart';
 import 'package:hanuman_chalisa/core/theme.dart';
 import 'package:hanuman_chalisa/data/local/database_helper.dart';
@@ -132,7 +133,6 @@ void main() {
     // Bypass SQLite so pumpAndSettle() can settle (FFI isolate messages don't
     // drain through the widget-test pump loop).
     AppRepository.instance.overrideSettingsForTest(const UserSettings());
-    AppRepository.instance.overrideReferralCodeForTest('ABCDEF');
 
     SupabaseService.authChangesForTest = authCtrl.stream;
     SupabaseService.currentUserForTest = () => null;
@@ -145,6 +145,10 @@ void main() {
       referralCode,
     }) async {};
     SupabaseService.signInForTest = null;
+
+    NotificationService.applyReminderScheduleForTest = (_) async {};
+    NotificationService.cancelRemindersForTest = () async {};
+    NotificationService.consumeLaunchNavigationForTest = () async {};
   });
 
   tearDown(() {
@@ -152,6 +156,9 @@ void main() {
     SupabaseService.resetAuthForTest();
     AppRepository.instance.clearStatsOverrideForTest();
     AppRepository.instance.clearSettingsOverrideForTest();
+    NotificationService.applyReminderScheduleForTest = null;
+    NotificationService.cancelRemindersForTest = null;
+    NotificationService.consumeLaunchNavigationForTest = null;
   });
 
   // ==========================================================================
@@ -168,6 +175,10 @@ void main() {
       expect(s.playbackSpeed, 1.0);
       expect(s.referralCode, isNull);
       expect(s.onboardingShown, isFalse);
+      expect(s.reminderNotificationsEnabled, isTrue);
+      expect(s.sacredDayNotificationsEnabled, isTrue);
+      expect(s.reminderMorningMinutes, UserSettings.defaultReminderMorningMinutes);
+      expect(s.reminderEveningMinutes, UserSettings.defaultReminderEveningMinutes);
     });
 
     test('toMap / fromMap round-trips all fields', () {
@@ -179,6 +190,10 @@ void main() {
         playbackSpeed: 1.5,
         referralCode: 'ABC123',
         onboardingShown: true,
+        reminderNotificationsEnabled: false,
+        reminderMorningMinutes: 480,
+        reminderEveningMinutes: 1260,
+        sacredDayNotificationsEnabled: false,
       );
       final roundTripped = UserSettings.fromMap(original.toMap());
       expect(roundTripped.targetCount, 21);
@@ -188,6 +203,10 @@ void main() {
       expect(roundTripped.playbackSpeed, closeTo(1.5, 0.001));
       expect(roundTripped.referralCode, 'ABC123');
       expect(roundTripped.onboardingShown, isTrue);
+      expect(roundTripped.reminderNotificationsEnabled, isFalse);
+      expect(roundTripped.reminderMorningMinutes, 480);
+      expect(roundTripped.reminderEveningMinutes, 1260);
+      expect(roundTripped.sacredDayNotificationsEnabled, isFalse);
     });
 
     test('fromMap handles null / missing columns gracefully', () {
@@ -206,6 +225,8 @@ void main() {
       expect(s.continuousPlay, isFalse);
       expect(s.fontScale, 1.0);
       expect(s.referralCode, isNull);
+      expect(s.reminderNotificationsEnabled, isTrue);
+      expect(s.sacredDayNotificationsEnabled, isTrue);
     });
 
     test('copyWith does not overwrite unspecified fields', () {
@@ -261,6 +282,8 @@ void main() {
       expect(loaded.continuousPlay, isTrue);
       expect(loaded.fontScale, closeTo(1.2, 0.001));
       expect(loaded.playbackSpeed, closeTo(0.75, 0.001));
+      expect(loaded.reminderNotificationsEnabled, isTrue);
+      expect(loaded.sacredDayNotificationsEnabled, isTrue);
     });
 
     test('successive saves overwrite previous values', () async {
@@ -424,7 +447,7 @@ void main() {
       _setView(tester, 390, 844);
       await tester.pumpWidget(_wrap());
       await tester.pump();
-      expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.tune_rounded), findsWidgets);
     });
   });
 
@@ -589,7 +612,7 @@ void main() {
     });
   });
 
-  // ── Group: invite / referral section ─────────────────────────────────────
+  // ── Group: invite section ─────────────────────────────────────────────────
 
   group('invite section', () {
     testWidgets('shows Invite Devotees heading', (tester) async {
@@ -599,61 +622,27 @@ void main() {
       expect(find.text('Invite Devotees'), findsOneWidget);
     });
 
-    testWidgets('shows loading spinner before referral code resolves',
-        (tester) async {
+    testWidgets('shows subtitle text', (tester) async {
       _setView(tester, 390, 844);
-      // pumpWidget triggers initState but async work has not run yet.
       await tester.pumpWidget(_wrap());
-      // _referralCode is null immediately after pumpWidget (before any pump).
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      await tester.pump();
+      expect(find.text('Share the app with friends'), findsOneWidget);
     });
 
-    testWidgets('shows referral code string after settling', (tester) async {
-      _setView(tester, 390, 844);
-      // The setUp seam returns 'ABCDEF' synchronously once async resolves.
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(find.text('ABCDEF'), findsOneWidget);
-    });
-
-    testWidgets('displayed referral code contains no ambiguous characters',
-        (tester) async {
-      // The seam code 'ABCDEF' has no I, O, 0, or 1.
+    testWidgets('share icon is present', (tester) async {
       _setView(tester, 390, 844);
       await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      const ambiguous = {'I', 'O', '0', '1'};
-      for (final char in 'ABCDEF'.split('')) {
-        expect(ambiguous.contains(char), isFalse,
-            reason: 'Seam code "ABCDEF" unexpectedly contains "$char"');
-      }
-      expect(find.text('ABCDEF'), findsOneWidget);
-    });
-
-    testWidgets('share button is present after code loads', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(find.byIcon(Icons.share_rounded), findsOneWidget);
     });
 
-    testWidgets('tapping share button does not throw', (tester) async {
+    testWidgets('tapping the card does not throw', (tester) async {
       _setView(tester, 390, 844);
       await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
+      await tester.pump();
       await tester.tap(find.byIcon(Icons.share_rounded));
       await tester.pump();
       // No exception = pass.
-    });
-
-    testWidgets('shows descriptive hint text below code', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Share this code with friends to invite them'),
-        findsOneWidget,
-      );
     });
   });
 

@@ -127,7 +127,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1C1B1B), cs.surface.withValues(alpha: 0)],
+          colors: [cs.surfaceContainerLow, cs.surface.withValues(alpha: 0)],
         ),
       ),
       child: Row(
@@ -158,7 +158,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       padding: EdgeInsets.fromLTRB(context.sp(24), 0, context.sp(24), context.sp(12)),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1B1B),
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(context.sp(12)),
         ),
         child: TabBar(
@@ -183,48 +183,73 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Widget _buildSignInGate(BuildContext context, ColorScheme cs) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(context.sp(32)),
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.sp(24)),
+      child: Container(
+        padding: EdgeInsets.all(context.sp(24)),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(context.sp(24)),
+          border: Border.all(color: cs.primary.withValues(alpha: 0.25), width: 1),
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: context.sp(80),
-              height: context.sp(80),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: cs.primary.withValues(alpha: 0.1),
-              ),
-              child: Icon(Icons.emoji_events_rounded,
-                  color: cs.primary, size: context.sp(40)),
+            Row(
+              children: [
+                Container(
+                  width: context.sp(40),
+                  height: context.sp(40),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: cs.primary.withValues(alpha: 0.12),
+                  ),
+                  child: Icon(Icons.emoji_events_rounded,
+                      color: cs.primary, size: context.sp(20)),
+                ),
+                SizedBox(width: context.sp(14)),
+                Expanded(
+                  child: Text(
+                    'Join the Community',
+                    style: GoogleFonts.notoSerif(
+                        fontSize: context.sp(17), color: cs.onSurface),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: context.sp(24)),
+            SizedBox(height: context.sp(16)),
             Text(
-              'Join the Community',
-              style: GoogleFonts.notoSerif(
-                  fontSize: context.sp(22), color: cs.onSurface),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: context.sp(12)),
-            Text(
-              'Sign in with Google to see how you rank among thousands of devoted practitioners around the world.',
-              style: GoogleFonts.manrope(
-                  fontSize: context.sp(13),
-                  color: cs.onSurfaceVariant,
-                  height: 1.6),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: context.sp(10)),
-            Text(
-              'Your recitations will sync and appear on the global leaderboard.',
+              'Sign in with Google to unlock your place on the leaderboard:',
               style: GoogleFonts.manrope(
                   fontSize: context.sp(12),
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                  color: cs.onSurfaceVariant,
                   height: 1.5),
-              textAlign: TextAlign.center,
             ),
-            SizedBox(height: context.sp(32)),
+            SizedBox(height: context.sp(12)),
+            _LeaderboardBullet(
+              icon: Icons.emoji_events_rounded,
+              label: 'See how you rank among devoted practitioners worldwide',
+              cs: cs,
+            ),
+            SizedBox(height: context.sp(8)),
+            _LeaderboardBullet(
+              icon: Icons.sync_rounded,
+              label: 'Your recitations sync and appear on the global board',
+              cs: cs,
+            ),
+            SizedBox(height: context.sp(8)),
+            _LeaderboardBullet(
+              icon: Icons.auto_graph_rounded,
+              label: 'Weekly and all-time rankings updated in real time',
+              cs: cs,
+            ),
+            SizedBox(height: context.sp(8)),
+            _LeaderboardBullet(
+              icon: Icons.devices_rounded,
+              label: 'Full history synced across all your devices',
+              cs: cs,
+            ),
+            SizedBox(height: context.sp(20)),
             _SignInButton(cs: cs),
           ],
         ),
@@ -322,6 +347,35 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 }
 
+// ── Bullet row used inside the leaderboard sign-in card ──────────────────────
+
+class _LeaderboardBullet extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final ColorScheme cs;
+  const _LeaderboardBullet({required this.icon, required this.label, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: cs.primary.withValues(alpha: 0.7), size: context.sp(14)),
+        SizedBox(width: context.sp(8)),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.manrope(
+                fontSize: context.sp(11),
+                color: cs.onSurfaceVariant,
+                height: 1.4),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Sign-in button used inside the leaderboard gate ───────────────────────────
 
 class _SignInButton extends StatefulWidget {
@@ -377,6 +431,7 @@ class _SignInButtonState extends State<_SignInButton> {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(context.sp(14)),
+              border: Border.all(color: Colors.white, width: context.sp(1.5)),
               boxShadow: [
                 BoxShadow(
                   color: cs.primary.withValues(alpha: 0.3),
@@ -393,36 +448,12 @@ class _SignInButtonState extends State<_SignInButton> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: context.sp(22),
-                          height: context.sp(22),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: Center(
-                            child: Text(
-                              'G',
-                              style: TextStyle(
-                                fontSize: context.sp(13),
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF4285F4),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: context.sp(10)),
-                        Text(
-                          'Sign in with Google',
-                          style: GoogleFonts.notoSerif(
-                              fontSize: context.sp(16),
-                              fontWeight: FontWeight.w700,
-                              color: cs.onPrimary),
-                        ),
-                      ],
+                  : Text(
+                      'Sign in with Google',
+                      style: GoogleFonts.notoSerif(
+                          fontSize: context.sp(16),
+                          fontWeight: FontWeight.w700,
+                          color: cs.onPrimary),
                     ),
             ),
           ),
@@ -471,7 +502,7 @@ class _LeaderboardRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? cs.primary.withValues(alpha: 0.08)
-            : const Color(0xFF1C1B1B),
+            : cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(context.sp(14)),
         border: Border.all(
           color: isMe

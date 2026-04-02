@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import '../main.dart';
+import 'reminder_navigation.dart';
 import '../data/repositories/app_repository.dart';
 import '../features/home/home_screen.dart';
 import '../features/progress/progress_screen.dart';
@@ -25,6 +26,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _homeRefreshSignal = 0;
   int _progressRefreshSignal = 0;
   bool _wasPlayScreenOpen = false;
+  int _lastConsumedReminderTapVersion = 0;
 
   @override
   void initState() {
@@ -33,6 +35,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     // Rebuild when PlayScreen opens/closes or when the handler becomes ready.
     isPlayScreenOpen.addListener(_onPlayScreenChanged);
     audioHandlerNotifier.addListener(_onStateChanged);
+    reminderNotificationTapVersion.addListener(_onReminderTapVersion);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _tryOpenPlayFromReminder());
   }
 
   @override
@@ -40,7 +45,34 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     isPlayScreenOpen.removeListener(_onPlayScreenChanged);
     audioHandlerNotifier.removeListener(_onStateChanged);
+    reminderNotificationTapVersion.removeListener(_onReminderTapVersion);
     super.dispose();
+  }
+
+  void _onReminderTapVersion() {
+    _tryOpenPlayFromReminder();
+  }
+
+  Future<void> _tryOpenPlayFromReminder() async {
+    if (!mounted) return;
+    final v = reminderNotificationTapVersion.value;
+    if (v <= _lastConsumedReminderTapVersion) return;
+    if (isPlayScreenOpen.value) return;
+
+    final settings = await AppRepository.instance.getSettings();
+    if (!mounted) return;
+    if (isPlayScreenOpen.value) return;
+
+    _lastConsumedReminderTapVersion = v;
+    await Navigator.of(context).push(
+      slideUpRoute(
+        PlayScreen(
+          initialTarget: settings.targetCount,
+          initialTrackId: settings.preferredTrack,
+          beginPaathImmediately: true,
+        ),
+      ),
+    );
   }
 
   void _onPlayScreenChanged() {
@@ -123,9 +155,15 @@ class _MiniPlayer extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(slideUpRoute(const PlayScreen())),
+      onTap: () async {
+        final settings = await AppRepository.instance.getSettings();
+        if (!context.mounted) return;
+        Navigator.of(context).push(
+          slideUpRoute(PlayScreen(initialTrackId: settings.preferredTrack)),
+        );
+      },
       child: Container(
-        color: const Color(0xFF1C1B1B),
+        color: cs.surfaceContainerLow,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -142,7 +180,7 @@ class _MiniPlayer extends StatelessWidget {
                 return LinearProgressIndicator(
                   value: progress,
                   minHeight: context.sp(2),
-                  backgroundColor: const Color(0xFF353534),
+                  backgroundColor: cs.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation(cs.secondary),
                 );
               },
@@ -330,7 +368,7 @@ class _SacredNavBar extends StatelessWidget {
     ];
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1B1B).withValues(alpha: 0.95),
+        color: cs.surfaceContainerLow.withValues(alpha: 0.95),
         borderRadius: BorderRadius.vertical(top: Radius.circular(context.sp(28))),
         boxShadow: [
           BoxShadow(
@@ -365,7 +403,7 @@ class _SacredNavBar extends StatelessWidget {
               child: Icon(
                 icons[i],
                 color: isSelected
-                    ? const Color(0xFF131313)
+                    ? cs.onPrimary
                     : cs.primary.withValues(alpha: 0.5),
                 size: context.sp(22),
               ),
