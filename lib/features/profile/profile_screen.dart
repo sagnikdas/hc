@@ -276,18 +276,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     children: [
                       _buildAuthSection(context, cs),
+                      SizedBox(height: context.sp(24)),
+                      _buildIntro(context, cs),
+                      SizedBox(height: context.sp(24)),
+                      _buildRepetitionGrid(context, cs),
                       SizedBox(height: context.sp(20)),
-                      _buildInviteSection(context, cs),
+                      _buildPlaybackSettings(context, cs),
                       SizedBox(height: context.sp(20)),
                       _buildThemeSection(context, cs),
                       SizedBox(height: context.sp(20)),
-                      _buildIntro(context, cs),
-                      SizedBox(height: context.sp(28)),
-                      _buildRepetitionGrid(context, cs),
-                      SizedBox(height: context.sp(20)),
-                      _buildToggles(context, cs),
-                      SizedBox(height: context.sp(20)),
                       _buildReminderSection(context, cs),
+                      SizedBox(height: context.sp(20)),
+                      _buildInviteSection(context, cs),
                       // Spacer matches CTA container height: sp(20+58+24) + safe area.
                       SizedBox(height: MediaQuery.of(context).padding.bottom + context.sp(120)),
                     ],
@@ -811,35 +811,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildToggles(BuildContext context, ColorScheme cs) {
-    return Column(
-      children: [
-        _buildFontSizeSlider(context, cs),
-        SizedBox(height: context.sp(10)),
-        _ToggleRow(
-          icon: Icons.vibration_rounded,
-          title: 'Haptic Feedback',
-          subtitle: 'Tactile alert on completion',
-          value: _hapticEnabled,
-          onChanged: (v) {
-            setState(() => _hapticEnabled = v);
-            _saveSettings();
-          },
-          cs: cs,
-        ),
-        SizedBox(height: context.sp(10)),
-        _ToggleRow(
-          icon: Icons.all_inclusive_rounded,
-          title: 'Continuous Play',
-          subtitle: 'No pauses between cycles',
-          value: _continuousPlay,
-          onChanged: (v) {
-            setState(() => _continuousPlay = v);
-            _saveSettings();
-          },
-          cs: cs,
-        ),
-      ],
+  Widget _buildPlaybackSettings(BuildContext context, ColorScheme cs) {
+    return Container(
+      padding: EdgeInsets.all(context.sp(16)),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(context.sp(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.tune_rounded, color: cs.primary, size: context.sp(18)),
+              SizedBox(width: context.sp(10)),
+              Text(
+                'Playback',
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.sp(14)),
+          _buildFontSizeSlider(context, cs),
+          SizedBox(height: context.sp(10)),
+          _ToggleRow(
+            icon: Icons.vibration_rounded,
+            title: 'Haptic Feedback',
+            subtitle: 'Tactile alert on completion',
+            value: _hapticEnabled,
+            onChanged: (v) {
+              setState(() => _hapticEnabled = v);
+              _saveSettings();
+            },
+            cs: cs,
+          ),
+          SizedBox(height: context.sp(10)),
+          _ToggleRow(
+            icon: Icons.all_inclusive_rounded,
+            title: 'Continuous Play',
+            subtitle: 'No pauses between cycles',
+            value: _continuousPlay,
+            onChanged: (v) {
+              setState(() => _continuousPlay = v);
+              _saveSettings();
+            },
+            cs: cs,
+          ),
+        ],
+      ),
     );
   }
 
