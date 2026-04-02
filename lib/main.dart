@@ -23,6 +23,17 @@ final lyricsService = LyricsService();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey);
+
+  // Load theme + font scale before the first frame so there is no
+  // dark-flash on launch when the user has saved a different theme.
+  try {
+    final settings = await AppRepository.instance.getSettings();
+    themeModeNotifier.value = ThemeMode.values[settings.themeMode.clamp(0, 2)];
+    fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
+  } catch (e) {
+    debugPrint('Pre-launch settings load failed: $e');
+  }
+
   runApp(const HanumanChalisaApp());
   unawaited(_initServices());
 }
@@ -59,16 +70,12 @@ Future<void> _initServices() async {
     }
   });
 
-  // Load global UI settings (e.g. font scale, theme mode) after launch.
+  // Apply notification schedule (settings already loaded pre-launch).
   try {
     final settings = await AppRepository.instance.getSettings();
-    // Clamp to avoid pathological values in the DB (e.g. 0) which can make
-    // all text effectively invisible and look like a black screen.
-    fontScaleNotifier.value = settings.fontScale.clamp(0.8, 1.4);
-    themeModeNotifier.value = ThemeMode.values[settings.themeMode.clamp(0, 2)];
     unawaited(NotificationService.applyReminderSchedule(settings));
   } catch (e) {
-    debugPrint('Font scale init failed: $e');
+    debugPrint('Notification schedule init failed: $e');
   }
 }
 
