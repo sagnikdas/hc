@@ -1,5 +1,11 @@
 # Secrets — never commit
 lib/core/app_secrets.dart
+lib/firebase_options.dart
+
+# Firebase configuration (generated locally, not shared)
+firebase.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
 
 # Miscellaneous
 *.class

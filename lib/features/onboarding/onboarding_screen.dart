@@ -7,6 +7,7 @@ import '../../core/notification_service.dart';
 import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 import '../../data/repositories/app_repository.dart';
+import '../../main.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -43,14 +44,48 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Future<void> _proceed() async {
     if (_starting) return;
     setState(() => _starting = true);
-    await AppRepository.instance.markOnboardingShown();
-    await NotificationService.requestPermissions();
-    final settings = await AppRepository.instance.getSettings();
-    await NotificationService.applyReminderSchedule(settings);
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const MainShell()),
-    );
+
+    try {
+      // Mark onboarding as shown so we don't loop back
+      await AppRepository.instance.markOnboardingShown();
+      debugPrint('Onboarding: marked as shown');
+
+      // Load settings to apply notification schedule
+      final settings = await AppRepository.instance.getSettings();
+      debugPrint('Onboarding: loaded settings');
+
+      // Apply reminder schedule (safe if permissions not granted yet)
+      try {
+        await NotificationService.applyReminderSchedule(settings);
+        debugPrint('Onboarding: applied reminder schedule');
+      } catch (e) {
+        // If notification scheduling fails, still proceed (it's not critical)
+        debugPrint('Onboarding: notification schedule failed (non-fatal): $e');
+      }
+
+      if (!mounted) {
+        debugPrint('Onboarding: widget unmounted, aborting navigation');
+        return;
+      }
+
+      // Navigate to home
+      debugPrint('Onboarding: navigating to MainShell');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+    } catch (e, st) {
+      debugPrint('Onboarding _proceed() error: $e\n$st');
+      if (!mounted) return;
+      setState(() => _starting = false);
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: Could not proceed. Please try again.'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Future<void> _onSignInWithGoogle() async {
@@ -60,7 +95,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       _signInError = null;
     });
     try {
+      debugPrint('Onboarding: attempting Google sign-in');
       await SupabaseService.signInWithGoogle();
+      debugPrint('Onboarding: Google sign-in completed');
     } catch (e, st) {
       debugPrint('Onboarding Google sign-in error: $e\n$st');
       if (mounted) {
@@ -73,20 +110,44 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   : 'Sign-in failed. Please try again.';
         });
       }
-      // Always exit — never fall through to _proceed() on error.
       return;
     }
     // If the user cancelled the picker, signInWithGoogle() returns normally
     // but no session is created. In that case, reset the loading state and
     // stay on the onboarding screen so they can try again or skip explicitly.
     if (SupabaseService.currentUser == null) {
+      debugPrint('Onboarding: no user after sign-in (likely cancelled)');
       if (mounted) setState(() => _signingIn = false);
       return;
+    }
+    debugPrint('Onboarding: user signed in, proceeding to MainShell');
+    // Track sign-in event
+    try {
+      await analytics.logEvent(
+        name: 'user_signed_in',
+        parameters: {
+          'method': 'google',
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Analytics error: $e');
     }
     await _proceed();
   }
 
   Future<void> _onSkip() async {
+    // Track onboarding skip
+    try {
+      await analytics.logEvent(
+        name: 'onboarding_skipped',
+        parameters: {
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
     await _proceed();
   }
 

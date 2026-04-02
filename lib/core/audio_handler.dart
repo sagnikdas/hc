@@ -17,6 +17,7 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   StreamSubscription? _playbackEventSub;
   StreamSubscription? _durationSub;
   String? _currentAssetPath;
+  int _completionCount = 0;
 
   // ── Public API used by PlayScreen ─────────────────────────────────────────
 
@@ -29,13 +30,24 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> setVolume(double v) => _player.setVolume(v.clamp(0.0, 1.0));
   double get speed => _player.speed;
   String? get currentAssetPath => _currentAssetPath;
+  int get completionCount => _completionCount;
+
   @override
-  Future<void> setSpeed(double speed) => _player.setSpeed(
-        speed.clamp(
-          UserSettings.minPlaybackSpeed,
-          UserSettings.maxPlaybackSpeed,
-        ),
-      );
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(
+      speed.clamp(
+        UserSettings.minPlaybackSpeed,
+        UserSettings.maxPlaybackSpeed,
+      ),
+    );
+    _updateMediaItem();
+  }
+
+  /// Update completion count and reflect on lock screen.
+  void setCompletionCount(int count) {
+    _completionCount = count;
+    _updateMediaItem();
+  }
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -43,14 +55,18 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
 
-    mediaItem.add(const MediaItem(
+    final item = const MediaItem(
       id: 'assets/audio/hc_real.mp3',
       title: 'Hanuman Chalisa',
       artist: 'Traditional Devotional',
       album: 'Hanuman Chalisa',
       displayTitle: 'Hanuman Chalisa',
       displaySubtitle: 'Traditional Devotional',
-    ));
+    );
+
+    // Set both mediaItem and queue for proper notification display
+    mediaItem.add(item);
+    queue.add([item]);
 
     // Broadcast every playback event to the system (notification + lockscreen).
     _playbackEventSub = _player.playbackEventStream.listen(
@@ -94,6 +110,26 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
   @override
   Future<void> rewind() => _player.seek(Duration.zero);
 
+  /// Increase playback speed (mapped to next button on lock screen).
+  @override
+  Future<void> skipToNext() async {
+    final newSpeed = (_player.speed + 0.25).clamp(
+      UserSettings.minPlaybackSpeed,
+      UserSettings.maxPlaybackSpeed,
+    );
+    await setSpeed(newSpeed);
+  }
+
+  /// Decrease playback speed (mapped to previous button on lock screen).
+  @override
+  Future<void> skipToPrevious() async {
+    final newSpeed = (_player.speed - 0.25).clamp(
+      UserSettings.minPlaybackSpeed,
+      UserSettings.maxPlaybackSpeed,
+    );
+    await setSpeed(newSpeed);
+  }
+
   Future<void> dispose() async {
     await _playbackEventSub?.cancel();
     await _durationSub?.cancel();
@@ -104,17 +140,20 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
 
   void _broadcastState(PlaybackEvent event) {
     final isPlaying = _player.playing;
-    playbackState.add(PlaybackState(
+    final state = PlaybackState(
       controls: [
+        MediaControl.skipToPrevious, // Speed down
         MediaControl.rewind,
         isPlaying ? MediaControl.pause : MediaControl.play,
+        MediaControl.skipToNext, // Speed up
         MediaControl.stop,
       ],
       systemActions: const {
         MediaAction.seek,
-        MediaAction.rewind,
+        MediaAction.skipToNext,
+        MediaAction.skipToPrevious,
       },
-      androidCompactActionIndices: const [0, 1],
+      androidCompactActionIndices: const [1, 2, 3],
       processingState: {
         ProcessingState.idle: AudioProcessingState.idle,
         ProcessingState.loading: AudioProcessingState.loading,
@@ -126,7 +165,27 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
       updatePosition: _player.position,
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
-    ));
+    );
+    playbackState.add(state);
+    debugPrint('AudioHandler state updated: playing=$isPlaying, speed=${_player.speed}');
+  }
+
+  /// Update media item with current speed and completion count.
+  void _updateMediaItem() {
+    final current = mediaItem.value;
+    if (current != null) {
+      final speedText = _player.speed != 1.0 ? ' (${_player.speed.toStringAsFixed(2)}x)' : '';
+      final countText = _completionCount > 0 ? ' • $_completionCount completed' : '';
+      final newSubtitle = 'Traditional Devotional$speedText$countText';
+      final updated = current.copyWith(displaySubtitle: newSubtitle);
+      mediaItem.add(updated);
+      // Also update queue to reflect changes
+      final currentQueue = queue.value;
+      if (currentQueue.isNotEmpty) {
+        queue.add([updated]);
+      }
+      debugPrint('MediaItem updated: $newSubtitle');
+    }
   }
 }
 
@@ -140,7 +199,7 @@ Future<HanumanAudioHandler> initAudioHandler() async {
         androidNotificationChannelId: 'com.hanumanchalisa.audio',
         androidNotificationChannelName: 'Hanuman Chalisa',
         androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
+        androidStopForegroundOnPause: true, // Notification persists during playback
         androidNotificationIcon: 'mipmap/ic_launcher',
       ),
     );

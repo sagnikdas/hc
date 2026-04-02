@@ -13,6 +13,7 @@ import '../../core/responsive.dart';
 import '../../core/supabase_service.dart';
 import '../../data/models/user_settings.dart';
 import '../../data/repositories/app_repository.dart';
+import '../../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -128,6 +129,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _onReminderEnabledChanged(bool v) async {
     setState(() => _reminderEnabled = v);
+    // Track reminder toggle event
+    try {
+      await analytics.logEvent(
+        name: 'reminders_toggled',
+        parameters: {
+          'enabled': v,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
     await _saveSettings(updateReminders: true);
   }
 

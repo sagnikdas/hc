@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'core/theme.dart';
 import 'core/theme_notifier.dart';
 import 'core/audio_handler.dart';
@@ -10,6 +13,7 @@ import 'core/notification_service.dart';
 import 'core/app_secrets.dart';
 import 'data/repositories/app_repository.dart';
 import 'features/auth/auth_gate.dart';
+import 'firebase_options.dart';
 
 final audioHandlerNotifier = ValueNotifier<HanumanAudioHandler?>(null);
 HanumanAudioHandler? get audioHandler => audioHandlerNotifier.value;
@@ -20,8 +24,27 @@ final isPlayScreenOpen = ValueNotifier<bool>(false);
 
 final lyricsService = LyricsService();
 
+/// Global Firebase Analytics instance for event tracking.
+late final FirebaseAnalytics analytics;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase first (before any other services).
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    analytics = FirebaseAnalytics.instance;
+
+    // Enable Crashlytics to capture all errors.
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+    debugPrint('Firebase initialized successfully');
+  } catch (e, st) {
+    debugPrint('Firebase init failed: $e\n$st');
+    // Continue anyway — app works without Firebase
+  }
+
   await Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey);
 
   // Load theme + font scale before the first frame so there is no

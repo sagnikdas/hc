@@ -1,5 +1,5 @@
-name: hanuman_chalisa
-description: "A new Flutter project."
+name: hanuman_chalisa_app
+description: "A devotional Flutter app for the Hanuman Chalisa."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -44,6 +44,9 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
   flutter_timezone: ^5.0.2
+  firebase_core: ^2.24.0
+  firebase_analytics: ^10.7.0
+  firebase_crashlytics: ^3.4.0
 
 dev_dependencies:
   flutter_test:

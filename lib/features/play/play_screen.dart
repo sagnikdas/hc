@@ -234,6 +234,7 @@ class _PlayScreenState extends State<PlayScreen> {
     if (counted) {
       setState(() => _completedCount++);
       await _saveSession();
+      audioHandler?.setCompletionCount(_completedCount);
       if (_hapticEnabled) HapticFeedback.mediumImpact();
       await _maybeShowMilestoneSheet(_completedCount);
     }
@@ -265,6 +266,22 @@ class _PlayScreenState extends State<PlayScreen> {
       count: 1,
       completedAt: now.millisecondsSinceEpoch,
     ));
+
+    // Track completion event for analytics
+    try {
+      final duration = audioHandler?.duration ?? Duration.zero;
+      await analytics.logEvent(
+        name: 'audio_completed',
+        parameters: {
+          'duration_seconds': duration.inSeconds,
+          'completed_count': _completedCount,
+          'target_count': _targetCount,
+          'timestamp': now.toIso8601String(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
   }
 
   Future<void> _maybeShowMilestoneSheet(int count) async {
@@ -746,42 +763,77 @@ class _PlayScreenState extends State<PlayScreen> {
 
           SizedBox(height: context.sp(10)),
 
-          // ── Track switcher chip ───────────────────────────────────────
-          GestureDetector(
-            onTap: _showTrackPicker,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: context.sp(12), vertical: context.sp(6)),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.music_note_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: context.sp(13)),
-                  SizedBox(width: context.sp(5)),
-                  Text(
-                    _currentTrack.name,
-                    style: GoogleFonts.manrope(
-                      fontSize: context.sp(11),
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      letterSpacing: 0.3,
+          // ── Track switcher segmented control (equal-sized buttons) ────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final track in kAudioTracks)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: context.sp(4)),
+                  child: GestureDetector(
+                    onTap: () => _switchTrack(track),
+                    child: SizedBox(
+                      width: context.sp(95),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: context.sp(8),
+                          vertical: context.sp(10),
+                        ),
+                        decoration: BoxDecoration(
+                          color: track.id == _currentTrack.id
+                              ? cs.primary
+                              : cs.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: track.id == _currentTrack.id
+                              ? [
+                                  BoxShadow(
+                                    color: cs.primary.withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                  )
+                                ]
+                              : null,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              track.id == 'traditional'
+                                  ? Icons.self_improvement_rounded
+                                  : track.id == 'male'
+                                      ? Icons.man_rounded
+                                      : Icons.woman_rounded,
+                              color: track.id == _currentTrack.id
+                                  ? cs.onPrimary
+                                  : cs.onSurfaceVariant,
+                              size: context.sp(20),
+                            ),
+                            SizedBox(height: context.sp(4)),
+                            Text(
+                              track.id == 'traditional'
+                                  ? 'Traditional'
+                                  : track.id == 'male'
+                                      ? 'Male'
+                                      : 'Female',
+                              style: GoogleFonts.manrope(
+                                fontSize: context.sp(10),
+                                fontWeight: FontWeight.w600,
+                                color: track.id == _currentTrack.id
+                                    ? cs.onPrimary
+                                    : cs.onSurfaceVariant,
+                                letterSpacing: 0.2,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(width: context.sp(4)),
-                  Icon(Icons.expand_more_rounded,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withValues(alpha: 0.6),
-                      size: context.sp(14)),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
 
           SizedBox(height: context.sp(10)),

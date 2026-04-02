@@ -110,8 +110,14 @@ class NotificationService {
       await stub(settings);
       return;
     }
-    if (!_initialized) await init();
-    await _cancelReminders();
+    try {
+      if (!_initialized) await init();
+      await _cancelReminders();
+    } catch (e, st) {
+      debugPrint('NotificationService: init/cancel failed: $e\n$st');
+      // Continue anyway — notification scheduling is not critical to app flow
+      return;
+    }
 
     if (!settings.reminderNotificationsEnabled) return;
 
