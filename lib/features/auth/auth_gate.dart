@@ -60,9 +60,9 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_onboardingShown == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF131313),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (!_onboardingShown!) {
