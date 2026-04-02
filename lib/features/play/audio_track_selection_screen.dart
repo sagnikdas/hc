@@ -127,6 +127,7 @@ class _AudioTrackSelectionScreenState
           style: FilledButton.styleFrom(
             backgroundColor: cs.primary,
             disabledBackgroundColor: cs.primary.withValues(alpha: 0.25),
+            side: BorderSide(color: Colors.white, width: context.sp(1.5)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(context.sp(14)),
             ),

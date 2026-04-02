@@ -649,6 +649,7 @@ class _AppDrawer extends StatelessWidget {
                       gradient: LinearGradient(
                           colors: [cs.primary, cs.primaryContainer]),
                       borderRadius: BorderRadius.circular(context.sp(12)),
+                      border: Border.all(color: Colors.white, width: context.sp(1.5)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

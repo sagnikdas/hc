@@ -414,6 +414,7 @@ class _PlayScreenState extends State<PlayScreen> {
                         foregroundColor: cs.onPrimary,
                         elevation: 0,
                         padding: EdgeInsets.symmetric(vertical: ctx.sp(14)),
+                        side: BorderSide(color: Colors.white, width: ctx.sp(1.5)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(ctx.sp(14)),
                         ),
@@ -871,6 +872,7 @@ class _PlayScreenState extends State<PlayScreen> {
                         end: Alignment.bottomRight,
                         colors: [cs.primary, cs.primaryContainer],
                       ),
+                      border: Border.all(color: Colors.white, width: context.sp(1.5)),
                       boxShadow: [
                         BoxShadow(
                           color: cs.primaryContainer.withValues(alpha: 0.4),

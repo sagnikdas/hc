@@ -220,6 +220,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(context.sp(14)),
+                      border: Border.all(color: Colors.white, width: context.sp(1.5)),
                       boxShadow: [
                         BoxShadow(
                           color: cs.primary.withValues(alpha: 0.35),

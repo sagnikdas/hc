@@ -605,6 +605,7 @@ class _SignInUpsellCard extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(context.sp(12)),
+                border: Border.all(color: Colors.white, width: context.sp(1.5)),
               ),
               child: Center(
                 child: Text(
