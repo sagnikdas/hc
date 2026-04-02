@@ -133,7 +133,6 @@ void main() {
     // Bypass SQLite so pumpAndSettle() can settle (FFI isolate messages don't
     // drain through the widget-test pump loop).
     AppRepository.instance.overrideSettingsForTest(const UserSettings());
-    AppRepository.instance.overrideReferralCodeForTest('ABCDEF');
 
     SupabaseService.authChangesForTest = authCtrl.stream;
     SupabaseService.currentUserForTest = () => null;
@@ -448,7 +447,7 @@ void main() {
       _setView(tester, 390, 844);
       await tester.pumpWidget(_wrap());
       await tester.pump();
-      expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.tune_rounded), findsWidgets);
     });
   });
 
@@ -613,7 +612,7 @@ void main() {
     });
   });
 
-  // ── Group: invite / referral section ─────────────────────────────────────
+  // ── Group: invite section ─────────────────────────────────────────────────
 
   group('invite section', () {
     testWidgets('shows Invite Devotees heading', (tester) async {
@@ -623,61 +622,27 @@ void main() {
       expect(find.text('Invite Devotees'), findsOneWidget);
     });
 
-    testWidgets('shows loading spinner before referral code resolves',
-        (tester) async {
+    testWidgets('shows subtitle text', (tester) async {
       _setView(tester, 390, 844);
-      // pumpWidget triggers initState but async work has not run yet.
       await tester.pumpWidget(_wrap());
-      // _referralCode is null immediately after pumpWidget (before any pump).
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      await tester.pump();
+      expect(find.text('Share the app with friends'), findsOneWidget);
     });
 
-    testWidgets('shows referral code string after settling', (tester) async {
-      _setView(tester, 390, 844);
-      // The setUp seam returns 'ABCDEF' synchronously once async resolves.
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(find.text('ABCDEF'), findsOneWidget);
-    });
-
-    testWidgets('displayed referral code contains no ambiguous characters',
-        (tester) async {
-      // The seam code 'ABCDEF' has no I, O, 0, or 1.
+    testWidgets('share icon is present', (tester) async {
       _setView(tester, 390, 844);
       await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      const ambiguous = {'I', 'O', '0', '1'};
-      for (final char in 'ABCDEF'.split('')) {
-        expect(ambiguous.contains(char), isFalse,
-            reason: 'Seam code "ABCDEF" unexpectedly contains "$char"');
-      }
-      expect(find.text('ABCDEF'), findsOneWidget);
-    });
-
-    testWidgets('share button is present after code loads', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(find.byIcon(Icons.share_rounded), findsOneWidget);
     });
 
-    testWidgets('tapping share button does not throw', (tester) async {
+    testWidgets('tapping the card does not throw', (tester) async {
       _setView(tester, 390, 844);
       await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
+      await tester.pump();
       await tester.tap(find.byIcon(Icons.share_rounded));
       await tester.pump();
       // No exception = pass.
-    });
-
-    testWidgets('shows descriptive hint text below code', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Share this code with friends to invite them'),
-        findsOneWidget,
-      );
     });
   });
 

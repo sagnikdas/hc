@@ -33,8 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _eveningMinutes = UserSettings.defaultReminderEveningMinutes;
   ThemeMode _themeMode = ThemeMode.dark;
 
-  // Auth & referral
-  String? _referralCode;
+  // Auth
   Map<String, dynamic>? _supabaseProfile;
   bool _authLoading = false;
 
@@ -44,7 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadSettings();
-    _loadReferralCode();
     _loadProfile();
     // React to sign-in / sign-out events.
     _authSub = SupabaseService.authStateChanges.listen((_) {
@@ -74,31 +72,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  Future<void> _loadReferralCode() async {
-    final code = await AppRepository.instance.getOrCreateReferralCode();
-    if (!mounted) return;
-    setState(() => _referralCode = code);
-    // Sync referral code to Supabase if signed in.
-    if (SupabaseService.currentUser != null) {
-      unawaited(
-        SupabaseService.upsertProfile(
-          name: SupabaseService.currentUser!.userMetadata?['full_name'] as String? ?? '',
-          email: SupabaseService.currentUser!.email ?? '',
-          phone: '',
-          dateOfBirth: DateTime(2000),
-          referralCode: code,
-        ).catchError((_) {}),
-      );
-    }
-  }
-
   Future<void> _loadProfile() async {
     final profile = await SupabaseService.fetchProfile().catchError((_) => null);
     if (!mounted) return;
     setState(() => _supabaseProfile = profile);
   }
 
-  Future<void> _saveSettings() async {
+  /// Persists all settings to the DB and applies non-reminder side effects
+  /// (font scale, theme mode). Pass [updateReminders] when a reminder-related
+  /// setting changed so the notification schedule is also refreshed.
+  Future<void> _saveSettings({bool updateReminders = false}) async {
     final current = await AppRepository.instance.getSettings();
     final updated = current.copyWith(
       targetCount: _selectedCount,
@@ -114,16 +97,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await AppRepository.instance.saveSettings(updated);
     fontScaleNotifier.value = _fontScale.clamp(0.8, 1.4);
     themeModeNotifier.value = _themeMode;
+
+    if (!updateReminders) return;
+
     if (updated.reminderNotificationsEnabled) {
       final granted = await NotificationService.requestPermissions();
       if (!mounted) return;
       if (!granted) {
+        // Revert: save disabled state so DB stays in sync with what the OS allows.
+        setState(() => _reminderEnabled = false);
+        await AppRepository.instance.saveSettings(
+          updated.copyWith(reminderNotificationsEnabled: false),
+        );
         await NotificationService.cancelReminders();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Notifications are disabled in system settings. Enable them to receive reminders.',
+              'Notifications are disabled. Enable them in system settings to receive reminders.',
               style: GoogleFonts.manrope(),
             ),
             duration: const Duration(seconds: 6),
@@ -137,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _onReminderEnabledChanged(bool v) async {
     setState(() => _reminderEnabled = v);
-    await _saveSettings();
+    await _saveSettings(updateReminders: true);
   }
 
   String _formatReminderTimeLabel(BuildContext context, int minutes) {
@@ -162,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         picked.hour * 60 + picked.minute,
       );
     });
-    await _saveSettings();
+    await _saveSettings(updateReminders: true);
   }
 
   Future<void> _pickEveningReminderTime() async {
@@ -179,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         picked.hour * 60 + picked.minute,
       );
     });
-    await _saveSettings();
+    await _saveSettings(updateReminders: true);
   }
 
   Future<void> _signIn() async {
@@ -214,13 +205,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _shareInvite() async {
-    final code = _referralCode ??
-        await AppRepository.instance.getOrCreateReferralCode();
     await SharePlus.instance.share(
       ShareParams(
-        text:
-            'Join me in the daily Hanuman Chalisa recitation! 🙏\n\n'
-            'Use my referral code: $code\n\n'
+        text: 'Join me in the daily Hanuman Chalisa recitation! 🙏\n\n'
             'Download the Hanuman Chalisa app and build your devotional streak.',
       ),
     );
@@ -481,86 +468,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Invite / Referral section ─────────────────────────────────────────────
+  // ── Invite section ────────────────────────────────────────────────────────
 
   Widget _buildInviteSection(BuildContext context, ColorScheme cs) {
-    return Container(
-      padding: EdgeInsets.all(context.sp(16)),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
+    return Material(
+      color: cs.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(context.sp(16)),
+      child: InkWell(
+        onTap: _shareInvite,
         borderRadius: BorderRadius.circular(context.sp(16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: context.sp(16), vertical: context.sp(14)),
+          child: Row(
             children: [
-              Icon(Icons.people_rounded, color: cs.primary, size: context.sp(18)),
-              SizedBox(width: context.sp(10)),
-              Text(
-                'Invite Devotees',
-                style: GoogleFonts.manrope(
-                    fontSize: context.sp(13),
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface),
+              Container(
+                width: context.sp(38),
+                height: context.sp(38),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: cs.surfaceContainerHigh,
+                ),
+                child: Icon(Icons.people_rounded,
+                    color: cs.primary, size: context.sp(18)),
               ),
+              SizedBox(width: context.sp(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Invite Devotees',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(13),
+                          fontWeight: FontWeight.w500,
+                          color: cs.onSurface),
+                    ),
+                    Text(
+                      'Share the app with friends',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(10), color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.share_rounded,
+                  color: cs.primary, size: context.sp(20)),
             ],
           ),
-          SizedBox(height: context.sp(12)),
-          if (_referralCode != null) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: context.sp(14), vertical: context.sp(10)),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(context.sp(10)),
-                      border: Border.all(
-                          color: cs.primary.withValues(alpha: 0.2)),
-                    ),
-                    child: Text(
-                      _referralCode!,
-                      style: GoogleFonts.notoSerif(
-                        fontSize: context.sp(18),
-                        fontWeight: FontWeight.w700,
-                        color: cs.primary,
-                        letterSpacing: context.sp(3),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                SizedBox(width: context.sp(10)),
-                GestureDetector(
-                  onTap: _shareInvite,
-                  child: Container(
-                    padding: EdgeInsets.all(context.sp(12)),
-                    decoration: BoxDecoration(
-                      color: cs.primary,
-                      borderRadius: BorderRadius.circular(context.sp(10)),
-                    ),
-                    child: Icon(Icons.share_rounded,
-                        color: cs.onPrimary, size: context.sp(20)),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: context.sp(8)),
-            Text(
-              'Share this code with friends to invite them',
-              style: GoogleFonts.manrope(
-                  fontSize: context.sp(11), color: cs.onSurfaceVariant),
-            ),
-          ] else
-            Center(
-              child: SizedBox(
-                  height: context.sp(20),
-                  width: context.sp(20),
-                  child: const CircularProgressIndicator(strokeWidth: 2)),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -771,9 +727,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SizedBox(height: context.sp(12)),
           _ToggleRow(
-            icon: Icons.wb_sunny_outlined,
+            icon: Icons.notifications_rounded,
             title: 'Daily reminders',
-            subtitle: 'Morning and evening nudge to chant',
+            subtitle: 'Nudge to chant morning & evening',
             value: _reminderEnabled,
             onChanged: _onReminderEnabledChanged,
             cs: cs,
@@ -796,12 +752,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(height: context.sp(10)),
             _ToggleRow(
               icon: Icons.auto_awesome_rounded,
-              title: 'Mangalvaar & Shanivar Vishesh',
-              subtitle: 'Special alerts on Tuesday & Saturday',
+              title: 'Sacred day alerts',
+              subtitle: 'Special notification on Tue & Sat',
               value: _sacredDayEnabled,
               onChanged: (v) {
                 setState(() => _sacredDayEnabled = v);
-                _saveSettings();
+                _saveSettings(updateReminders: true);
               },
               cs: cs,
             ),
