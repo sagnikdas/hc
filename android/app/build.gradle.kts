@@ -24,6 +24,15 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = "hanuman_release"
+            keyPassword = System.getenv("KEY_PASSWORD")
+            storeFile = file("release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.sagnikdas.hanuman_chalisa"
@@ -37,9 +46,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

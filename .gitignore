@@ -2,6 +2,10 @@
 lib/core/app_secrets.dart
 lib/firebase_options.dart
 
+# Keystores & signing (generated locally, never commit)
+android/app/release.jks
+android/app/key.properties
+
 # Firebase configuration (generated locally, not shared)
 firebase.json
 android/app/google-services.json
