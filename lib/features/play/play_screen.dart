@@ -675,7 +675,7 @@ class _PlayScreenState extends State<PlayScreen> {
                   '$_completedCount',
                   style: GoogleFonts.notoSerif(
                     fontSize: context.sp(42),
-                    color: done ? cs.secondary : cs.primary,
+                    color: done ? cs.secondary : cs.onPrimary,
                     height: 1,
                   ),
                 ),
@@ -872,7 +872,6 @@ class _PlayScreenState extends State<PlayScreen> {
                         end: Alignment.bottomRight,
                         colors: [cs.primary, cs.primaryContainer],
                       ),
-                      border: Border.all(color: Colors.white, width: context.sp(1.5)),
                       boxShadow: [
                         BoxShadow(
                           color: cs.primaryContainer.withValues(alpha: 0.4),
@@ -1059,7 +1058,7 @@ class _BackgroundLayer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gradientColor = isDark ? cs.primaryContainer : cs.primary;
     final gradientTopColor = gradientColor.withValues(alpha: 0.55);
-    final gradientBottomColor = gradientColor.withValues(alpha: 0.92);
+    final gradientBottomColor = gradientColor.withValues(alpha: 0.68);
 
     return Stack(
       fit: StackFit.expand,
@@ -1134,17 +1133,26 @@ class _ControlButton extends StatelessWidget {
         height: context.sp(44),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active
-              ? cs.primary.withValues(alpha: 0.2)
-              : cs.surfaceContainerLow,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [cs.primary, cs.primaryContainer],
+          ),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: cs.primaryContainer.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         child: Icon(
           icon,
-          color: active
-              ? cs.primary
-              : onTap != null
-                  ? cs.onSurfaceVariant
-                  : cs.onSurfaceVariant.withValues(alpha: 0.3),
+          color: onTap != null
+              ? cs.onPrimary
+              : cs.onPrimary.withValues(alpha: 0.35),
           size: context.sp(20),
         ),
       ),
@@ -1178,9 +1186,20 @@ class _SpeedButton extends StatelessWidget {
         height: context.sp(44),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active
-              ? cs.primary.withValues(alpha: 0.2)
-              : cs.surfaceContainerLow,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [cs.primary, cs.primaryContainer],
+          ),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: cs.primaryContainer.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         alignment: Alignment.center,
         child: Text(
@@ -1188,7 +1207,7 @@ class _SpeedButton extends StatelessWidget {
           style: GoogleFonts.manrope(
             fontSize: context.sp(11),
             fontWeight: FontWeight.w700,
-            color: active ? cs.primary : cs.onSurfaceVariant,
+            color: cs.onPrimary,
             letterSpacing: 0.3,
           ),
         ),

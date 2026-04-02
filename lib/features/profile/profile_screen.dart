@@ -710,34 +710,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           SizedBox(height: context.sp(14)),
-          SegmentedButton<ThemeMode>(
-            segments: const [
-              ButtonSegment(
-                value: ThemeMode.system,
-                icon: Icon(Icons.brightness_auto_rounded),
-                label: Text('System'),
+          _buildFontSizeSlider(context, cs),
+          SizedBox(height: context.sp(14)),
+          Row(
+            children: [
+              _ThemeTile(
+                icon: Icons.brightness_auto_rounded,
+                label: 'Auto',
+                selected: _themeMode == ThemeMode.system,
+                onTap: () { setState(() => _themeMode = ThemeMode.system); _saveSettings(); },
+                cs: cs,
               ),
-              ButtonSegment(
-                value: ThemeMode.light,
-                icon: Icon(Icons.light_mode_rounded),
-                label: Text('Light'),
+              SizedBox(width: context.sp(8)),
+              _ThemeTile(
+                icon: Icons.light_mode_rounded,
+                label: 'Light',
+                selected: _themeMode == ThemeMode.light,
+                onTap: () { setState(() => _themeMode = ThemeMode.light); _saveSettings(); },
+                cs: cs,
               ),
-              ButtonSegment(
-                value: ThemeMode.dark,
-                icon: Icon(Icons.dark_mode_rounded),
-                label: Text('Dark'),
+              SizedBox(width: context.sp(8)),
+              _ThemeTile(
+                icon: Icons.dark_mode_rounded,
+                label: 'Dark',
+                selected: _themeMode == ThemeMode.dark,
+                onTap: () { setState(() => _themeMode = ThemeMode.dark); _saveSettings(); },
+                cs: cs,
               ),
             ],
-            selected: {_themeMode},
-            onSelectionChanged: (selection) {
-              setState(() => _themeMode = selection.first);
-              _saveSettings();
-            },
-            style: ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                GoogleFonts.manrope(fontSize: context.sp(12), fontWeight: FontWeight.w500),
-              ),
-            ),
           ),
         ],
       ),
@@ -836,8 +836,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           SizedBox(height: context.sp(14)),
-          _buildFontSizeSlider(context, cs),
-          SizedBox(height: context.sp(10)),
           _ToggleRow(
             icon: Icons.vibration_rounded,
             title: 'Haptic Feedback',
@@ -972,6 +970,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(width: context.sp(10)),
               Icon(Icons.arrow_forward_rounded,
                   color: cs.onPrimary, size: context.sp(20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final ColorScheme cs;
+
+  const _ThemeTile({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(vertical: context.sp(12)),
+          decoration: BoxDecoration(
+            color: selected ? cs.primary : cs.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(context.sp(12)),
+            border: Border.all(
+              color: selected ? cs.primary : cs.outlineVariant.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: context.sp(20),
+                color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+              ),
+              SizedBox(height: context.sp(4)),
+              Text(
+                label,
+                style: GoogleFonts.manrope(
+                  fontSize: context.sp(11),
+                  fontWeight: FontWeight.w600,
+                  color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
