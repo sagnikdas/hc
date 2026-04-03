@@ -262,16 +262,7 @@ For major changes, please open an issue first to discuss.
 
 This project is licensed under the [MIT License](LICENSE).
 
-### Audio & Content Attribution
-
-The Hanuman Chalisa prayer text is in the public domain. However, the audio recordings and translations have specific attributions and licenses:
-
-- **Traditional Devotional Recording (9+ min)**: Performed by Hari Haran (classical Indian devotional musician)
-- **Other Recitations**: See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for artist credits
-- **Translations & Transliterations**: See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for complete credits
-- **Imagery**: See [ATTRIBUTIONS.md](ATTRIBUTIONS.md)
-
-**Please review [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for full attribution details, license terms, and all contributor information.**
+The Hanuman Chalisa prayer text is in the public domain.
 
 ---
 

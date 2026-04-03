@@ -64,7 +64,7 @@ void main() {
     when(() => handler.playing).thenReturn(false);
     when(() => handler.volume).thenReturn(1.0);
     when(() => handler.speed).thenReturn(1.0);
-    when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_real.mp3');
+    when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_male_final.mp3');
     when(() => handler.play()).thenAnswer((_) async {});
     when(() => handler.pause()).thenAnswer((_) async {});
     when(() => handler.seek(any())).thenAnswer((_) async {});
@@ -124,7 +124,7 @@ void main() {
 
     testWidgets('reloads and plays when loaded audio does not match selected track', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
-      when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_real.mp3');
+      when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_female_final.mp3');
       await pump(tester, initialVoice: 'male');
       verify(() => handler.loadVoice('assets/audio/hc_male_final.mp3')).called(1);
       verify(() => handler.play()).called(1);

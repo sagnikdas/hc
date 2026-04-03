@@ -6,12 +6,6 @@ class AudioTrack {
   final String assetPath;
   final String lyricsPath;
 
-  /// Artist/performer name for attribution purposes.
-  final String artist;
-
-  /// Additional credit information (e.g., recording label, year, etc.).
-  final String credit;
-
   /// Maps JSON cue times onto playback clock. `1.0` = no change.
   /// Values below 1 (e.g. 0.74) **delay** each line boundary on the timeline so the
   /// highlight does not run ahead of chant-style recordings where line starts in JSON
@@ -27,8 +21,6 @@ class AudioTrack {
     required this.description,
     required this.assetPath,
     required this.lyricsPath,
-    required this.artist,
-    required this.credit,
     this.lyricSyncCurveExponent = 1.0,
     this.lyricSyncClockLead = Duration.zero,
   });
@@ -37,22 +29,11 @@ class AudioTrack {
 /// All available audio tracks in display order.
 const List<AudioTrack> kAudioTracks = [
   AudioTrack(
-    id: 'traditional',
-    name: 'Traditional Devotional',
-    description: 'Classical devotional rendition',
-    assetPath: 'assets/audio/hc_real.mp3',
-    lyricsPath: 'assets/lyrics/hanuman_chalisa.json',
-    artist: 'Hari Haran',
-    credit: 'Recorded by Hari Haran',
-  ),
-  AudioTrack(
     id: 'male',
     name: 'Male Recitation',
     description: 'Sacred chant · male voice',
     assetPath: 'assets/audio/hc_male_final.mp3',
     lyricsPath: 'assets/lyrics/hc_male.json',
-    artist: '',
-    credit: '',
     lyricSyncCurveExponent: 0.86,
     lyricSyncClockLead: Duration(milliseconds: 220),
   ),
@@ -62,13 +43,11 @@ const List<AudioTrack> kAudioTracks = [
     description: 'Sacred chant · female voice',
     assetPath: 'assets/audio/hc_female_final.mp3',
     lyricsPath: 'assets/lyrics/hc_female.json',
-    artist: '',
-    credit: '',
     lyricSyncCurveExponent: 0.91,
     lyricSyncClockLead: Duration(milliseconds: 175),
   ),
 ];
 
-/// Look up a track by [id]. Falls back to the traditional track if not found.
+/// Look up a track by [id]. Falls back to the first track if not found.
 AudioTrack trackById(String? id) =>
     kAudioTracks.firstWhere((t) => t.id == id, orElse: () => kAudioTracks[0]);

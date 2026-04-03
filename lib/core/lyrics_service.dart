@@ -14,7 +14,7 @@ class LyricsLine {
 }
 
 class LyricsService {
-  static const _defaultAsset = 'assets/lyrics/hanuman_chalisa.json';
+  static const _defaultAsset = 'assets/lyrics/hc_male.json';
 
   final Map<String, List<LyricsLine>> _cache = {};
   List<LyricsLine> _lines = [];
@@ -24,7 +24,7 @@ class LyricsService {
   static String _cacheKey(String assetPath, double curveExponent) =>
       '$assetPath#$curveExponent';
 
-  /// Preloads the default (traditional) track. Called at app startup.
+  /// Preloads the default (male) track. Called at app startup.
   Future<void> load() => loadTrack(_defaultAsset);
 
   /// Loads lyrics for [assetPath] (cached after first load) and sets it as current.

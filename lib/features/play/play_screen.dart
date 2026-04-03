@@ -798,11 +798,9 @@ class _PlayScreenState extends State<PlayScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              track.id == 'traditional'
-                                  ? Icons.self_improvement_rounded
-                                  : track.id == 'male'
-                                      ? Icons.man_rounded
-                                      : Icons.woman_rounded,
+                              track.id == 'male'
+                                  ? Icons.man_rounded
+                                  : Icons.woman_rounded,
                               color: track.id == _currentTrack.id
                                   ? cs.onPrimary
                                   : cs.onSurfaceVariant,
@@ -810,11 +808,9 @@ class _PlayScreenState extends State<PlayScreen> {
                             ),
                             SizedBox(height: context.sp(4)),
                             Text(
-                              track.id == 'traditional'
-                                  ? 'Traditional'
-                                  : track.id == 'male'
-                                      ? 'Male'
-                                      : 'Female',
+                              track.id == 'male'
+                                  ? 'Male'
+                                  : 'Female',
                               style: GoogleFonts.manrope(
                                 fontSize: context.sp(10),
                                 fontWeight: FontWeight.w600,
@@ -1284,7 +1280,6 @@ class _TrackPickerTile extends StatelessWidget {
   });
 
   static const _icons = {
-    'traditional': Icons.surround_sound_rounded,
     'male': Icons.record_voice_over_rounded,
     'female': Icons.mic_rounded,
   };

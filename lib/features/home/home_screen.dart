@@ -366,13 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSacredMelodies(BuildContext context, ColorScheme cs) {
     final tracks = [
       (
-        asset: 'assets/audio/hc_real.mp3',
-        title: 'Hanuman Chalisa',
-        subtitle: 'Traditional Devotional',
-        icon: Icons.surround_sound_rounded,
-        isRecitation: false,
-      ),
-      (
         asset: '',
         title: 'Voice Recitation',
         subtitle: 'Sacred Chant',

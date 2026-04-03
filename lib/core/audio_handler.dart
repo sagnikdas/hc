@@ -56,12 +56,12 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
     await session.configure(const AudioSessionConfiguration.music());
 
     final item = const MediaItem(
-      id: 'assets/audio/hc_real.mp3',
+      id: 'assets/audio/hc_male_final.mp3',
       title: 'Hanuman Chalisa',
-      artist: 'Traditional Devotional',
+      artist: 'Male Recitation',
       album: 'Hanuman Chalisa',
       displayTitle: 'Hanuman Chalisa',
-      displaySubtitle: 'Traditional Devotional',
+      displaySubtitle: 'Male Recitation',
     );
 
     // Set both mediaItem and queue for proper notification display

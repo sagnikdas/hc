@@ -11,8 +11,6 @@ The Hanuman Chalisa app ("we," "us," "our," or "app") is committed to protecting
 ### 1.1 Offline-First Core Experience
 The app's core prayer experience (chanting, lyrics, playback) is **entirely offline**. We do not collect, transmit, or store any data about your prayer sessions unless you actively sign in.
 
-**Important**: The Traditional Devotional audio recording (9+ min) is performed by Hari Haran and is used with appropriate rights and licenses. The app also includes other recitations by additional contributors. See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for complete credit information and licensing details.
-
 ### 1.2 Optional Cloud Sync (When Signed In)
 If you create an account and sign in, we collect and store the following to sync your progress across devices:
 
@@ -81,24 +79,11 @@ This app is not directed to children under 13. We do not knowingly collect perso
 
 We may update this Privacy Policy periodically. We will notify you of significant changes by updating the "Last Updated" date and, where required, by requesting your consent.
 
-## 8. Content Attribution & Copyright
+## 8. Contact Us
 
-### Audio Recordings
-The audio content in this app is copyrighted by the respective artists and recording rights holders. All audio recordings (particularly those by Hari Haran) are used under proper licensing agreements. 
-
-For detailed attribution information, licensing terms, and artist credits, see [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-
-### Copyright Concerns
-If you believe any content in this app violates copyright or intellectual property rights, please contact us immediately at sagnikd91@gmail.com with detailed information so we can address the issue promptly.
-
----
-
-## 9. Contact Us
-
-If you have questions about this Privacy Policy, our privacy practices, or content attribution, please contact us at:
+If you have questions about this Privacy Policy or our privacy practices, please contact us at:
 
 **Email**: sagnikd91@gmail.com  
-**Attribution & Credits**: See [ATTRIBUTIONS.md](ATTRIBUTIONS.md)  
 **GitHub Issues**: [Link to your repo's Issues tab]  
 **Repository**: [Link to your GitHub repo]
 
