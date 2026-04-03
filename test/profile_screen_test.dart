@@ -168,7 +168,6 @@ void main() {
   group('UserSettings model', () {
     test('default constructor has expected values', () {
       const s = UserSettings();
-      expect(s.targetCount, 11);
       expect(s.hapticEnabled, isTrue);
       expect(s.continuousPlay, isFalse);
       expect(s.fontScale, 1.0);
@@ -183,7 +182,6 @@ void main() {
 
     test('toMap / fromMap round-trips all fields', () {
       const original = UserSettings(
-        targetCount: 21,
         hapticEnabled: false,
         continuousPlay: true,
         fontScale: 1.3,
@@ -196,7 +194,6 @@ void main() {
         sacredDayNotificationsEnabled: false,
       );
       final roundTripped = UserSettings.fromMap(original.toMap());
-      expect(roundTripped.targetCount, 21);
       expect(roundTripped.hapticEnabled, isFalse);
       expect(roundTripped.continuousPlay, isTrue);
       expect(roundTripped.fontScale, closeTo(1.3, 0.001));
@@ -212,7 +209,6 @@ void main() {
     test('fromMap handles null / missing columns gracefully', () {
       final s = UserSettings.fromMap({
         'id': 1,
-        'target_count': null,
         'haptic_enabled': null,
         'continuous_play': null,
         'referral_code': null,
@@ -220,7 +216,6 @@ void main() {
         'playback_speed': null,
         'font_scale': null,
       });
-      expect(s.targetCount, 11);
       expect(s.hapticEnabled, isTrue);
       expect(s.continuousPlay, isFalse);
       expect(s.fontScale, 1.0);
@@ -231,14 +226,12 @@ void main() {
 
     test('copyWith does not overwrite unspecified fields', () {
       const original = UserSettings(
-        targetCount: 108,
         hapticEnabled: false,
         continuousPlay: true,
         fontScale: 0.9,
         referralCode: 'XYZ999',
       );
-      final copy = original.copyWith(targetCount: 51);
-      expect(copy.targetCount, 51);
+      final copy = original.copyWith();
       expect(copy.hapticEnabled, isFalse);
       expect(copy.continuousPlay, isTrue);
       expect(copy.fontScale, closeTo(0.9, 0.001));
@@ -247,7 +240,7 @@ void main() {
 
     test('copyWith preserves referralCode when not provided', () {
       const original = UserSettings(referralCode: 'KEEP99');
-      final copy = original.copyWith(targetCount: 3);
+      final copy = original.copyWith();
       expect(copy.referralCode, 'KEEP99');
     });
   });
@@ -258,7 +251,6 @@ void main() {
     test('getSettings returns defaults when no row exists', () async {
       final repo = _freshRepo();
       final s = await repo.getSettings();
-      expect(s.targetCount, 11);
       expect(s.hapticEnabled, isTrue);
       expect(s.continuousPlay, isFalse);
       expect(s.fontScale, 1.0);
@@ -269,7 +261,6 @@ void main() {
         () async {
       final repo = _freshRepo();
       const settings = UserSettings(
-        targetCount: 108,
         hapticEnabled: false,
         continuousPlay: true,
         fontScale: 1.2,
@@ -277,7 +268,6 @@ void main() {
       );
       await repo.saveSettings(settings);
       final loaded = await repo.getSettings();
-      expect(loaded.targetCount, 108);
       expect(loaded.hapticEnabled, isFalse);
       expect(loaded.continuousPlay, isTrue);
       expect(loaded.fontScale, closeTo(1.2, 0.001));
@@ -288,9 +278,9 @@ void main() {
 
     test('successive saves overwrite previous values', () async {
       final repo = _freshRepo();
-      await repo.saveSettings(const UserSettings(targetCount: 3));
-      await repo.saveSettings(const UserSettings(targetCount: 21));
-      expect((await repo.getSettings()).targetCount, 21);
+      await repo.saveSettings(const UserSettings());
+      await repo.saveSettings(const UserSettings());
+      expect((await repo.getSettings()).hapticEnabled, isTrue);
     });
 
     test('fontScale boundary values are preserved exactly', () async {
@@ -305,11 +295,10 @@ void main() {
     test('markOnboardingShown flips flag without touching other settings',
         () async {
       final repo = _freshRepo();
-      await repo.saveSettings(const UserSettings(targetCount: 51));
+      await repo.saveSettings(const UserSettings());
       await repo.markOnboardingShown();
       final s = await repo.getSettings();
       expect(s.onboardingShown, isTrue);
-      expect(s.targetCount, 51);
     });
   });
 
@@ -421,7 +410,7 @@ void main() {
 
       // Simulate a settings change (as ProfileScreen._saveSettings does).
       final current = await repo.getSettings();
-      await repo.saveSettings(current.copyWith(targetCount: 3));
+      await repo.saveSettings(current.copyWith());
 
       final after = await repo.getSettings();
       expect(after.referralCode, code,
@@ -646,99 +635,6 @@ void main() {
     });
   });
 
-  // ── Group: devotional intent section ─────────────────────────────────────
-
-  group('devotional intent section', () {
-    testWidgets('shows DEVOTIONAL INTENT label', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(find.text('DEVOTIONAL INTENT'), findsOneWidget);
-    });
-
-    testWidgets('shows Set Your Path heading', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(find.text('Set Your Path'), findsOneWidget);
-    });
-
-    testWidgets('all 6 preset buttons are rendered', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      for (final label in ['ONCE', 'TRIVIDHA', 'EKADASHA', 'VIMSATI', 'PANCASAT', 'MALA']) {
-        expect(find.text(label), findsOneWidget);
-      }
-    });
-
-    testWidgets('default selected preset is 11 (Ekadasha)', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      // After settle the settings are loaded (default targetCount = 11).
-      // The check icon appears only for the selected preset.
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-      // The '11' count text is present.
-      expect(find.text('11'), findsOneWidget);
-    });
-
-    testWidgets('tapping Once preset moves selection to 1', (tester) async {
-      _setView(tester, 390, 1200);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('ONCE'));
-      await tester.pump();
-
-      // '1' should now be visible (the number in the selected tile).
-      expect(find.text('1'), findsOneWidget);
-      // Check icon still exactly one (moved to the new tile).
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    });
-
-    testWidgets('tapping Mala (108) moves selection', (tester) async {
-      _setView(tester, 390, 1200);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('MALA'));
-      await tester.pump();
-
-      expect(find.text('108'), findsOneWidget);
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    });
-
-    testWidgets('tapping Trividha visually selects it', (tester) async {
-      // Tall viewport so the grid is fully above the CTA overlay.
-      _setView(tester, 390, 1200);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('TRIVIDHA'));
-      await tester.pump();
-
-      // Check icon moves to Trividha (3).
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
-    });
-
-    testWidgets('settings seam targetCount=51 selects Pancasat',
-        (tester) async {
-      _setView(tester, 390, 844);
-      // Override the seam to use targetCount=51.
-      AppRepository.instance.overrideSettingsForTest(
-        const UserSettings(targetCount: 51),
-      );
-
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-      expect(find.text('51'), findsOneWidget);
-    });
-  });
-
   // ── Group: toggle settings ────────────────────────────────────────────────
 
   group('toggles', () {
@@ -883,33 +779,6 @@ void main() {
     });
   });
 
-  // ── Group: CTA button ────────────────────────────────────────────────────
-
-  group('Begin Recitation CTA', () {
-    testWidgets('CTA button is visible', (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      expect(find.text('Begin Recitation'), findsOneWidget);
-    });
-
-    testWidgets('CTA button triggers navigation push', (tester) async {
-      _setView(tester, 390, 844);
-      final observer = _MockNavigatorObserver();
-      registerFallbackValue(
-        MaterialPageRoute<void>(builder: (_) => const SizedBox()),
-      );
-
-      await tester.pumpWidget(_wrap(observers: [observer]));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Begin Recitation'));
-      await tester.pump();
-
-      verify(() => observer.didPush(any(), any())).called(greaterThan(0));
-    });
-  });
-
   // ── Group: responsiveness ─────────────────────────────────────────────────
 
   group('responsiveness', () {
@@ -919,7 +788,6 @@ void main() {
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
       expect(find.text('Sankalp Settings'), findsOneWidget);
-      expect(find.text('Begin Recitation'), findsOneWidget);
     });
 
     testWidgets('renders at 390×844 (iPhone 14) without crashing',
@@ -944,31 +812,6 @@ void main() {
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
       expect(find.text('Sankalp Settings'), findsOneWidget);
-      expect(find.text('Begin Recitation'), findsOneWidget);
-    });
-
-    testWidgets('all 6 presets visible at 320px width', (tester) async {
-      _setView(tester, 320, 568);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      for (final label in [
-        'ONCE', 'TRIVIDHA', 'EKADASHA', 'VIMSATI', 'PANCASAT', 'MALA'
-      ]) {
-        expect(find.text(label), findsOneWidget,
-            reason: 'Preset label "$label" missing at 320px width');
-      }
-    });
-
-    testWidgets('all 6 presets visible at 600px width', (tester) async {
-      _setView(tester, 600, 1024);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-      for (final label in [
-        'ONCE', 'TRIVIDHA', 'EKADASHA', 'VIMSATI', 'PANCASAT', 'MALA'
-      ]) {
-        expect(find.text(label), findsOneWidget,
-            reason: 'Preset label "$label" missing at 600px width');
-      }
     });
 
     testWidgets('sp() scaling applied: sp(24) differs between 320px and 600px',
@@ -1031,20 +874,6 @@ void main() {
       authCtrl.add(const AuthState(AuthChangeEvent.signedOut, null));
       await tester.pump();
       // No exceptions = pass.
-    });
-
-    testWidgets('CTA passes selected preset count to PlayScreen route',
-        (tester) async {
-      _setView(tester, 390, 844);
-      await tester.pumpWidget(_wrap());
-      await tester.pumpAndSettle();
-
-      // Select Mala (108) then hit Begin Recitation.
-      await tester.tap(find.text('MALA'));
-      await tester.pump();
-
-      // Verify the CTA still renders after selection change.
-      expect(find.text('Begin Recitation'), findsOneWidget);
     });
 
     testWidgets('font scale defaults to 1.0 (seam default)', (tester) async {

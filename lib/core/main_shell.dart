@@ -67,7 +67,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     await Navigator.of(context).push(
       slideUpRoute(
         PlayScreen(
-          initialTarget: settings.targetCount,
           initialTrackId: settings.preferredTrack,
           beginPaathImmediately: true,
         ),

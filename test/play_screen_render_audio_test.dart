@@ -32,11 +32,11 @@ AppRepository _freshRepo() {
   return repo;
 }
 
-Widget _wrap({int? initialTarget, String? initialVoice}) => MaterialApp(
+Widget _wrap({String? initialVoice}) => MaterialApp(
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
-      home: PlayScreen(initialTarget: initialTarget, initialVoice: initialVoice),
+      home: PlayScreen(initialVoice: initialVoice),
     );
 
 void main() {
@@ -80,8 +80,8 @@ void main() {
     if (!positionCtrl.isClosed) positionCtrl.close();
   });
 
-  Future<void> pump(WidgetTester tester, {int? initialTarget, String? initialVoice}) async {
-    await tester.pumpWidget(_wrap(initialTarget: initialTarget, initialVoice: initialVoice));
+  Future<void> pump(WidgetTester tester, {String? initialVoice}) async {
+    await tester.pumpWidget(_wrap(initialVoice: initialVoice));
     await tester.pump();
     await tester.pump();
   }

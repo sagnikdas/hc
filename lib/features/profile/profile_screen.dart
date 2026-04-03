@@ -24,7 +24,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // Settings
-  int _selectedCount = 11;
   bool _hapticEnabled = true;
   bool _continuousPlay = false;
   double _fontScale = 1.0;
@@ -61,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final settings = await AppRepository.instance.getSettings();
     if (!mounted) return;
     setState(() {
-      _selectedCount = settings.targetCount;
       _hapticEnabled = settings.hapticEnabled;
       _continuousPlay = settings.continuousPlay;
       _fontScale = settings.fontScale.clamp(0.8, 1.4);
@@ -85,7 +83,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveSettings({bool updateReminders = false}) async {
     final current = await AppRepository.instance.getSettings();
     final updated = current.copyWith(
-      targetCount: _selectedCount,
       hapticEnabled: _hapticEnabled,
       continuousPlay: _continuousPlay,
       fontScale: _fontScale.clamp(0.8, 1.4),
@@ -226,15 +223,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  static const _presets = [
-    (count: 1, label: 'Once'),
-    (count: 3, label: 'Trividha'),
-    (count: 11, label: 'Ekadasha'),
-    (count: 21, label: 'Vimsati'),
-    (count: 51, label: 'Pancasat'),
-    (count: 108, label: 'Mala'),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -277,10 +265,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       _buildAuthSection(context, cs),
                       SizedBox(height: context.sp(24)),
-                      _buildIntro(context, cs),
-                      SizedBox(height: context.sp(24)),
-                      _buildRepetitionGrid(context, cs),
-                      SizedBox(height: context.sp(20)),
                       _buildPlaybackSettings(context, cs),
                       SizedBox(height: context.sp(20)),
                       _buildThemeSection(context, cs),
@@ -288,19 +272,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildReminderSection(context, cs),
                       SizedBox(height: context.sp(20)),
                       _buildInviteSection(context, cs),
-                      // Spacer matches CTA container height: sp(20+58+24) + safe area.
-                      SizedBox(height: MediaQuery.of(context).padding.bottom + context.sp(120)),
+                      SizedBox(height: context.sp(24)),
                     ],
                   ),
                 ),
               ),
             ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildCTAButton(context, cs),
           ),
         ],
       ),
@@ -535,126 +512,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
 
-  // ── Devotional intent section ─────────────────────────────────────────────
-
-  Widget _buildIntro(BuildContext context, ColorScheme cs) {
-    return Column(
-      children: [
-        Text(
-          'DEVOTIONAL INTENT',
-          style: GoogleFonts.manrope(
-            fontSize: context.sp(10),
-            color: cs.primary,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: context.sp(10)),
-        Text(
-          'Set Your Path',
-          style: GoogleFonts.notoSerif(
-              fontSize: context.sp(30),
-              color: cs.onSurface,
-              fontWeight: FontWeight.w700),
-        ),
-        SizedBox(height: context.sp(10)),
-        Text(
-          'Select the number of sacred recitations\nto complete your spiritual cycle today.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.manrope(
-            fontSize: context.sp(13),
-            color: cs.onSurfaceVariant,
-            fontWeight: FontWeight.w300,
-            height: 1.65,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRepetitionGrid(BuildContext context, ColorScheme cs) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      mainAxisSpacing: context.sp(10),
-      crossAxisSpacing: context.sp(10),
-      childAspectRatio: 1.0,
-      children: _presets.map((p) {
-        final isSelected = p.count == _selectedCount;
-        return GestureDetector(
-          onTap: () {
-            setState(() => _selectedCount = p.count);
-            _saveSettings();
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? cs.surfaceContainerHigh
-                  : cs.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(context.sp(16)),
-              border: Border.all(
-                color: isSelected
-                    ? cs.primary.withValues(alpha: 0.4)
-                    : cs.outlineVariant.withValues(alpha: 0.1),
-                width: isSelected ? 1.5 : 1,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                          color: cs.primary.withValues(alpha: 0.08),
-                          blurRadius: 15)
-                    ]
-                  : null,
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${p.count}',
-                        style: GoogleFonts.notoSerif(
-                          fontSize: context.sp(26),
-                          color:
-                              isSelected ? cs.primary : cs.primary,
-                        ),
-                      ),
-                      Text(
-                        p.label.toUpperCase(),
-                        style: GoogleFonts.manrope(
-                          fontSize: context.sp(8),
-                          color: isSelected
-                              ? cs.primary
-                              : cs.onSurfaceVariant,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isSelected)
-                  Positioned(
-                    top: context.sp(6),
-                    right: context.sp(6),
-                    child: Container(
-                      padding: EdgeInsets.all(context.sp(2)),
-                      decoration: BoxDecoration(
-                          color: cs.primary, shape: BoxShape.circle),
-                      child: Icon(Icons.check_rounded,
-                          size: context.sp(10), color: cs.onPrimary),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildThemeSection(BuildContext context, ColorScheme cs) {
     return Container(
       padding: EdgeInsets.all(context.sp(16)),
@@ -887,62 +744,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCTAButton(BuildContext context, ColorScheme cs) {
-    final safeBottom = MediaQuery.of(context).padding.bottom;
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        context.sp(24), context.sp(20), context.sp(24), safeBottom + context.sp(24),
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [cs.surface, cs.surface.withValues(alpha: 0)],
-        ),
-      ),
-      child: GestureDetector(
-        onTap: () => Navigator.of(context).push(slideUpRoute(
-          PlayScreen(initialTarget: _selectedCount),
-        )),
-        child: Container(
-          height: context.sp(58),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(context.sp(14)),
-            gradient: LinearGradient(
-              colors: [cs.primary, cs.primaryContainer],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(color: Colors.white, width: context.sp(1.5)),
-            boxShadow: [
-              BoxShadow(
-                color: cs.primaryContainer.withValues(alpha: 0.25),
-                blurRadius: 32,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Begin Recitation',
-                style: GoogleFonts.notoSerif(
-                  fontSize: context.sp(17),
-                  fontWeight: FontWeight.w700,
-                  color: cs.onPrimary,
-                ),
-              ),
-              SizedBox(width: context.sp(10)),
-              Icon(Icons.arrow_forward_rounded,
-                  color: cs.onPrimary, size: context.sp(20)),
-            ],
-          ),
-        ),
       ),
     );
   }

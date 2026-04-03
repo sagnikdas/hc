@@ -33,20 +33,20 @@ AppRepository _freshRepo() {
 }
 
 Widget _wrap({
-  int? initialTarget,
   Set<int>? debugMilestones,
   Future<String> Function()? debugReferralCodeProvider,
   Future<void> Function()? debugSaveSessionOverride,
+  bool debugChipsOpen = false,
 }) =>
     MaterialApp(
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
       home: PlayScreen(
-        initialTarget: initialTarget,
         debugMilestones: debugMilestones,
         debugReferralCodeProvider: debugReferralCodeProvider,
         debugSaveSessionOverride: debugSaveSessionOverride,
+        debugChipsOpen: debugChipsOpen,
       ),
     );
 
@@ -93,17 +93,17 @@ void main() {
 
   Future<void> pump(
     WidgetTester tester, {
-    int? initialTarget,
     Set<int>? debugMilestones,
     Future<String> Function()? debugReferralCodeProvider,
     Future<void> Function()? debugSaveSessionOverride,
+    bool debugChipsOpen = false,
   }) async {
     await tester.pumpWidget(
       _wrap(
-        initialTarget: initialTarget,
         debugMilestones: debugMilestones,
         debugReferralCodeProvider: debugReferralCodeProvider,
         debugSaveSessionOverride: debugSaveSessionOverride,
+        debugChipsOpen: debugChipsOpen,
       ),
     );
     await tester.pump();
@@ -118,13 +118,13 @@ void main() {
 
   group('completion handling', () {
     testWidgets('normal completion increments counter', (tester) async {
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       await fireCompletion(tester);
       expect(find.text('1'), findsOneWidget);
     });
 
     testWidgets('normal completion writes a session', (tester) async {
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       await fireCompletion(tester);
       final c = await tester.runAsync(() => repo.getTodayCount());
       expect(c, 1);
@@ -134,7 +134,6 @@ void main() {
         (tester) async {
       await pump(
         tester,
-        initialTarget: 1,
         debugMilestones: {1},
         debugReferralCodeProvider: () async => 'ABC123',
         debugSaveSessionOverride: () async {},
@@ -152,7 +151,7 @@ void main() {
     testWidgets('seeking > 5s ahead skips next completion count', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
       when(() => handler.position).thenReturn(Duration.zero);
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       await tester.drag(find.byType(Slider).first, const Offset(80, 0));
       await tester.pump();
       await fireCompletion(tester);
@@ -162,7 +161,7 @@ void main() {
     testWidgets('seeking exactly +5s does not skip count', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
       when(() => handler.position).thenReturn(const Duration(seconds: 5));
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       final s = tester.widget<Slider>(find.byType(Slider).first);
       s.onChanged?.call(1 / 60);
       await tester.pump();
@@ -183,7 +182,7 @@ void main() {
 
     testWidgets('skip-next clamps near-end seek to zero for short tracks', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(milliseconds: 200));
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       clearInteractions(handler);
       await tester.tap(find.byIcon(Icons.skip_next_rounded));
       await tester.pump();
@@ -192,7 +191,7 @@ void main() {
 
     testWidgets('skip-next marks next completion uncounted', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       await tester.tap(find.byIcon(Icons.skip_next_rounded));
       await tester.pump();
       await fireCompletion(tester);
@@ -201,21 +200,11 @@ void main() {
   });
 
   group('target chip selection', () {
-    testWidgets('tapping chip updates target and resets counter', (tester) async {
-      await pump(tester, initialTarget: 11);
-      await fireCompletion(tester);
-      expect(find.text('1'), findsOneWidget);
-      await tester.tap(find.text('21X'));
-      await tester.pump();
-      expect(find.text(' / 21'), findsOneWidget);
-      expect(find.text('0'), findsOneWidget);
-    });
-
     testWidgets('continuousPlay false seeks to zero without play', (tester) async {
       await tester.runAsync(
-          () => repo.saveSettings(const UserSettings(continuousPlay: false, targetCount: 11)));
+          () => repo.saveSettings(const UserSettings(continuousPlay: false)));
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
-      await pump(tester, initialTarget: 11);
+      await pump(tester);
       await tester.drag(find.byType(Slider).first, const Offset(80, 0));
       await tester.pump();
       clearInteractions(handler);

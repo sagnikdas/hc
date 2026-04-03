@@ -14,7 +14,6 @@ import '../../data/models/audio_track.dart';
 import '../../data/models/user_settings.dart';
 
 class PlayScreen extends StatefulWidget {
-  final int? initialTarget;
   final String? initialVoice;
   final String? initialTrackId;
 
@@ -27,22 +26,24 @@ class PlayScreen extends StatefulWidget {
   final Future<String> Function()? debugReferralCodeProvider;
   @visibleForTesting
   final Future<void> Function()? debugSaveSessionOverride;
+  @visibleForTesting
+  final bool debugChipsOpen;
   const PlayScreen({
     super.key,
-    this.initialTarget,
     this.initialVoice,
     this.initialTrackId,
     this.beginPaathImmediately = false,
     this.debugMilestones,
     this.debugReferralCodeProvider,
     this.debugSaveSessionOverride,
+    this.debugChipsOpen = false,
   });
 
   @override
   State<PlayScreen> createState() => _PlayScreenState();
 }
 
-class _PlayScreenState extends State<PlayScreen> {
+class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   static const _quickCounts = [1, 11, 21, 108];
   // Milestone bottom-sheet triggers.
   static const _milestones = {11, 21, 108};
@@ -71,6 +72,11 @@ class _PlayScreenState extends State<PlayScreen> {
   bool _completionHandled = false;
   final Set<int> _shownMilestones = <int>{};
 
+  // Chip panel animation
+  bool _chipsOpen = false;
+  late AnimationController _chipsCtrl;
+  late Animation<double> _chipsAnim;
+
   @override
   void initState() {
     super.initState();
@@ -79,7 +85,19 @@ class _PlayScreenState extends State<PlayScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       isPlayScreenOpen.value = true;
     });
-    if (widget.initialTarget != null) _targetCount = widget.initialTarget!;
+    _chipsCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _chipsAnim = CurvedAnimation(
+      parent: _chipsCtrl,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    if (widget.debugChipsOpen) {
+      _chipsOpen = true;
+      _chipsCtrl.value = 1.0;
+    }
     _loadSettings();
     final handler = audioHandler;
     if (handler != null) {
@@ -93,7 +111,6 @@ class _PlayScreenState extends State<PlayScreen> {
     final settings = await AppRepository.instance.getSettings();
     if (!mounted) return;
     setState(() {
-      if (widget.initialTarget == null) _targetCount = settings.targetCount;
       _continuousPlay = settings.continuousPlay;
       _hapticEnabled = settings.hapticEnabled;
       _speed = settings.playbackSpeed;
@@ -111,6 +128,21 @@ class _PlayScreenState extends State<PlayScreen> {
     if (handler != null) {
       audioHandlerNotifier.removeListener(_onHandlerReady);
       _initAudio(handler);
+    }
+  }
+
+  String _getCountLabel(int count) {
+    switch (count) {
+      case 1:
+        return 'ONCE';
+      case 11:
+        return 'EKADASHA';
+      case 21:
+        return 'VIMSATI';
+      case 108:
+        return 'MALA';
+      default:
+        return '';
     }
   }
 
@@ -561,6 +593,7 @@ class _PlayScreenState extends State<PlayScreen> {
   void dispose() {
     _volumeTimer?.cancel();
     _speedTimer?.cancel();
+    _chipsCtrl.dispose();
     // Avoid notifying listeners while the framework is finalizing the tree.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       isPlayScreenOpen.value = false;
@@ -715,124 +748,312 @@ class _PlayScreenState extends State<PlayScreen> {
             ),
           ),
 
-          // ── Chips — only updates when user taps ───────────────────────
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _quickCounts.map((c) {
-                final isSelected = c == _targetCount;
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: context.sp(4)),
-                  child: GestureDetector(
-                    onTap: () => _setTarget(c),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: context.sp(18), vertical: context.sp(8)),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? cs.primary
-                            : cs.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                    color: cs.primary.withValues(alpha: 0.3),
-                                    blurRadius: 18)
-                              ]
-                            : null,
+          // ── Tune FAB Button ───────────────────────────────────────────────
+          GestureDetector(
+            onTap: () {
+              setState(() => _chipsOpen = !_chipsOpen);
+              if (_chipsOpen) {
+                _chipsCtrl.forward();
+              } else {
+                _chipsCtrl.reverse();
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(
+                horizontal: context.sp(16),
+                vertical: context.sp(10),
+              ),
+              decoration: BoxDecoration(
+                gradient: _chipsOpen
+                    ? LinearGradient(
+                        colors: [cs.primary, cs.secondary, cs.tertiary],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      )
+                    : LinearGradient(
+                        colors: [
+                          cs.surfaceContainerHigh,
+                          cs.surfaceContainerHigh.withValues(alpha: 0.6),
+                        ],
                       ),
-                      child: Text(
-                        '${c}X',
-                        style: GoogleFonts.manrope(
-                          fontSize: context.sp(11),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                          color: isSelected
-                              ? cs.onPrimary
-                              : cs.onSurfaceVariant,
-                        ),
-                      ),
+                borderRadius: BorderRadius.circular(context.sp(20)),
+                border: Border.all(
+                  color: _chipsOpen
+                      ? cs.primary.withValues(alpha: 0.5)
+                      : cs.outlineVariant.withValues(alpha: 0.2),
+                  width: _chipsOpen ? 2 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _chipsOpen
+                        ? cs.primary.withValues(alpha: 0.25)
+                        : Colors.transparent,
+                    blurRadius: _chipsOpen ? 12 : 0,
+                    offset: Offset(0, _chipsOpen ? 4 : 0),
+                    spreadRadius: _chipsOpen ? 1 : 0,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedRotation(
+                    turns: _chipsOpen ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 220),
+                    child: Icon(
+                      Icons.tune_rounded,
+                      color: _chipsOpen ? cs.onPrimary : cs.onSurfaceVariant,
+                      size: context.sp(18),
                     ),
                   ),
-                );
-              }).toList(),
+                  SizedBox(width: context.sp(8)),
+                  Text(
+                    _chipsOpen ? 'Hide' : 'Settings',
+                    style: GoogleFonts.manrope(
+                      fontSize: context.sp(13),
+                      fontWeight: FontWeight.w600,
+                      color: _chipsOpen ? cs.onPrimary : cs.onSurfaceVariant,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
-          SizedBox(height: context.sp(10)),
+          SizedBox(height: context.sp(8)),
 
-          // ── Track switcher segmented control (equal-sized buttons) ────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final track in kAudioTracks)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: context.sp(4)),
-                  child: GestureDetector(
-                    onTap: () => _switchTrack(track),
-                    child: SizedBox(
-                      width: context.sp(95),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.sp(8),
-                          vertical: context.sp(10),
-                        ),
-                        decoration: BoxDecoration(
-                          color: track.id == _currentTrack.id
-                              ? cs.primary
-                              : cs.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: track.id == _currentTrack.id
-                              ? [
-                                  BoxShadow(
-                                    color: cs.primary.withValues(alpha: 0.3),
-                                    blurRadius: 12,
-                                  )
-                                ]
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              track.id == 'male'
-                                  ? Icons.man_rounded
-                                  : Icons.woman_rounded,
-                              color: track.id == _currentTrack.id
-                                  ? cs.onPrimary
-                                  : cs.onSurfaceVariant,
-                              size: context.sp(20),
-                            ),
-                            SizedBox(height: context.sp(4)),
-                            Text(
-                              track.id == 'male'
-                                  ? 'Male'
-                                  : 'Female',
-                              style: GoogleFonts.manrope(
-                                fontSize: context.sp(10),
-                                fontWeight: FontWeight.w600,
-                                color: track.id == _currentTrack.id
-                                    ? cs.onPrimary
-                                    : cs.onSurfaceVariant,
-                                letterSpacing: 0.2,
+          // ── Animated Chip Panel ────────────────────────────────────────────
+          ClipRect(
+            child: SizeTransition(
+              sizeFactor: _chipsAnim,
+              axisAlignment: -1.0,
+              child: FadeTransition(
+                opacity: _chipsAnim,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                  // ── Count Chips ─────────────────────────────────────────────
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: _quickCounts.map((c) {
+                      final isSelected = c == _targetCount;
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: context.sp(4)),
+                        child: GestureDetector(
+                          onTap: () => _setTarget(c),
+                          child: SizedBox(
+                            width: context.sp(76),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              padding: EdgeInsets.symmetric(
+                                vertical: context.sp(12),
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              decoration: BoxDecoration(
+                                gradient: isSelected
+                                    ? LinearGradient(
+                                        colors: [
+                                          cs.primary,
+                                          cs.secondary,
+                                          cs.tertiary
+                                        ],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                      )
+                                    : LinearGradient(
+                                        colors: [
+                                          cs.surfaceContainerHigh,
+                                          cs.surfaceContainerHigh
+                                              .withValues(alpha: 0.6),
+                                        ],
+                                      ),
+                                borderRadius: BorderRadius.circular(context.sp(16)),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? cs.primary.withValues(alpha: 0.5)
+                                      : cs.outlineVariant.withValues(alpha: 0.2),
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isSelected
+                                        ? cs.primary.withValues(alpha: 0.35)
+                                        : Colors.transparent,
+                                    blurRadius: isSelected ? 24 : 0,
+                                    offset: Offset(0, isSelected ? 8 : 0),
+                                    spreadRadius: isSelected ? 2 : 0,
+                                  ),
+                                  if (isSelected)
+                                    BoxShadow(
+                                      color: cs.primary.withValues(alpha: 0.15),
+                                      blurRadius: 12,
+                                      spreadRadius: 4,
+                                    ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${c}×',
+                                    style: GoogleFonts.notoSerif(
+                                      fontSize: context.sp(16),
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected
+                                          ? cs.onPrimary
+                                          : cs.onSurfaceVariant,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  SizedBox(height: context.sp(2)),
+                                  Text(
+                                    _getCountLabel(c),
+                                    style: GoogleFonts.manrope(
+                                      fontSize: context.sp(8),
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected
+                                          ? cs.onPrimary.withValues(alpha: 0.9)
+                                          : cs.onSurfaceVariant
+                                              .withValues(alpha: 0.6),
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      );
+                    }).toList(),
                     ),
                   ),
-                ),
-            ],
-          ),
 
-          SizedBox(height: context.sp(10)),
+                  SizedBox(height: context.sp(10)),
+
+                  // ── Track Chips ────────────────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (final track in kAudioTracks)
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: context.sp(4)),
+                          child: GestureDetector(
+                            onTap: () => _switchTrack(track),
+                            child: SizedBox(
+                              width: context.sp(76),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: context.sp(14),
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: track.id == _currentTrack.id
+                                      ? LinearGradient(
+                                          colors: [
+                                            cs.primary,
+                                            cs.secondary,
+                                            cs.tertiary
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        )
+                                      : LinearGradient(
+                                          colors: [
+                                            cs.surfaceContainerHigh,
+                                            cs.surfaceContainerHigh
+                                                .withValues(alpha: 0.5),
+                                          ],
+                                        ),
+                                  borderRadius: BorderRadius.circular(context.sp(18)),
+                                  border: Border.all(
+                                    color: track.id == _currentTrack.id
+                                        ? cs.primary.withValues(alpha: 0.6)
+                                        : cs.outlineVariant.withValues(alpha: 0.15),
+                                    width:
+                                        track.id == _currentTrack.id ? 2.5 : 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: track.id == _currentTrack.id
+                                          ? cs.primary.withValues(alpha: 0.4)
+                                          : Colors.transparent,
+                                      blurRadius:
+                                          track.id == _currentTrack.id ? 28 : 0,
+                                      offset: Offset(
+                                          0,
+                                          track.id == _currentTrack.id
+                                              ? 10
+                                              : 0),
+                                      spreadRadius:
+                                          track.id == _currentTrack.id ? 3 : 0,
+                                    ),
+                                    if (track.id == _currentTrack.id)
+                                      BoxShadow(
+                                        color: cs.primary.withValues(alpha: 0.12),
+                                        blurRadius: 16,
+                                        spreadRadius: 6,
+                                      ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    AnimatedScale(
+                                      duration:
+                                          const Duration(milliseconds: 220),
+                                      scale: track.id == _currentTrack.id
+                                          ? 1.2
+                                          : 1.0,
+                                      child: Icon(
+                                        track.id == 'male'
+                                            ? Icons.man_rounded
+                                            : Icons.woman_rounded,
+                                        color: track.id == _currentTrack.id
+                                            ? cs.onPrimary
+                                            : cs.onSurfaceVariant,
+                                        size: context.sp(24),
+                                      ),
+                                    ),
+                                    SizedBox(height: context.sp(6)),
+                                    Text(
+                                      track.id == 'male' ? 'Male' : 'Female',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: context.sp(11),
+                                        fontWeight: FontWeight.w700,
+                                        color: track.id == _currentTrack.id
+                                            ? cs.onPrimary
+                                            : cs.onSurfaceVariant,
+                                        letterSpacing: 0.5,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                    SizedBox(height: context.sp(10)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
 
           // ── Progress bar + time — isolated StreamBuilder, ~1fps ───────
           StreamBuilder<Duration>(
@@ -1535,7 +1756,14 @@ class _LangToggle extends StatelessWidget {
         width: context.sp(44),
         height: context.sp(28),
         decoration: BoxDecoration(
-          color: selected ? cs.primary : Colors.transparent,
+          gradient: selected
+              ? LinearGradient(
+                  colors: [cs.primary, cs.secondary, cs.tertiary],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          color: selected ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(context.sp(14)),
         ),
         alignment: Alignment.center,

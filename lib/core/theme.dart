@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // Sacred Manuscript Design System — Hanuman Chalisa App
-// Dark palette:  Deep Saffron (#ffb59a) · Celestial Gold (#e9c349) · Charcoal Embers (#131313)
-// Light palette: Deep Saffron (#a83900) · Dark Gold (#7a5800) · Warm White (#fff8f5)
+// Dark palette:  Deep Saffron (#ffb59a) · Vibrant Orange (#FF9500) · Charcoal Embers (#131313)
+// Light palette: Deep Saffron (#a83900) · Burnt Orange (#CC5200) · Warm White (#fff8f5)
 
 // ── Dark palette ───────────────────────────────────────────────────────────────
 const _darkPrimary = Color(0xFFFFB59A);
-const _darkSecondary = Color(0xFFE9C349);
-const _darkTertiary = Color(0xFFFFBA38);
+const _darkSecondary = Color(0xFFFF9500);
+const _darkTertiary = Color(0xFFFFA726);
 const _darkPrimaryContainer = Color(0xFFF95E14);
 
 // ── Light palette ──────────────────────────────────────────────────────────────
 const _lightPrimary = Color(0xFFA83900);
-const _lightSecondary = Color(0xFF7A5800);
-const _lightTertiary = Color(0xFF815500);
+const _lightSecondary = Color(0xFFCC5200);
+const _lightTertiary = Color(0xFFD97000);
 const _lightPrimaryContainer = Color(0xFFFFDBCC);
 
 final _textTheme = TextTheme(
@@ -44,13 +44,13 @@ final darkTheme = ThemeData(
     primaryContainer: _darkPrimaryContainer,
     onPrimaryContainer: Color(0xFF4F1700),
     secondary: _darkSecondary,
-    onSecondary: Color(0xFF3C2F00),
-    secondaryContainer: Color(0xFFAF8D11),
-    onSecondaryContainer: Color(0xFF342800),
+    onSecondary: Color(0xFF5D2E00),
+    secondaryContainer: Color(0xFFE07040),
+    onSecondaryContainer: Color(0xFF3D1600),
     tertiary: _darkTertiary,
-    onTertiary: Color(0xFF432C00),
-    tertiaryContainer: Color(0xFFC08600),
-    onTertiaryContainer: Color(0xFF3A2600),
+    onTertiary: Color(0xFF5D3300),
+    tertiaryContainer: Color(0xFFF0925D),
+    onTertiaryContainer: Color(0xFF471E00),
     error: Color(0xFFFFB4AB),
     onError: Color(0xFF690005),
     surface: Color(0xFF131313),
@@ -95,12 +95,12 @@ final lightTheme = ThemeData(
     onPrimaryContainer: Color(0xFF370E00),
     secondary: _lightSecondary,
     onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFFFDFA5),
-    onSecondaryContainer: Color(0xFF271900),
+    secondaryContainer: Color(0xFFFFDCC8),
+    onSecondaryContainer: Color(0xFF4A1800),
     tertiary: _lightTertiary,
     onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFFFFDDB0),
-    onTertiaryContainer: Color(0xFF291700),
+    tertiaryContainer: Color(0xFFFFE1C9),
+    onTertiaryContainer: Color(0xFF5D2600),
     error: Color(0xFFBA1A1A),
     onError: Color(0xFFFFFFFF),
     surface: Color(0xFFFFF8F5),
