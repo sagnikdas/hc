@@ -288,6 +288,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildReminderSection(context, cs),
                       SizedBox(height: context.sp(20)),
                       _buildInviteSection(context, cs),
+                      SizedBox(height: context.sp(20)),
+                      _buildCreditsSection(context, cs),
                       // Spacer matches CTA container height: sp(20+58+24) + safe area.
                       SizedBox(height: MediaQuery.of(context).padding.bottom + context.sp(120)),
                     ],
@@ -526,6 +528,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               Icon(Icons.share_rounded,
+                  color: cs.primary, size: context.sp(20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Credits & Attribution ─────────────────────────────────────────────────
+
+  Widget _buildCreditsSection(BuildContext context, ColorScheme cs) {
+    return Material(
+      color: cs.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(context.sp(16)),
+      child: InkWell(
+        onTap: () {
+          // Could open a full credits screen or open attributions
+          showModalBottomSheet(
+            context: context,
+            builder: (_) => _CreditsBottomSheet(cs: cs),
+            backgroundColor: cs.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(context.sp(24))),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(context.sp(16)),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: context.sp(16), vertical: context.sp(14)),
+          child: Row(
+            children: [
+              Container(
+                width: context.sp(38),
+                height: context.sp(38),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: cs.surfaceContainerHigh,
+                ),
+                child: Icon(Icons.info_rounded,
+                    color: cs.primary, size: context.sp(18)),
+              ),
+              SizedBox(width: context.sp(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Credits & Attribution',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(13),
+                          fontWeight: FontWeight.w500,
+                          color: cs.onSurface),
+                    ),
+                    Text(
+                      'Audio recordings & contributors',
+                      style: GoogleFonts.manrope(
+                          fontSize: context.sp(10), color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
                   color: cs.primary, size: context.sp(20)),
             ],
           ),
@@ -1114,6 +1180,241 @@ class _ToggleRow extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeThumbColor: cs.primary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreditsBottomSheet extends StatelessWidget {
+  final ColorScheme cs;
+
+  const _CreditsBottomSheet({required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          context.sp(24),
+          context.sp(24),
+          context.sp(24),
+          context.sp(32) + MediaQuery.of(context).padding.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Text(
+              'Credits & Attribution',
+              style: GoogleFonts.notoSerif(
+                fontSize: context.sp(20),
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+            SizedBox(height: context.sp(6)),
+            Text(
+              'Jai Hanuman! Meet the voices behind this sacred app.',
+              style: GoogleFonts.manrope(
+                fontSize: context.sp(12),
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(height: context.sp(24)),
+
+            // Audio Credits Section
+            Text(
+              'AUDIO RECORDINGS',
+              style: GoogleFonts.manrope(
+                fontSize: context.sp(10),
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
+              ),
+            ),
+            SizedBox(height: context.sp(12)),
+            _buildArtistCard(
+              context,
+              name: 'Hari Haran',
+              role: 'Vocalist & Composer',
+              description:
+                  'Classical Indian musician specializing in devotional music (bhajans & kirtans). Performer of the Traditional Devotional rendition (9+ min).',
+            ),
+            SizedBox(height: context.sp(20)),
+
+            // Attributions
+            Text(
+              'FULL ATTRIBUTIONS',
+              style: GoogleFonts.manrope(
+                fontSize: context.sp(10),
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
+              ),
+            ),
+            SizedBox(height: context.sp(12)),
+            Material(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(context.sp(12)),
+              child: InkWell(
+                onTap: () {
+                  // Could open the ATTRIBUTIONS.md file in a webview or text viewer
+                  // For now, just show a simple message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'See ATTRIBUTIONS.md in our GitHub repository for complete details.',
+                        style: GoogleFonts.manrope(),
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(context.sp(12)),
+                child: Padding(
+                  padding: EdgeInsets.all(context.sp(14)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.description_rounded, color: cs.primary),
+                      SizedBox(width: context.sp(12)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ATTRIBUTIONS.md',
+                              style: GoogleFonts.manrope(
+                                fontSize: context.sp(12),
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurface,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              'Complete credits, licenses & contributor info',
+                              style: GoogleFonts.manrope(
+                                fontSize: context.sp(10),
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_outward_rounded,
+                          size: context.sp(18), color: cs.primary),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: context.sp(20)),
+
+            // Privacy Notice
+            Container(
+              padding: EdgeInsets.all(context.sp(14)),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(context.sp(12)),
+                border: Border.all(
+                  color: cs.outlineVariant.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.privacy_tip_rounded,
+                          size: context.sp(16), color: cs.primary),
+                      SizedBox(width: context.sp(8)),
+                      Text(
+                        'Privacy & Rights',
+                        style: GoogleFonts.manrope(
+                          fontSize: context.sp(12),
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: context.sp(8)),
+                  Text(
+                    'All audio recordings are copyrighted by their respective artists and rights holders. See our Privacy Policy for details on how we respect intellectual property.',
+                    style: GoogleFonts.manrope(
+                      fontSize: context.sp(11),
+                      color: cs.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: context.sp(24)),
+
+            // Close button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: cs.primary.withValues(alpha: 0.1),
+                  foregroundColor: cs.primary,
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Close',
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w600,
+                    fontSize: context.sp(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArtistCard(BuildContext context,
+      {required String name, required String role, required String description}) {
+    return Container(
+      padding: EdgeInsets.all(context.sp(14)),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(context.sp(12)),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.2), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            name,
+            style: GoogleFonts.notoSerif(
+              fontSize: context.sp(14),
+              fontWeight: FontWeight.w700,
+              color: cs.primary,
+            ),
+          ),
+          SizedBox(height: context.sp(2)),
+          Text(
+            role,
+            style: GoogleFonts.manrope(
+              fontSize: context.sp(11),
+              color: cs.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          SizedBox(height: context.sp(8)),
+          Text(
+            description,
+            style: GoogleFonts.manrope(
+              fontSize: context.sp(11),
+              color: cs.onSurfaceVariant,
+              height: 1.5,
+            ),
           ),
         ],
       ),

@@ -225,6 +225,17 @@ class _TrackCard extends StatelessWidget {
                       fontSize: context.sp(12),
                     ),
                   ),
+                  if (track.credit.isNotEmpty) ...[
+                    SizedBox(height: context.sp(4)),
+                    Text(
+                      track.credit,
+                      style: GoogleFonts.manrope(
+                        color: cs.onSurfaceVariant,
+                        fontSize: context.sp(11),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
