@@ -83,7 +83,7 @@ class _RecitationScreenState extends State<RecitationScreen> {
           ),
           Expanded(
             child: Text(
-              'Voice Recitation',
+              'Hanuman Chalisa Lyrics',
               textAlign: TextAlign.center,
               style: GoogleFonts.notoSerif(
                 fontSize: context.sp(19),
@@ -157,7 +157,7 @@ class _RecitationScreenState extends State<RecitationScreen> {
                     : GoogleFonts.notoSerif)(
               fontSize: context.sp(17),
               fontWeight: FontWeight.w400,
-              color: cs.onSurface.withValues(alpha: 0.88),
+              color: cs.secondary,
               height: 1.55,
             ),
           ),

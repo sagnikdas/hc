@@ -173,8 +173,7 @@ void main() {
       _portraitView(tester);
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
-      expect(find.text('Traditional Devotional'), findsOneWidget);
-      expect(find.text('Voice Recitation'), findsOneWidget);
+      expect(find.text('Hanuman Chalisa Lyrics'), findsOneWidget);
       expect(find.text('Sacred Chant'), findsOneWidget);
     });
 
@@ -182,8 +181,7 @@ void main() {
       _portraitView(tester);
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.surround_sound_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.record_voice_over_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.lyrics_rounded), findsOneWidget);
     });
 
     testWidgets('menu icon is present', (tester) async {
@@ -317,18 +315,7 @@ void main() {
   // ── 4. Sacred Melodies navigation ─────────────────────────────────────────
 
   group('sacred melodies navigation', () {
-    testWidgets('tapping Hanuman Chalisa tile pushes a route', (tester) async {
-      _portraitView(tester);
-      final observer = _MockNavigatorObserver();
-      await tester.pumpWidget(_wrap(observers: [observer]));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Traditional Devotional'));
-      await tester.pump();
-      verify(() => observer.didPush(any(), any()))
-          .called(greaterThanOrEqualTo(1));
-    });
-
-    testWidgets('tapping Voice Recitation tile pushes a route', (tester) async {
+    testWidgets('tapping Hanuman Chalisa Lyrics tile pushes a route', (tester) async {
       _portraitView(tester);
       final observer = _MockNavigatorObserver();
       await tester.pumpWidget(_wrap(observers: [observer]));
@@ -339,23 +326,12 @@ void main() {
           .called(greaterThanOrEqualTo(1));
     });
 
-    testWidgets('tapping the surround_sound icon navigates', (tester) async {
+    testWidgets('tapping the lyrics icon navigates', (tester) async {
       _portraitView(tester);
       final observer = _MockNavigatorObserver();
       await tester.pumpWidget(_wrap(observers: [observer]));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.surround_sound_rounded));
-      await tester.pump();
-      verify(() => observer.didPush(any(), any()))
-          .called(greaterThanOrEqualTo(1));
-    });
-
-    testWidgets('tapping the record_voice icon navigates', (tester) async {
-      _portraitView(tester);
-      final observer = _MockNavigatorObserver();
-      await tester.pumpWidget(_wrap(observers: [observer]));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.record_voice_over_rounded));
+      await tester.tap(find.byIcon(Icons.lyrics_rounded));
       await tester.pump();
       verify(() => observer.didPush(any(), any()))
           .called(greaterThanOrEqualTo(1));
@@ -672,7 +648,7 @@ void main() {
         // Core sections must be present on every screen size.
         expect(find.text("TODAY'S SANKALPA"), findsOneWidget);
         expect(find.text('Sacred Melodies'), findsOneWidget);
-        expect(find.text('Voice Recitation'), findsOneWidget);
+        expect(find.text('Hanuman Chalisa Lyrics'), findsOneWidget);
       });
     }
   });

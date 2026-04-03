@@ -367,9 +367,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final tracks = [
       (
         asset: '',
-        title: 'Voice Recitation',
+        title: 'Hanuman Chalisa Lyrics',
         subtitle: 'Sacred Chant',
-        icon: Icons.record_voice_over_rounded,
+        icon: Icons.lyrics_rounded,
         isRecitation: true,
       ),
     ];

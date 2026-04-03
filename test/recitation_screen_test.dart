@@ -83,11 +83,11 @@ void main() {
   // ── 1. Initial render ──────────────────────────────────────────────────────
 
   group('initial render', () {
-    testWidgets('screen title is Voice Recitation', (tester) async {
+    testWidgets('screen title is Hanuman Chalisa Lyrics', (tester) async {
       _portraitView(tester);
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
-      expect(find.text('Voice Recitation'), findsOneWidget);
+      expect(find.text('Hanuman Chalisa Lyrics'), findsOneWidget);
     });
 
     testWidgets('back button is present', (tester) async {
@@ -276,11 +276,11 @@ void main() {
       // Open RecitationScreen.
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      expect(find.text('Voice Recitation'), findsOneWidget);
+      expect(find.text('Hanuman Chalisa Lyrics'), findsOneWidget);
       // Tap back.
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await tester.pumpAndSettle();
-      expect(find.text('Voice Recitation'), findsNothing);
+      expect(find.text('Hanuman Chalisa Lyrics'), findsNothing);
       verify(() => observer.didPop(any(), any()))
           .called(greaterThanOrEqualTo(1));
     });
@@ -346,7 +346,7 @@ void main() {
       // The errorBuilder should silently swallow the error.
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
-      expect(find.text('Voice Recitation'), findsOneWidget);
+      expect(find.text('Hanuman Chalisa Lyrics'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
