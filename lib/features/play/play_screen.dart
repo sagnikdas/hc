@@ -14,7 +14,6 @@ import '../../data/models/audio_track.dart';
 import '../../data/models/user_settings.dart';
 
 class PlayScreen extends StatefulWidget {
-  final String? initialVoice;
   final String? initialTrackId;
 
   /// When true (e.g. opened from a reminder tap), start playback from the
@@ -30,7 +29,6 @@ class PlayScreen extends StatefulWidget {
   final bool debugChipsOpen;
   const PlayScreen({
     super.key,
-    this.initialVoice,
     this.initialTrackId,
     this.beginPaathImmediately = false,
     this.debugMilestones,
@@ -80,7 +78,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _currentTrack = trackById(widget.initialTrackId ?? widget.initialVoice);
+    _currentTrack = trackById(widget.initialTrackId);
     // Defer to avoid setState-during-build on the parent MainShell.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       isPlayScreenOpen.value = true;
@@ -205,51 +203,6 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     await audioHandler!.seek(Duration.zero);
     await audioHandler!.play();
     if (mounted) setState(() {});
-  }
-
-  Future<void> _showTrackPicker() async {
-    final cs = Theme.of(context).colorScheme;
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: cs.surfaceContainerLow,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(ctx.sp(20), ctx.sp(16), ctx.sp(20), ctx.sp(20)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Choose Recitation',
-                  style: GoogleFonts.notoSerif(
-                    color: cs.onSurface,
-                    fontSize: ctx.sp(18),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: ctx.sp(16)),
-                for (final track in kAudioTracks) ...[
-                  _TrackPickerTile(
-                    track: track,
-                    selected: track.id == _currentTrack.id,
-                    cs: cs,
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _switchTrack(track);
-                    },
-                  ),
-                  SizedBox(height: ctx.sp(8)),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _onPlayerState(PlayerState state) {
@@ -1480,81 +1433,6 @@ class _SpeedButton extends StatelessWidget {
             color: cs.onPrimary,
             letterSpacing: 0.3,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Track picker tile (used inside modal bottom sheet) ─────────────────────────
-class _TrackPickerTile extends StatelessWidget {
-  final AudioTrack track;
-  final bool selected;
-  final ColorScheme cs;
-  final VoidCallback onTap;
-
-  const _TrackPickerTile({
-    required this.track,
-    required this.selected,
-    required this.cs,
-    required this.onTap,
-  });
-
-  static const _icons = {
-    'male': Icons.record_voice_over_rounded,
-    'female': Icons.mic_rounded,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final borderColor = selected ? cs.primary : cs.outlineVariant;
-    final bgColor = selected
-        ? cs.primary.withValues(alpha: 0.08)
-        : cs.surfaceContainerLow;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: context.sp(14), vertical: context.sp(12)),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(context.sp(12)),
-          border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _icons[track.id] ?? Icons.music_note_rounded,
-              color: selected ? cs.primary : cs.onSurfaceVariant,
-              size: context.sp(20),
-            ),
-            SizedBox(width: context.sp(12)),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    track.name,
-                    style: GoogleFonts.notoSerif(
-                      color: selected ? cs.primary : cs.onSurface,
-                      fontSize: context.sp(14),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    track.description,
-                    style: GoogleFonts.manrope(
-                      color: cs.onSurfaceVariant,
-                      fontSize: context.sp(12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (selected)
-              Icon(Icons.check_circle_rounded, color: cs.primary, size: context.sp(20)),
-          ],
         ),
       ),
     );

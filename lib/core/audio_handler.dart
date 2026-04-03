@@ -176,7 +176,7 @@ class HanumanAudioHandler extends BaseAudioHandler with SeekHandler {
     if (current != null) {
       final speedText = _player.speed != 1.0 ? ' (${_player.speed.toStringAsFixed(2)}x)' : '';
       final countText = _completionCount > 0 ? ' • $_completionCount completed' : '';
-      final newSubtitle = 'Traditional Devotional$speedText$countText';
+      final newSubtitle = 'Hanuman Chalisa$speedText$countText';
       final updated = current.copyWith(displaySubtitle: newSubtitle);
       mediaItem.add(updated);
       // Also update queue to reflect changes

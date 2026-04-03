@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,15 +14,6 @@ import 'package:hanuman_chalisa_app/core/theme.dart';
 import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
 import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
 import 'package:hanuman_chalisa_app/features/onboarding/onboarding_screen.dart';
-
-// ── Fakes / mocks ──────────────────────────────────────────────────────────────
-
-class _MockUser extends Mock implements User {
-  @override
-  String get id => 'onboarding-user-id';
-}
-
-final _testUser = _MockUser();
 
 // ── DB helpers ─────────────────────────────────────────────────────────────────
 

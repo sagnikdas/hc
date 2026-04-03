@@ -7,9 +7,13 @@ import '../data/models/play_session.dart';
 final supabase = Supabase.instance.client;
 
 class SupabaseService {
-  static final _googleSignIn = GoogleSignIn(
-    serverClientId: kGoogleWebClientId,
-  );
+  static bool _googleInitialized = false;
+
+  static Future<void> _initGoogleSignIn() async {
+    if (_googleInitialized) return;
+    _googleInitialized = true;
+    await GoogleSignIn.instance.initialize(serverClientId: kGoogleWebClientId);
+  }
 
   // ── Auth ─────────────────────────────────────────────────────────────────
 
@@ -44,6 +48,7 @@ class SupabaseService {
     signInForTest = null;
     fetchLeaderboardForTest = null;
     upsertProfileForTest = null;
+    _googleInitialized = false;
   }
 
   // ── Auth ─────────────────────────────────────────────────────────────────
@@ -65,11 +70,17 @@ class SupabaseService {
       );
     }
 
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) return; // user cancelled
+    await _initGoogleSignIn();
 
-    final googleAuth = await googleUser.authentication;
-    final idToken = googleAuth.idToken;
+    final GoogleSignInAccount googleUser;
+    try {
+      googleUser = await GoogleSignIn.instance.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return; // user cancelled
+      rethrow;
+    }
+
+    final idToken = googleUser.authentication.idToken;
     if (idToken == null) {
       throw StateError(
         'Google did not return an id_token. Use the Web application OAuth '
@@ -82,7 +93,6 @@ class SupabaseService {
       await supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
-        accessToken: googleAuth.accessToken,
       );
     } on AuthException catch (e) {
       debugPrint('Supabase signInWithIdToken: ${e.message}');
@@ -100,7 +110,7 @@ class SupabaseService {
   }
 
   static Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    await GoogleSignIn.instance.signOut();
     await supabase.auth.signOut();
   }
 

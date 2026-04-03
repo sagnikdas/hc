@@ -32,11 +32,11 @@ AppRepository _freshRepo() {
   return repo;
 }
 
-Widget _wrap({String? initialVoice}) => MaterialApp(
+Widget _wrap({String? initialTrackId}) => MaterialApp(
       theme: darkTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.dark,
-      home: PlayScreen(initialVoice: initialVoice),
+      home: PlayScreen(initialTrackId: initialTrackId),
     );
 
 void main() {
@@ -80,8 +80,8 @@ void main() {
     if (!positionCtrl.isClosed) positionCtrl.close();
   });
 
-  Future<void> pump(WidgetTester tester, {String? initialVoice}) async {
-    await tester.pumpWidget(_wrap(initialVoice: initialVoice));
+  Future<void> pump(WidgetTester tester, {String? initialTrackId}) async {
+    await tester.pumpWidget(_wrap(initialTrackId: initialTrackId));
     await tester.pump();
     await tester.pump();
   }
@@ -108,9 +108,9 @@ void main() {
       verify(() => handler.play()).called(1);
     });
 
-    testWidgets('uses initialVoice track id when provided', (tester) async {
+    testWidgets('uses initialTrackId when provided', (tester) async {
       const voice = 'male';
-      await pump(tester, initialVoice: voice);
+      await pump(tester, initialTrackId: voice);
       final captured = verify(() => handler.loadVoice(captureAny())).captured;
       expect(captured.last, 'assets/audio/hc_male_final.mp3');
     });
@@ -125,7 +125,7 @@ void main() {
     testWidgets('reloads and plays when loaded audio does not match selected track', (tester) async {
       when(() => handler.duration).thenReturn(const Duration(minutes: 10));
       when(() => handler.currentAssetPath).thenReturn('assets/audio/hc_female_final.mp3');
-      await pump(tester, initialVoice: 'male');
+      await pump(tester, initialTrackId: 'male');
       verify(() => handler.loadVoice('assets/audio/hc_male_final.mp3')).called(1);
       verify(() => handler.play()).called(1);
     });

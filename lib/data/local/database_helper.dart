@@ -45,7 +45,6 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE user_settings (
         id INTEGER PRIMARY KEY,
-        target_count INTEGER NOT NULL DEFAULT 11,
         haptic_enabled INTEGER NOT NULL DEFAULT 1,
         continuous_play INTEGER NOT NULL DEFAULT 0,
         referral_code TEXT,
@@ -70,7 +69,6 @@ class DatabaseHelper {
     ''');
     await db.insert('user_settings', {
       'id': 1,
-      'target_count': 11,
       'haptic_enabled': 1,
       'continuous_play': 0,
       'referral_code': null,

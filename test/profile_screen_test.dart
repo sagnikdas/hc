@@ -28,8 +28,6 @@ import 'package:hanuman_chalisa_app/features/profile/profile_screen.dart';
 
 // ── Fakes / mocks ─────────────────────────────────────────────────────────────
 
-class _MockNavigatorObserver extends Mock implements NavigatorObserver {}
-
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
 int _dbUid = 0;

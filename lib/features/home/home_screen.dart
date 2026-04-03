@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openPlay({String? assetPath}) {
     Navigator.of(context)
-        .push(slideUpRoute(PlayScreen(initialVoice: assetPath)))
+        .push(slideUpRoute(PlayScreen(initialTrackId: assetPath)))
         .then((_) => _loadStats());
   }
 
