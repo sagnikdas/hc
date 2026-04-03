@@ -84,8 +84,6 @@ We may update this Privacy Policy periodically. We will notify you of significan
 If you have questions about this Privacy Policy or our privacy practices, please contact us at:
 
 **Email**: sagnikd91@gmail.com  
-**GitHub Issues**: [Link to your repo's Issues tab]  
-**Repository**: [Link to your GitHub repo]
 
 ---
 
