@@ -62,7 +62,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   void _onTabChange() {
-    if (!_tabs.indexIsChanging) return;
+    // Don't check indexIsChanging - just load immediately when index changes
     _load(weekly: _tabs.index == 0);
   }
 
@@ -71,6 +71,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     setState(() {
       _loading = true;
       _offline = false;
+      _entries = [];
     });
     try {
       final data = await SupabaseService.fetchLeaderboard(weekly: weekly);
