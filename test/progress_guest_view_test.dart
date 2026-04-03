@@ -22,13 +22,13 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:hanuman_chalisa/core/supabase_service.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/data/local/database_helper.dart';
-import 'package:hanuman_chalisa/data/models/play_session.dart';
-import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
-import 'package:hanuman_chalisa/features/auth/sign_in_screen.dart';
-import 'package:hanuman_chalisa/features/progress/progress_screen.dart';
+import 'package:hanuman_chalisa_app/core/supabase_service.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
+import 'package:hanuman_chalisa_app/data/models/play_session.dart';
+import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
+import 'package:hanuman_chalisa_app/features/auth/sign_in_screen.dart';
+import 'package:hanuman_chalisa_app/features/progress/progress_screen.dart';
 
 // ── Mock user ─────────────────────────────────────────────────────────────────
 

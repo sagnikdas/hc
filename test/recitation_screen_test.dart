@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:hanuman_chalisa/core/lyrics_service.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/features/recitation/recitation_screen.dart';
+import 'package:hanuman_chalisa_app/core/lyrics_service.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/features/recitation/recitation_screen.dart';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 

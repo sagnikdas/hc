@@ -15,14 +15,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:hanuman_chalisa/core/font_scale_notifier.dart';
-import 'package:hanuman_chalisa/core/main_shell.dart';
-import 'package:hanuman_chalisa/core/reminder_navigation.dart';
-import 'package:hanuman_chalisa/core/supabase_service.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
-import 'package:hanuman_chalisa/data/models/user_settings.dart';
-import 'package:hanuman_chalisa/main.dart' show audioHandlerNotifier, isPlayScreenOpen;
+import 'package:hanuman_chalisa_app/core/font_scale_notifier.dart';
+import 'package:hanuman_chalisa_app/core/main_shell.dart';
+import 'package:hanuman_chalisa_app/core/reminder_navigation.dart';
+import 'package:hanuman_chalisa_app/core/supabase_service.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
+import 'package:hanuman_chalisa_app/data/models/user_settings.dart';
+import 'package:hanuman_chalisa_app/main.dart' show audioHandlerNotifier, isPlayScreenOpen;
 
 // ---------------------------------------------------------------------------
 // Helpers

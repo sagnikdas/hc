@@ -10,12 +10,12 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:hanuman_chalisa/core/supabase_service.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/data/local/database_helper.dart';
-import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
-import 'package:hanuman_chalisa/features/leaderboard/leaderboard_screen.dart';
-import 'package:hanuman_chalisa/main.dart' show isPlayScreenOpen;
+import 'package:hanuman_chalisa_app/core/supabase_service.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
+import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
+import 'package:hanuman_chalisa_app/features/leaderboard/leaderboard_screen.dart';
+import 'package:hanuman_chalisa_app/main.dart' show isPlayScreenOpen;
 
 // ── Mock user ─────────────────────────────────────────────────────────────────
 //

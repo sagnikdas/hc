@@ -21,14 +21,14 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:hanuman_chalisa/core/supabase_service.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/data/local/database_helper.dart';
-import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
-import 'package:hanuman_chalisa/data/models/user_settings.dart';
-import 'package:hanuman_chalisa/features/onboarding/onboarding_screen.dart';
-import 'package:hanuman_chalisa/main.dart' show audioHandlerNotifier, isPlayScreenOpen;
-import 'package:hanuman_chalisa/core/font_scale_notifier.dart';
+import 'package:hanuman_chalisa_app/core/supabase_service.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
+import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
+import 'package:hanuman_chalisa_app/data/models/user_settings.dart';
+import 'package:hanuman_chalisa_app/features/onboarding/onboarding_screen.dart';
+import 'package:hanuman_chalisa_app/main.dart' show audioHandlerNotifier, isPlayScreenOpen;
+import 'package:hanuman_chalisa_app/core/font_scale_notifier.dart';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -340,7 +340,8 @@ void main() {
       await tester.tap(find.text('Continue with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Sign-in failed'), findsOneWidget);
+      // In debug mode, kDebugMode is true, so the full exception is shown
+      expect(find.textContaining('auth/network-error'), findsOneWidget);
     });
 
     testWidgets('StateError message is shown verbatim (config errors)',

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
-import 'package:hanuman_chalisa/data/local/database_helper.dart';
-import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
-import 'package:hanuman_chalisa/data/models/play_session.dart';
+import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
+import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
+import 'package:hanuman_chalisa_app/data/models/play_session.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers

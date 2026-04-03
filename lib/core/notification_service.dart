@@ -55,8 +55,9 @@ class NotificationService {
       requestSoundPermission: false,
     );
     await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: ios),
+      settings: const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: _onNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse: _onNotificationResponse,
     );
     _initialized = true;
   }
@@ -238,14 +239,12 @@ class NotificationService {
     );
 
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledDate,
-      details,
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       payload: paathReminderPayload,
     );
   }
@@ -254,8 +253,8 @@ class NotificationService {
 
   static Future<void> _cancelReminders() async {
     for (int i = 0; i < 7; i++) {
-      await _plugin.cancel(_morningBaseId + i);
-      await _plugin.cancel(_eveningBaseId + i);
+      await _plugin.cancel(id: _morningBaseId + i);
+      await _plugin.cancel(id: _eveningBaseId + i);
     }
   }
 

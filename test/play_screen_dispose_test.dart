@@ -10,11 +10,11 @@ import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:hanuman_chalisa/core/audio_handler.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/data/local/database_helper.dart';
-import 'package:hanuman_chalisa/features/play/play_screen.dart';
-import 'package:hanuman_chalisa/main.dart' show audioHandlerNotifier, isPlayScreenOpen;
+import 'package:hanuman_chalisa_app/core/audio_handler.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
+import 'package:hanuman_chalisa_app/features/play/play_screen.dart';
+import 'package:hanuman_chalisa_app/main.dart' show audioHandlerNotifier, isPlayScreenOpen;
 
 class MockHanumanAudioHandler extends Mock implements HanumanAudioHandler {}
 

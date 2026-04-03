@@ -10,11 +10,11 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:hanuman_chalisa/core/supabase_service.dart';
-import 'package:hanuman_chalisa/core/theme.dart';
-import 'package:hanuman_chalisa/data/local/database_helper.dart';
-import 'package:hanuman_chalisa/data/repositories/app_repository.dart';
-import 'package:hanuman_chalisa/features/onboarding/onboarding_screen.dart';
+import 'package:hanuman_chalisa_app/core/supabase_service.dart';
+import 'package:hanuman_chalisa_app/core/theme.dart';
+import 'package:hanuman_chalisa_app/data/local/database_helper.dart';
+import 'package:hanuman_chalisa_app/data/repositories/app_repository.dart';
+import 'package:hanuman_chalisa_app/features/onboarding/onboarding_screen.dart';
 
 // ── Fakes / mocks ──────────────────────────────────────────────────────────────
 
@@ -134,7 +134,8 @@ void main() {
     await tester.tap(find.text('Continue with Google'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Sign-in failed'), findsOneWidget);
+    // In debug mode, kDebugMode is true, so the full exception is shown
+    expect(find.textContaining('network timeout'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
   });
 
